@@ -1041,13 +1041,28 @@ export default function TransportesAppPage() {
     setSelectedVehiculo(null);
     setSelectedParada(null);
     setCameraMode("overview");
-  }, []);
+    // Elegir una línea desde el rail es exploración: si veníamos de Viaje lo
+    // cerramos para que se vea el recorrido (el highlight del viaje pisaría el
+    // de la línea porque isTripMode los separa). El viaje queda conservado.
+    // Solo al elegir (no al limpiar): el botón maestro del rail también limpia.
+    if (isTripMode && lineaId) {
+      setIsTripMode(false);
+      setTripViewVisible(false);
+      setSelectedStepId(null);
+    }
+  }, [isTripMode]);
 
   const handleSelectRamal = useCallback((ramalId: string | null) => {
     setSelectedRamalId(ramalId);
     setSelectedVehiculo(null);
     setSelectedParada(null);
-  }, []);
+    if (isTripMode && ramalId) {
+      setIsTripMode(false);
+      setTripViewVisible(false);
+      setSelectedStepId(null);
+      setCameraMode("overview");
+    }
+  }, [isTripMode]);
 
   const handleBusSelect = useCallback((pos: VehiclePosition | null) => {
     if (!pos) {
@@ -1249,17 +1264,17 @@ export default function TransportesAppPage() {
             )}
           </div>
 
-          {/* Selector Vertical Jerárquico de Líneas (visible cuando no estamos en modo Viaje) */}
-          {!isTripMode && (
-            <LineSelectorBar
-              lineas={lineas}
-              selectedLineaId={selectedLineaId}
-              selectedRamalId={selectedRamalId}
-              onSelectLinea={handleSelectLinea}
-              onSelectRamal={handleSelectRamal}
-              hasTopPill={hasActivePill}
-            />
-          )}
+          {/* Selector Vertical Jerárquico de Líneas: visible en mapa normal y
+              también en Modo Viaje (el rail baja para no chocar con el header). */}
+          <LineSelectorBar
+            lineas={lineas}
+            selectedLineaId={selectedLineaId}
+            selectedRamalId={selectedRamalId}
+            onSelectLinea={handleSelectLinea}
+            onSelectRamal={handleSelectRamal}
+            hasTopPill={hasActivePill}
+            tripMode={isTripMode}
+          />
 
           {/* Canvas de Mapa MapLibre WebGL — capa fija, sin reflow del header */}
           <div className="absolute inset-0 z-0 overflow-hidden">

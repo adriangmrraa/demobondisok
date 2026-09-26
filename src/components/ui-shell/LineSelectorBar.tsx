@@ -11,6 +11,8 @@ interface LineSelectorBarProps {
   onSelectLinea: (lineaId: string | null) => void;
   onSelectRamal?: (ramalId: string | null) => void;
   hasTopPill?: boolean;
+  /** En Modo Viaje el header es más alto: el rail baja para no quedar tapado. */
+  tripMode?: boolean;
 }
 
 export function getRamalLetter(ramal: RamalDefinition): string {
@@ -38,6 +40,7 @@ export default function LineSelectorBar({
   onSelectLinea,
   onSelectRamal,
   hasTopPill = false,
+  tripMode = false,
 }: LineSelectorBarProps) {
   // 1. Estado predeterminado: por defecto NO desplegado (únicamente botón superior visible)
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
@@ -59,14 +62,20 @@ export default function LineSelectorBar({
 
   if (lineas.length <= 1) return null;
 
+  // Offset del rail: en Modo Viaje espeja los controles flotantes de la derecha
+  // (que ya se corren para no quedar bajo el header de viaje), así no se taponean.
+  const topClass = tripMode
+    ? hasTopPill
+      ? "top-[calc(max(14px,env(safe-area-inset-top))+250px)]"
+      : "top-[calc(max(14px,env(safe-area-inset-top))+184px)]"
+    : hasTopPill
+      ? "top-[calc(max(14px,env(safe-area-inset-top))+126px)]"
+      : "top-[calc(max(14px,env(safe-area-inset-top))+62px)]";
+
   return (
     <aside
       aria-label="Selector jerárquico de líneas y ramales"
-      className={`absolute left-2 z-25 flex flex-col items-start gap-2.5 pointer-events-auto max-h-[calc(100dvh-200px)] overflow-y-auto no-scrollbar p-2 transition-all duration-300 ease-out ${
-        hasTopPill
-          ? "top-[calc(max(14px,env(safe-area-inset-top))+126px)]"
-          : "top-[calc(max(14px,env(safe-area-inset-top))+62px)]"
-      }`}
+      className={`absolute left-2 z-25 flex flex-col items-start gap-2.5 pointer-events-auto max-h-[calc(100dvh-200px)] overflow-y-auto no-scrollbar p-2 transition-all duration-300 ease-out ${topClass}`}
     >
       {/* 2. Botón superior izquierdo (Interruptor Maestro de Doble Vía):
           - Desde estado limpio: despliega ÚNICAMENTE la lista con las líneas disponibles.
