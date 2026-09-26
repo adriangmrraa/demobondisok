@@ -6,7 +6,8 @@ export type CameraMode =
   | 'follow-user'
   | 'follow-vehicle'
   | 'follow-trip'
-  | 'navigation-vehicle';
+  | 'navigation-vehicle'
+  | 'step-focus';
 
 export interface VehicleCameraFrame {
   center: [number, number];
@@ -54,4 +55,22 @@ export function vehicleCameraFrame(
     pitch: 52,
     bearing: position.heading,
   };
+}
+
+/**
+ * Rumbo (0-360° horario desde el norte) de la cuerda `coords[0] -> coords[last]`.
+ * Se usa para inclinar la cámara 3D en la dirección de avance de un segmento.
+ * `coords` usa el orden [lng, lat] (convención GeoJSON de este proyecto).
+ * Devuelve 0 con menos de 2 puntos o geometría degenerada.
+ */
+export function segmentBearing(coords: [number, number][]): number {
+  if (coords.length < 2) return 0;
+  const [startLng, startLat] = coords[0];
+  const [endLng, endLat] = coords[coords.length - 1];
+  const midLatRad = ((startLat + endLat) / 2) * (Math.PI / 180);
+  const dLat = endLat - startLat;
+  const dLng = (endLng - startLng) * Math.cos(midLatRad);
+  if (dLat === 0 && dLng === 0) return 0;
+  const bearing = (Math.atan2(dLng, dLat) * 180) / Math.PI;
+  return (bearing + 360) % 360;
 }

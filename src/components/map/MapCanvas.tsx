@@ -74,6 +74,12 @@ export interface MapFocusRequest {
   nonce: number;
   /** Aire inferior para que el sheet no tape el viaje. */
   bottomPadding?: number;
+  /** Inclinación a forzar en el fitBounds (3D=52, 2D=0). */
+  pitch?: number;
+  /** Rumbo a forzar en el fitBounds; sin él MapLibre resetea al norte. */
+  bearing?: number;
+  /** Techo de zoom para que un segmento corto no sobre-zoomee. */
+  maxZoom?: number;
 }
 
 /** Borrador del planner (Fase 4): marcadores de origen y destino. */
@@ -519,6 +525,9 @@ export function MapCanvas({
         }),
         duration: 900,
         essential: true,
+        ...(focusRequest.pitch !== undefined ? { pitch: focusRequest.pitch } : {}),
+        ...(focusRequest.bearing !== undefined ? { bearing: focusRequest.bearing } : {}),
+        ...(focusRequest.maxZoom !== undefined ? { maxZoom: focusRequest.maxZoom } : {}),
       });
     });
     return () => cancelAnimationFrame(raf);
@@ -1098,7 +1107,8 @@ export function MapCanvas({
         cameraModeRef.current === 'follow-vehicle' ||
         cameraModeRef.current === 'follow-trip' ||
         cameraModeRef.current === 'navigation-vehicle' ||
-        cameraModeRef.current === 'follow-user'
+        cameraModeRef.current === 'follow-user' ||
+        cameraModeRef.current === 'step-focus'
       ) {
         cameraModeRef.current = 'free';
         cameraModeHandlerRef.current?.('free');

@@ -14,7 +14,7 @@ import { subscribeToPositions } from "@/mock/live";
 import { MOCK_LINES, MOCK_ROUTES, MOCK_STOPS } from "@/mock/data";
 import { getRouteTrack, stopsAlongRoute, busProgressOn } from "@/lib/map/route-progress";
 import type { VehiclePosition } from "@/lib/data-service";
-import type { CameraMode } from "@/lib/map/camera-controller";
+import { segmentBearing, type CameraMode } from "@/lib/map/camera-controller";
 import type { MapFocusRequest, PlannerMapPoints, PlannerMapPulse } from "@/components/map/MapCanvas";
 import { Parada } from "@/types/transport";
 import { TripOption, LocationPoint, TransitLeg } from "@/types/trip-planner";
@@ -33,6 +33,9 @@ const MANUAL_NONE_UNIT = "__none__";
 /** sdd/trip-options-upgrade 1.3: padding dual del sheet (colapsado/expandido). */
 const TRIP_PAD_COLLAPSED = 160;
 const TRIP_PAD_EXPANDED = 514;
+
+/** Techo de zoom del foco por paso: un segmento corto no sobre-zoomea. */
+const STEP_FOCUS_MAX_ZOOM = 16.5;
 
 /** Clave del trip vivo: cualquier cambio invalida los pins de otro viaje. */
 function buildTripKey(
@@ -73,6 +76,9 @@ export default function TransportesAppPage() {
   const [destinationLocation, setDestinationLocation] = useState<LocationPoint | null>(null);
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
+  // Fase step-focus: nonce monotónico en STATE (nunca un ref dentro del memo
+  // focusRequest) para re-disparar el fitBounds del paso seleccionado.
+  const [stepFocusNonce, setStepFocusNonce] = useState(0);
   const [mapPickTarget, setMapPickTarget] = useState<"origin" | "destination" | null>(null);
   const [isTripHeaderCollapsed, setIsTripHeaderCollapsed] = useState(false);
   // Semilla del contrato portable (Home): se lee UNA vez; después todo deriva
@@ -480,6 +486,23 @@ export default function TransportesAppPage() {
     return selectedTrip.steps.some((s) => s.id === selectedStepId) ? selectedStepId : null;
   }, [selectedTrip, selectedStepId]);
 
+  // Fase step-focus: seleccionar un paso toma la cámara ('step-focus'); deseleccionar
+  // restaura el follow del bondi/parada. El nonce re-dispara el fitBounds del paso.
+  const handleSelectStep = useCallback((stepId: string | null) => {
+    if (stepId) {
+      setSelectedStepId(stepId);
+      setStepFocusNonce((n) => n + 1);
+      if (isTripMode && tripViewVisible) setCameraMode("step-focus");
+      return;
+    }
+    setSelectedStepId(null);
+    if (isTripMode && tripViewVisible) {
+      setCameraMode(followTripStop ? "follow-trip" : "follow-vehicle");
+      // Sin target de follow (sin bondi), re-encuadrar el trip entero.
+      if (!selectedVehiculo) setTripReframeNonce((n) => n + 1);
+    }
+  }, [isTripMode, tripViewVisible, followTripStop, selectedVehiculo]);
+
   const effectiveHighlightLines = useMemo(() => {
     if (isTripMode) {
       return tripViewVisible && selectedTrip ? selectedTrip.highlightLines : [];
@@ -557,14 +580,25 @@ export default function TransportesAppPage() {
         // Padding mínimo para que el segmento no quede pegado al borde.
         const padLng = Math.max((maxLng - minLng) * 0.3, 0.004);
         const padLat = Math.max((maxLat - minLat) * 0.3, 0.004);
-        const nonce = `${selectedTrip.id}|${activeStepId}`.split("").reduce((acc, c) => acc + c.charCodeAt(0), 1);
+        // 3D: inclinar en la dirección de avance del segmento; 2D: plano al norte.
+        const pitch = trip3D ? 52 : 0;
+        const bearing = pitch ? segmentBearing(coords) : 0;
         return {
           bounds: [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
-          nonce,
+          nonce: stepFocusNonce,
           bottomPadding: tripBottomPadding,
+          pitch,
+          bearing,
+          maxZoom: STEP_FOCUS_MAX_ZOOM,
         };
       }
     }
+    // Sin paso activo y con un bondi elegido, el follow (bondi+parada) manda la
+    // cámara: emitir el encuadre del trip entero pisaría ese restore al
+    // deseleccionar (flash de trip completo). El trip entero solo se encuadra sin
+    // target de follow (carga inicial sin vehículo) o en el fallback de un paso
+    // sin geometría (REQ-8, activeStepId todavía presente).
+    if (!activeStepId && selectedVehiculo) return null;
     const nonce =
       selectedTrip.id
         .split("")
@@ -574,7 +608,7 @@ export default function TransportesAppPage() {
       nonce,
       bottomPadding: tripBottomPadding,
     };
-  }, [isTripMode, selectedTrip, activeStepId, originLocation, destinationLocation, tripReframeNonce, tripBottomPadding]);
+  }, [isTripMode, selectedTrip, activeStepId, originLocation, destinationLocation, tripReframeNonce, tripBottomPadding, stepFocusNonce, trip3D, selectedVehiculo]);
 
   /** Selección explícita del usuario → limpia la clave de focus para que
    *  el geocoder pueda re-encuadrar (el seed de apertura no). */
@@ -614,7 +648,9 @@ export default function TransportesAppPage() {
   const handlePanelCollapsedChange = useCallback((collapsed: boolean) => {
     setIsTripPanelCollapsed(collapsed);
     setTripReframeNonce((n) => n + 1);
-  }, []);
+    // Con un paso enfocado, re-encuadrarlo con el nuevo aire inferior (REQ-7).
+    if (activeStepId && cameraMode === "step-focus") setStepFocusNonce((n) => n + 1);
+  }, [activeStepId, cameraMode]);
 
   // sdd/trip-options-upgrade 3.1: tap en fila de abordaje → unidad concreta en el mapa.
   // SetState directo (como handleBusSelect): bypass del resolver congelado durante
@@ -622,6 +658,8 @@ export default function TransportesAppPage() {
   // arrivalResetKey (3.3) — acá no se toca latchedArriving/onboard/rideStops.
   const handleSelectBoardingOption = useCallback((unitKey: string) => {
     setBoardingUnitKey(unitKey);
+    // Intención explícita: elegir otra opción libera el foco de paso (REQ-4).
+    setSelectedStepId(null);
     const sep = unitKey.lastIndexOf("-");
     const lineId = sep > 0 ? unitKey.slice(0, sep) : unitKey;
     const unitId = sep > 0 ? unitKey.slice(sep + 1) : unitKey;
@@ -696,6 +734,8 @@ export default function TransportesAppPage() {
 
   const handleCloseTripMode = useCallback(() => {
     setTripViewVisible(false);
+    // Cerrar el viaje no debe conservar un paso enfocado (REQ-6).
+    setSelectedStepId(null);
     setCameraMode("overview");
   }, []);
 
@@ -796,7 +836,7 @@ export default function TransportesAppPage() {
         setSelectedVehiculo(tappedVehicle);
         setSelectedLineaId(tappedVehicle.lineId);
         setSelectedRamalId(tappedVehicle.ramalId || null);
-        if (tripViewVisible) setCameraMode(resolvedTrip.boardingStopId ? "follow-trip" : "follow-vehicle");
+        if (tripViewVisible && !activeStepId) setCameraMode(resolvedTrip.boardingStopId ? "follow-trip" : "follow-vehicle");
       });
       return () => window.cancelAnimationFrame(tappedFrame);
     }
@@ -822,10 +862,10 @@ export default function TransportesAppPage() {
       setSelectedLineaId(vehicle.lineId);
       setSelectedRamalId(vehicle.ramalId || null);
       if (!tripViewVisible) return;
-      setCameraMode(resolvedTrip.boardingStopId ? "follow-trip" : "follow-vehicle");
+      if (!activeStepId) setCameraMode(resolvedTrip.boardingStopId ? "follow-trip" : "follow-vehicle");
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [resolvedTrip, positions, vehiclePin, tripSeed, tripViewVisible, selectedVehiculo, onboard, latchedArriving, boardingUnitKey]);
+  }, [resolvedTrip, positions, vehiclePin, tripSeed, tripViewVisible, selectedVehiculo, onboard, latchedArriving, boardingUnitKey, activeStepId]);
 
   // Resuelve el foco de llegada legacy: con el feed ya cargado, elige la unidad
   // con ETA más próxima de la línea en esa parada y la sigue (pill + cámara).
@@ -887,6 +927,8 @@ export default function TransportesAppPage() {
   // pero conserva viaje, vehículo, parada y línea intactos.
   const handleExitTripView = useCallback(() => {
     setTripViewVisible(false);
+    // Salir de la vista libera el foco de paso (REQ-6).
+    setSelectedStepId(null);
     setCameraMode("overview");
   }, []);
 
@@ -896,6 +938,8 @@ export default function TransportesAppPage() {
     setIsTripMode(true);
     setTripViewVisible(true);
     setTrip3D(true);
+    // Re-entrar no debe restaurar un paso enfocado stale (REQ-6).
+    setSelectedStepId(null);
     setTripReframeNonce((n) => n + 1);
     if (selectedVehiculo) {
       setCameraMode(followTripStop ? "follow-trip" : "follow-vehicle");
@@ -1010,10 +1054,13 @@ export default function TransportesAppPage() {
       // Descarte explícito: no re-resolver hasta que cambie el viaje.
       setVehiclePin({ lineId: "", unitId: MANUAL_NONE_UNIT, forTripKey: tripKey });
       setSelectedVehiculo(null);
+      setSelectedStepId(null);
       setCameraMode("overview");
       return;
     }
     setSelectedVehiculo(pos);
+    // Tap de bondi en el mapa: intención explícita que libera el foco de paso (REQ-4).
+    setSelectedStepId(null);
     // Una selección explícita reabre la vista del viaje si estaba oculta
     // y fija la unidad hasta que cambie el viaje.
     setTripViewVisible(true);
@@ -1032,10 +1079,12 @@ export default function TransportesAppPage() {
   const handleToggle3D = useCallback(() => {
     if (isTripMode) {
       setTrip3D((v) => !v);
+      // Con un paso enfocado, re-encuadrarlo en el nuevo pitch/2D (REQ-2).
+      if (activeStepId && cameraMode === "step-focus") setStepFocusNonce((n) => n + 1);
       return;
     }
     setCameraMode((prev) => (prev === "navigation-vehicle" ? "follow-vehicle" : "navigation-vehicle"));
-  }, [isTripMode]);
+  }, [isTripMode, activeStepId, cameraMode]);
 
   const handleResetCamera = useCallback(() => {
     setSelectedLineaId("line-65");
@@ -1317,7 +1366,7 @@ export default function TransportesAppPage() {
               originLocation={originLocation}
               destinationLocation={destinationLocation}
               selectedStepId={activeStepId}
-              onSelectStep={setSelectedStepId}
+              onSelectStep={handleSelectStep}
               boardingOptions={boardingOptions}
               selectedBoardingUnitKey={boardingUnitKey}
               onSelectBoardingOption={handleSelectBoardingOption}
