@@ -538,6 +538,24 @@ export function MapCanvas({
     let lastResizeW = 0;
     let lastResizeH = 0;
     let resizeRafId: number | null = null;
+    let layoutRefreshRafId: number | null = null;
+
+    // Safari puede crear el canvas mientras React todavía estabiliza el
+    // layout de la ruta. El viewport WebGL es correcto, pero WebKit puede
+    // conservar un frame vacío/parcial hasta el próximo repaint. Esperar dos
+    // frames (no un timeout) sincroniza el resize con el layout compuesto.
+    const refreshCanvasAfterStableLayout = () => {
+      if (layoutRefreshRafId !== null) return;
+      layoutRefreshRafId = requestAnimationFrame(() => {
+        layoutRefreshRafId = requestAnimationFrame(() => {
+          layoutRefreshRafId = null;
+          if (disposed || !mapRef.current || el.clientWidth === 0 || el.clientHeight === 0) return;
+          mapRef.current.resize();
+          mapRef.current.triggerRepaint();
+        });
+      });
+    };
+
     const ro = new ResizeObserver(() => {
       if (disposed) return;
       const box = el.getBoundingClientRect();
@@ -552,9 +570,13 @@ export function MapCanvas({
         lastResizeW = Math.round(b.width);
         lastResizeH = Math.round(b.height);
         mapRef.current.resize();
+        refreshCanvasAfterStableLayout();
       });
     });
     ro.observe(el);
+
+    const onPageShow = () => refreshCanvasAfterStableLayout();
+    window.addEventListener('pageshow', onPageShow);
 
     map.on('error', (e) => {
       console.warn('[MapLibre]', e);
@@ -2358,10 +2380,20 @@ export function MapCanvas({
       });
     };
 
-    map.on('load', () => {
-      map.resize();
+    const installInitialOverlays = () => {
+      refreshCanvasAfterStableLayout();
       void installOverlays();
-    });
+    };
+    // load espera también las fuentes del basemap. En WebKit eso dejó rutas,
+    // paradas y vehículos sin instalar hasta que terminaran los tiles de CARTO.
+    // style.load ya registra las fuentes/capas y permite montar overlays antes.
+    if (map.isStyleLoaded()) {
+      installInitialOverlays();
+    } else {
+      map.once('style.load', installInitialOverlays);
+    }
+    map.on('style.load', refreshCanvasAfterStableLayout);
+    refreshCanvasAfterStableLayout();
 
     return () => {
       // disposed PRIMERO: todos los writes protegidos (setHalo, stopFlow,
@@ -2369,6 +2401,7 @@ export function MapCanvas({
       // mitad de un swap de estilo.
       disposed = true;
       if (resizeRafId !== null) cancelAnimationFrame(resizeRafId);
+      if (layoutRefreshRafId !== null) cancelAnimationFrame(layoutRefreshRafId);
       ro.disconnect();
       stopFlow();
       stopPulse();
@@ -2381,6 +2414,7 @@ export function MapCanvas({
       cameraApplyRef.current = () => {};
       userLocationApplyRef.current = () => {};
       document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pageshow', onPageShow);
       if (rafId !== null) cancelAnimationFrame(rafId);
       map.remove();
       mapRef.current = null;
