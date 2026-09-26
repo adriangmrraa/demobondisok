@@ -174,6 +174,13 @@ export interface EstimacionLlegada {
   ocupacion: "baja" | "media" | "alta";
   displayStatus?: "en-parada" | "arribando" | "minutos";
   displayLabel?: string;
+  /**
+   * Fila sintética (W2′): NO representa una unidad física. Deriva sólo de la
+   * `frecuenciaPicoMin` curada para completar opciones de abordaje en paradas
+   * ralas. Los consumidores de seguimiento (hero ETA, alerta, cámara) DEBEN
+   * ignorarla. `interno` lleva el prefijo `SIM-`.
+   */
+  simulated?: boolean;
 }
 
 export type Arrival = EstimacionLlegada;

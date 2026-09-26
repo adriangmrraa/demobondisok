@@ -45,6 +45,8 @@ export interface Alert {
   severity: 'amber' | 'red' | 'gray';
   timestamp: number;
   since?: string;
+  /** true = la alerta interrumpe el servicio de la línea (demora / corte / desvío real). */
+  disrupcion?: boolean;
 }
 
 export type Unsubscribe = () => void;

@@ -15,7 +15,7 @@ import { MOCK_LINES, MOCK_ROUTES, MOCK_STOPS } from "@/mock/data";
 import { getRouteTrack, stopsAlongRoute, busProgressOn } from "@/lib/map/route-progress";
 import type { VehiclePosition } from "@/lib/data-service";
 import { segmentBearing, type CameraMode } from "@/lib/map/camera-controller";
-import type { MapFocusRequest, PlannerMapPoints, PlannerMapPulse } from "@/components/map/MapCanvas";
+import type { MapFocusRequest, PlannerMapPoints, PlannerMapPulse, TripRouteShade } from "@/components/map/MapCanvas";
 import { Parada } from "@/types/transport";
 import { TripOption, LocationPoint, TransitLeg } from "@/types/trip-planner";
 import { Navigation, RotateCcw, Eye, X, Search } from "lucide-react";
@@ -171,6 +171,22 @@ export default function TransportesAppPage() {
     };
   }, [selectedTrip, tripKey, boardingPin, tripSeed]);
 
+  // A3: el corte visual se deriva de la parada de abordaje fija, nunca del
+  // GPS del colectivo. Cambia solo al elegir otro viaje o parada de referencia.
+  const tripRouteShade = useMemo<TripRouteShade | null>(() => {
+    if (!resolvedTrip?.boardingStopId) return null;
+    const ride = resolvedTrip.trip.legs.find((leg): leg is TransitLeg => leg.type === "ride");
+    const stop = TripPlannerService.getStopById(resolvedTrip.boardingStopId);
+    if (!ride || !stop) return null;
+    return {
+      lineId: ride.lineaId,
+      ramalId: ride.ramalId,
+      recorridoId: ride.recorridoId,
+      color: ride.lineaColor,
+      referenceStop: { lat: stop.lat, lng: stop.lng },
+    };
+  }, [resolvedTrip]);
+
   const regularHighlightLines = useMemo(() => {
     if (selectedRamalId) return [selectedRamalId];
     if (selectedLineaId) return [selectedLineaId];
@@ -266,11 +282,16 @@ export default function TransportesAppPage() {
     // cuando hay una selección explícita.
     if (boardingUnitKey) {
       const tapped = arrivals.find(
-        (arrival) => boardingUnitKeyOf(arrival.lineaId, arrival.interno) === boardingUnitKey,
+        (arrival) =>
+          // W2′: las filas sintéticas (SIM-*) no representan una unidad física:
+          // nunca deben manejar el hero ETA, la alerta ni la cámara.
+          !arrival.simulated &&
+          boardingUnitKeyOf(arrival.lineaId, arrival.interno) === boardingUnitKey,
       );
       if (tapped) return tapped;
     }
     return arrivals.find((arrival) =>
+      !arrival.simulated &&
       arrival.lineaId === resolvedTrip.lineId &&
       (!selectedVehiculo || arrival.interno === selectedVehiculo.unitId),
     ) ?? null;
@@ -374,10 +395,9 @@ export default function TransportesAppPage() {
 
   const arrivalPhase: ArrivalPhase = useMemo(() => {
     if (onboard) {
-      // Transfer window first (white card pops + orb rises toward the pill),
-      // then VIAJANDO_GREEN (boarding confirmed, brief), then VIAJANDO_YELLOW
-      // (riding, synced with the pill by color). Pure via viajandoSubPhase so
-      // the node harness can assert the green→yellow timeline. `nowMs`
+      // Transfer window first, then VIAJANDO_GREEN (boarding confirmed, brief),
+      // then VIAJANDO_YELLOW (riding). Pure via viajandoSubPhase so the node
+      // harness can assert the green→yellow timeline. `nowMs`
       // refreshes every GPS tick (1 Hz), so transitions need no extra timer
       // and render stays pure. The mock feed keeps ticking while onboard, so
       // the bus visibly MOVES post-stop with the user puck glued (see glue
@@ -1094,12 +1114,19 @@ export default function TransportesAppPage() {
   const handleToggle3D = useCallback(() => {
     if (isTripMode) {
       setTrip3D((v) => !v);
-      // Con un paso enfocado, re-encuadrarlo en el nuevo pitch/2D (REQ-2).
-      if (activeStepId && cameraMode === "step-focus") setStepFocusNonce((n) => n + 1);
+      // El toggle cambia la pose, pero no debe depender de que la cámara siga
+      // actualmente en follow: un drag o una parada seleccionada pueden dejarla
+      // en free/overview. Reafirmamos el contexto vigente sin limpiar nada.
+      if (activeStepId) {
+        setCameraMode("step-focus");
+        setStepFocusNonce((n) => n + 1);
+        return;
+      }
+      setCameraMode(followTripStop ? "follow-trip" : "follow-vehicle");
       return;
     }
     setCameraMode((prev) => (prev === "navigation-vehicle" ? "follow-vehicle" : "navigation-vehicle"));
-  }, [isTripMode, activeStepId, cameraMode]);
+  }, [isTripMode, activeStepId, followTripStop]);
 
   const handleResetCamera = useCallback(() => {
     setSelectedLineaId("line-65");
@@ -1153,9 +1180,6 @@ export default function TransportesAppPage() {
         initialCollapsed={Boolean(resolvedTrip)}
         collapseWhenComplete={Boolean(resolvedTrip)}
         onCollapsedChange={setIsTripHeaderCollapsed}
-        arrivalPulse={arrivalPhase === 'PASSED' || arrivalPhase === 'VIAJANDO_GREEN'}
-        arrivalRideSync={arrivalPhase === 'VIAJANDO_YELLOW'}
-        arrivalHandoff={arrivalPhase === 'PASSED'}
       />
             ) : (
               <div className="w-full flex flex-col items-center gap-2">
@@ -1297,6 +1321,7 @@ export default function TransportesAppPage() {
               plannerPoints={plannerPoints}
               plannerPulse={plannerPulse}
               tripSegments={isTripViewActive && selectedTrip ? selectedTrip.segments : null}
+              tripRouteShade={isTripViewActive ? tripRouteShade : null}
               tripUsedStopIds={isTripViewActive && selectedTrip ? resolvedTripUsedStopIds : null}
               tripFocus={isTripViewActive && !!selectedTrip}
               tripPulseActive={arrivalPhase === 'VIAJANDO_GREEN' || arrivalPhase === 'VIAJANDO_YELLOW'}
@@ -1307,7 +1332,7 @@ export default function TransportesAppPage() {
             />
           </div>
 
-          {isTripViewActive && isTripHeaderCollapsed && resolvedTrip && selectedVehiculo && (expectedArrival || onboard) && cardLineaNumero && cardUnitId && (
+          {isTripViewActive && isTripHeaderCollapsed && resolvedTrip && selectedVehiculo && (expectedArrival || onboard || arrivalPhase !== 'NORMAL') && cardLineaNumero && cardUnitId && (
             <ArrivalStatusCard
               phase={arrivalPhase}
               minutes={arrivalMinutes}

@@ -1,132 +1,166 @@
 /**
- * AssistantBar — INC-2/INC-4
- * Preguntas sugeridas del asistente del home (chips) + caja de texto libre.
- * Cada chip dispara un intent determinista (assistant-intent-service);
- * el copy vive en ASSISTANT_CHIPS para que UI y QA compartan las etiquetas.
- * El texto libre se envía tal cual: el parseo lo hace el padre con
- * parseAssistantQuery (mismo pipeline que los chips).
- * Tokens: DESIGN.MD (canvas-soft/hairline/ink). Íconos: lucide-react.
+ * AssistantBar — buscador de destinos indexados del Home.
+ * Elegir una sugerencia abre inmediatamente el flujo de viaje.
  */
 
 'use client';
 
-import { useRef, useState } from 'react';
-import { Clock, MapPin, Compass, Footprints, Search, ArrowUp, X } from 'lucide-react';
-import {
-  ASSISTANT_CHIPS,
-  type AssistantIntent,
-} from '@/lib/services/assistant-intent-service';
+import { useMemo, useRef, useState } from 'react';
+import { ArrowUp, MapPin, Search, X } from 'lucide-react';
+import { TripPlannerService } from '@/lib/services/trip-planner-service';
+import type { LocationPoint } from '@/types/trip-planner';
 import { cn } from '@/lib/utils';
 
-const CHIP_ICONS: Record<AssistantIntent, React.ComponentType<{ className?: string }>> = {
-  next_arrival: Clock,
-  nearest_stop: MapPin,
-  trip_plan: Compass,
-  walk_timing: Footprints,
-  unknown: Clock,
-};
-
 interface AssistantBarProps {
-  onIntent: (intent: AssistantIntent) => void;
-  /** Texto libre de la caja (Enter o botón). Se ignora si está vacío. */
-  onFreeText?: (text: string) => void;
-  /** Intent que está siendo resuelto / mostrado (chip activo). */
-  activeIntent?: AssistantIntent | null;
+  /** Destino indexado que el usuario eligió. */
+  onSubmit: (destination: LocationPoint) => void;
   className?: string;
 }
 
-export function AssistantBar({ onIntent, onFreeText, activeIntent = null, className }: AssistantBarProps) {
+const SUGGESTIONS_ID = 'home-destination-suggestions';
+
+export function AssistantBar({ onSubmit, className }: AssistantBarProps) {
   const [text, setText] = useState('');
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+  const [message, setMessage] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const submit = () => {
-    const trimmed = text.trim();
-    if (!trimmed || !onFreeText) return;
-    onFreeText(trimmed);
+  const suggestions = useMemo(
+    () => (text.trim() ? TripPlannerService.searchLocations(text).slice(0, 6) : []),
+    [text],
+  );
+  const suggestionsOpen = suggestions.length > 0;
+
+  const selectDestination = (destination: LocationPoint) => {
+    onSubmit(destination);
     setText('');
+    setActiveSuggestionIndex(-1);
+    setMessage('');
+  };
+
+  const submit = () => {
+    const activeDestination = activeSuggestionIndex >= 0 ? suggestions[activeSuggestionIndex] : null;
+    if (!activeDestination) {
+      setMessage('Elegí uno de los destinos sugeridos para continuar.');
+      return;
+    }
+    selectDestination(activeDestination);
+  };
+
+  const clear = () => {
+    setText('');
+    setActiveSuggestionIndex(-1);
+    setMessage('');
+    inputRef.current?.focus();
   };
 
   return (
     <div className={cn('flex flex-col gap-2', className)}>
-      {/* Input: field fill en reposo, el borde aparece solo como anillo de
-          foco en tinta (sistema de inputs del DESIGN.MD); submit ArrowUp en
-          disco ink, clear X a la izquierda cuando hay texto. */}
-      <div
-        className={cn(
-          'group flex items-center gap-2 rounded-full bg-field border border-transparent px-3.5 transition-shadow',
-          'focus-within:ring-2 focus-within:ring-ink/20',
-        )}
-      >
-        <Search className="w-4 h-4 shrink-0 text-text-muted transition-colors group-focus-within:text-ink" />
-        <input
-          ref={inputRef}
-          type="text"
-          inputMode="search"
-          autoComplete="off"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              submit();
-            }
-            if (e.key === 'Escape') setText('');
-          }}
-          placeholder="Preguntá: ¿cuándo llega el 194?, ¿cómo llego a Once?…"
-          aria-label="Preguntarle al asistente"
-          className="flex-1 min-w-0 bg-transparent min-h-[46px] text-sm text-ink placeholder:text-text-faint focus:outline-none"
-        />
-        {text.trim() && (
+      <div className="relative">
+        <div
+          className={cn(
+            'group flex items-center gap-2 rounded-full bg-field border border-transparent px-3.5 transition-shadow',
+            'focus-within:ring-2 focus-within:ring-ink/20',
+          )}
+        >
+          <Search className="w-4 h-4 shrink-0 text-text-muted transition-colors group-focus-within:text-ink" />
+          <input
+            ref={inputRef}
+            type="text"
+            inputMode="search"
+            autoComplete="off"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-controls={SUGGESTIONS_ID}
+            aria-expanded={suggestionsOpen}
+            aria-activedescendant={activeSuggestionIndex >= 0 ? `${SUGGESTIONS_ID}-${activeSuggestionIndex}` : undefined}
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value);
+              setActiveSuggestionIndex(-1);
+              setMessage('');
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowDown' && suggestionsOpen) {
+                e.preventDefault();
+                setActiveSuggestionIndex((index) => Math.min(index + 1, suggestions.length - 1));
+              }
+              if (e.key === 'ArrowUp' && suggestionsOpen) {
+                e.preventDefault();
+                setActiveSuggestionIndex((index) => Math.max(index - 1, 0));
+              }
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                if (activeSuggestionIndex >= 0) {
+                  selectDestination(suggestions[activeSuggestionIndex]);
+                  return;
+                }
+                submit();
+              }
+              if (e.key === 'Escape') clear();
+            }}
+            placeholder="¿A dónde querés ir?"
+            aria-label="¿A dónde querés ir?"
+            className="flex-1 min-w-0 bg-transparent min-h-[46px] text-sm text-ink placeholder:text-text-faint focus:outline-none"
+          />
+          {text.trim() && (
+            <button
+              type="button"
+              onClick={clear}
+              aria-label="Borrar destino"
+              className="w-7 h-7 shrink-0 rounded-full flex items-center justify-center text-text-muted hover:text-ink hover:bg-canvas-soft transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
           <button
             type="button"
-            onClick={() => {
-              setText('');
-              inputRef.current?.focus();
-            }}
-            aria-label="Borrar pregunta"
-            className="w-7 h-7 shrink-0 rounded-full flex items-center justify-center text-text-muted hover:text-ink hover:bg-canvas-soft transition-colors"
+            onClick={submit}
+            aria-label="Iniciar viaje"
+            className={cn(
+              'w-8 h-8 shrink-0 rounded-full bg-ink text-canvas flex items-center justify-center active:scale-95 transition-all',
+              activeSuggestionIndex < 0 && 'opacity-35',
+            )}
           >
-            <X className="w-3.5 h-3.5" />
+            <ArrowUp className="w-4 h-4" strokeWidth={2.5} />
           </button>
-        )}
-        <button
-          type="button"
-          onClick={submit}
-          disabled={!text.trim()}
-          aria-label="Enviar pregunta"
-          className="w-8 h-8 shrink-0 rounded-full bg-ink text-canvas flex items-center justify-center active:scale-95 transition-all disabled:opacity-35 disabled:pointer-events-none"
-        >
-          <ArrowUp className="w-4 h-4" strokeWidth={2.5} />
-        </button>
-      </div>
+        </div>
 
-      <div
-        role="group"
-        aria-label="Preguntas frecuentes al asistente"
-        className="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1"
-      >
-        {ASSISTANT_CHIPS.map(({ intent, label }) => {
-          const Icon = CHIP_ICONS[intent];
-          const active = activeIntent === intent;
-          return (
-            <button
-              key={intent}
-              type="button"
-              onClick={() => onIntent(intent)}
-              aria-pressed={active}
-              className={cn(
-                'shrink-0 min-h-[44px] inline-flex items-center gap-2 rounded-full border px-4 text-sm font-semibold transition-all active:scale-[0.98]',
-                active
-                  ? 'bg-ink text-canvas border-ink shadow-sm'
-                  : 'bg-canvas-soft text-ink border-hairline hover:bg-field',
-              )}
-            >
-              <Icon className="w-4 h-4 shrink-0" />
-              <span className="whitespace-nowrap">{label}</span>
-            </button>
-          );
-        })}
+        {suggestionsOpen && (
+          <ul
+            id={SUGGESTIONS_ID}
+            role="listbox"
+            aria-label="Destinos sugeridos"
+            className="absolute z-30 left-0 right-0 top-[calc(100%+0.5rem)] rounded-2xl border border-hairline bg-canvas p-1.5 shadow-lg"
+          >
+            {suggestions.map((place, index) => (
+              <li key={`${place.id ?? place.name}-${index}`} role="presentation">
+                <button
+                  id={`${SUGGESTIONS_ID}-${index}`}
+                  type="button"
+                  role="option"
+                  aria-selected={activeSuggestionIndex === index}
+                  onMouseEnter={() => setActiveSuggestionIndex(index)}
+                  onClick={() => selectDestination(place)}
+                  className={cn(
+                    'w-full rounded-xl px-3 py-2.5 text-left flex items-center gap-2.5 transition-colors',
+                    activeSuggestionIndex === index ? 'bg-canvas-soft' : 'hover:bg-canvas-soft',
+                  )}
+                >
+                  <MapPin className="w-4 h-4 shrink-0 text-electric-blue" />
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold text-ink">{place.name}</span>
+                    {place.address && <span className="block truncate text-[11px] text-text-muted">{place.address}</span>}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
+      <p aria-live="polite" className={cn('text-xs text-text-muted', !message && 'sr-only')}>
+        {message}
+      </p>
     </div>
   );
 }

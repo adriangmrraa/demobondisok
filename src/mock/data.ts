@@ -145,6 +145,17 @@ export const MOCK_UNITS: Record<string, string[]> = {
 // ─── Alertas Oficiales de Servicio ────────────────────────────────────
 export const MOCK_ALERTS: Alert[] = [
   {
+    id: 'alert-194-002',
+    lineId: 'line-194',
+    type: 'delay',
+    title: 'Demora en la línea 194',
+    description: 'Servicio con demoras por obras en el corredor Panamericana. Tiempos de espera más largos en ambos sentidos.',
+    severity: 'amber',
+    timestamp: Date.now() - 1000 * 60 * 3,
+    since: '09:30',
+    disrupcion: true,
+  },
+  {
     id: 'alert-65-001',
     lineId: 'line-65',
     type: 'delay',

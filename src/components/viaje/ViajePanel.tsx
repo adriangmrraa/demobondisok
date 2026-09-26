@@ -284,12 +284,12 @@ export default function ViajePanel({
                 })}
               </div>
             )}
-            {options.map((opt) => {
+            {options.map((opt, index) => {
               const isSelected = opt.id === (selectedTrip?.id || selectedOptionId);
 
               return (
                 <div
-                  key={opt.id}
+                  key={`${opt.id}-${index}`}
                   onClick={() => onSelectOption(opt.id)}
                   className={`px-3 py-2.5 rounded-[16px] transition-colors cursor-pointer select-none active:scale-[0.99] ${
                     isSelected

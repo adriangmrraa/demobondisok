@@ -503,17 +503,22 @@ export function subscribeToPositions(
 }
 
 export function getCurrentPositions(): VehiclePosition[] {
-  return vehicles.map((v) => ({
-    lineId: v.lineId,
-    unitId: v.unitId,
-    lat: v.lat,
-    lng: v.lng,
-    heading: v.heading,
-    speed: v.speed,
-    timestamp: Date.now(),
-    isDwelling: v.movementState === 'DWELLING',
-    dwellRemainingSeconds: v.dwellRemainingSeconds,
-    currentStopId: v.currentStopId,
-    direction: (v.distanceTraveled < 19040 ? 'ida' : 'vuelta') as 'ida' | 'vuelta',
-  }));
+  return vehicles.map((v) => {
+    const ramalId = getRamalForUnit(v.lineId, v.unitId);
+    const halfLen = (routeCacheByLine[ramalId]?.totalLength ?? routeCacheByLine[v.lineId]?.totalLength ?? 38000) / 2;
+    return {
+      lineId: v.lineId,
+      ramalId,
+      unitId: v.unitId,
+      lat: v.lat,
+      lng: v.lng,
+      heading: v.heading,
+      speed: v.speed,
+      timestamp: Date.now(),
+      isDwelling: v.movementState === 'DWELLING',
+      dwellRemainingSeconds: v.dwellRemainingSeconds,
+      currentStopId: v.currentStopId,
+      direction: (v.distanceTraveled < halfLen ? 'ida' : 'vuelta') as 'ida' | 'vuelta',
+    };
+  });
 }

@@ -21,7 +21,7 @@ const HAPTIC_BY_PHASE: Partial<Record<ArrivalPhase, number | number[]>> = {
 function RollingDuration({ value }: { value: number }) {
   return (
     <span aria-label={`${value} minutos`} className="arrival-rolling-duration">
-      <span key={value} className="arrival-rolling-duration__value">{value}</span>
+      <span className="arrival-rolling-duration__value">{value}</span>
       <span aria-hidden="true" className="arrival-rolling-duration__unit"> min</span>
     </span>
   );
@@ -52,16 +52,6 @@ export default function ArrivalStatusCard({
   return (
     <div className="absolute left-4 right-4 top-[calc(max(14px,env(safe-area-inset-top))+72px+var(--trip-stack-gap,0px))] z-30 mx-auto max-w-[320px] pointer-events-none">
       <div aria-live="polite" data-arrival-phase={phase} className={`arrival-card pointer-events-auto relative mt-0 flex items-center justify-between gap-3 rounded-2xl border px-3.5 py-2.5 ${phaseClass}`}>
-        {phase === "PASSED" && (
-          <span aria-hidden="true" className="arrival-energy-spectrum">
-            <span className="arrival-energy-spectrum__aura" />
-            <span className="arrival-energy-spectrum__ribbon" />
-            <span className="arrival-energy-spectrum__comet" />
-            <span className="arrival-energy-spectrum__spark arrival-energy-spectrum__spark--one" />
-            <span className="arrival-energy-spectrum__spark arrival-energy-spectrum__spark--two" />
-            <span className="arrival-energy-spectrum__spark arrival-energy-spectrum__spark--three" />
-          </span>
-        )}
         <div className="min-w-0">
           <p className="arrival-card__eyebrow">{isRiding ? "Viajando" : "Tu colectivo"}</p>
           {isArriving ? (

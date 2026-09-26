@@ -169,9 +169,11 @@ html, body {
 @keyframes arrival-blink {
   0%, 100% {
     opacity: 1;
+    transform: scale(1);
   }
   50% {
-    opacity: 0.55;
+    opacity: 0.35;
+    transform: scale(1.2);
   }
 }
 
@@ -187,20 +189,9 @@ html, body {
   }
 }
 
-@keyframes pill-pulse {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.5);
-    transform: scale(1);
-  }
-  50% {
-    box-shadow: 0 0 0 8px rgba(220, 38, 38, 0);
-    transform: scale(1.02);
-  }
-}
-
 .animate-arrival-blink {
-  animation: arrival-blink 1s ease-in-out infinite;
-  will-change: opacity;
+  animation: arrival-blink 1.2s ease-in-out infinite;
+  will-change: opacity, transform;
 }
 
 .animate-transfer-pop {
@@ -208,19 +199,7 @@ html, body {
   will-change: transform;
 }
 
-.pill-pulse {
-  animation: pill-pulse 1.6s ease-in-out infinite;
-  will-change: box-shadow, transform;
-}
-
-/* trip-arrival-alert Phase 7: VIAJANDO ride motion.
-   - transfer-rise: energy orb travels from the card UP toward the top
-     "TU VIAJE" pill (origen→destino) during the 2.5s PASSED window.
-   - ride-pulse: yellow glow on the VIAJANDO card, SAME 1.2s rhythm as the
-     pill flash so card + pill read as one synced system (color only —
-     neither element moves from its dock).
-   - pill-ride-sync: top pill flashes its normal canvas color ↔ the SAME
-     yellow token as the card. CSS-only, compositor props only. */
+/* Viaje animations are confined to the cyan header dot. */
 @keyframes transfer-rise {
   0% {
     opacity: 0;
@@ -244,15 +223,6 @@ html, body {
   }
 }
 
-@keyframes pill-ride-sync {
-  0%, 100% {
-    background-color: var(--canvas);
-  }
-  50% {
-    background-color: var(--viajando-yellow);
-  }
-}
-
 .transfer-orb {
   position: absolute;
   left: 50%;
@@ -271,11 +241,6 @@ html, body {
 .animate-ride-pulse {
   animation: ride-pulse 1.2s ease-in-out infinite;
   will-change: box-shadow;
-}
-
-.pill-ride-sync {
-  animation: pill-ride-sync 1.2s ease-in-out infinite;
-  will-change: background-color;
 }
 
 /* Pulso vivo sincronizado para timeline y mapas */
@@ -339,9 +304,7 @@ html, body {
   .animate-arrival-blink,
   .animate-transfer-pop,
   .animate-ride-pulse,
-  .transfer-orb,
-  .pill-ride-sync,
-  .pill-pulse {
+  .transfer-orb {
     animation: none !important;
   }
 
@@ -444,21 +407,18 @@ html, body {
   background-color: var(--arrival-surface);
   border-color: var(--arrival-border);
   box-shadow: 0 14px 34px -16px rgba(15, 23, 42, 0.42);
-  transform: translateZ(0);
-  transition: background-color 520ms cubic-bezier(.16, 1, .3, 1), border-color 520ms cubic-bezier(.16, 1, .3, 1), color 320ms ease-out, box-shadow 520ms cubic-bezier(.16, 1, .3, 1), transform 520ms cubic-bezier(.16, 1, .3, 1);
-  will-change: transform, background-color, border-color, box-shadow;
 }
 
 .arrival-card--normal,
 .arrival-card--passed { --arrival-surface: #ffffff; --arrival-border: #e0e0e0; --arrival-ink: #141414; }
-.arrival-card--arribando { --arrival-surface: #dc2626; --arrival-border: #991b1b; --arrival-ink: #ffffff; animation: arrival-critical-glow 1.55s cubic-bezier(.45, 0, .55, 1) infinite; }
-.arrival-card--viajando-green { --arrival-surface: var(--viajando-green); --arrival-border: #244a3b; --arrival-ink: #ffffff; animation: trip-card-morph 780ms cubic-bezier(.16, 1, .3, 1) both; }
+.arrival-card--arribando { --arrival-surface: #dc2626; --arrival-border: #991b1b; --arrival-ink: #ffffff; }
+.arrival-card--viajando-green { --arrival-surface: var(--viajando-green); --arrival-border: #244a3b; --arrival-ink: #ffffff; }
 .arrival-card--viajando-yellow { --arrival-surface: var(--viajando-yellow); --arrival-border: #8c723e; --arrival-ink: #141414; }
 
 .arrival-card__eyebrow { color: color-mix(in srgb, currentColor 72%, transparent); font-size: 10px; font-weight: 700; letter-spacing: .14em; line-height: 1.2; text-transform: uppercase; }
 .arrival-card__eta { display: inline-flex; overflow: hidden; border-radius: 999px; background: #141414; color: #fff; padding: .25rem .625rem; font-size: .75rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.15; }
 .arrival-rolling-duration { display: inline-flex; align-items: baseline; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-variant-numeric: tabular-nums; }
-.arrival-rolling-duration__value { display: inline-block; animation: arrival-digit-roll 420ms cubic-bezier(.16, 1, .3, 1); }
+.arrival-rolling-duration__value { display: inline-block; }
 .arrival-rolling-duration__unit { white-space: pre; }
 .arrival-card__dismiss { background-color: color-mix(in srgb, var(--arrival-ink) 9%, transparent); color: color-mix(in srgb, var(--arrival-ink) 72%, transparent); transition: background-color 180ms ease-out, color 180ms ease-out, transform 180ms ease-out; }
 .arrival-card__dismiss:hover { background-color: color-mix(in srgb, var(--arrival-ink) 16%, transparent); color: var(--arrival-ink); }
@@ -480,20 +440,11 @@ html, body {
 @keyframes fluid-core-rise { 0% { opacity: 0; transform: translate(-50%, 9px) scale(.55); } 12% { opacity: 1; } 72% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -101px) scale(1.1); } }
 @keyframes fluid-tail-rise { 0% { opacity: 0; transform: translate(-50%, 12px) scaleY(.25); } 16% { opacity: .92; } 100% { opacity: 0; transform: translate(-50%, -84px) scaleY(1.2); } }
 
-.pill-handoff { position: relative; isolation: isolate; animation: pill-handoff-spring 820ms cubic-bezier(.16, 1.35, .3, 1) both; }
-.pill-impact { position: absolute; z-index: -1; left: 50%; bottom: -3px; width: 1px; height: 1px; pointer-events: none; }
-.pill-impact__ripple, .pill-impact__flash { position: absolute; left: 50%; bottom: 0; display: block; border-radius: 999px; transform: translate(-50%, 50%); }
-.pill-impact__ripple { width: 18px; height: 8px; border: 1px solid rgba(169, 139, 78, .9); animation: pill-impact-ripple 720ms cubic-bezier(.16, 1, .3, 1) forwards; }
-.pill-impact__flash { width: 54px; height: 22px; background: radial-gradient(ellipse, rgba(228, 214, 178, .9), rgba(169, 139, 78, .2) 42%, transparent 72%); filter: blur(3px); animation: pill-impact-flash 560ms ease-out forwards; }
-@keyframes pill-handoff-spring { 0% { transform: scale(1); } 46% { transform: scale(1.03); box-shadow: 0 16px 38px -12px rgba(169, 139, 78, .62); } 100% { transform: scale(1); } }
-@keyframes pill-impact-ripple { from { opacity: .8; transform: translate(-50%, 50%) scale(.55); } to { opacity: 0; transform: translate(-50%, 50%) scale(4.8); } }
-@keyframes pill-impact-flash { from { opacity: 0; transform: translate(-50%, 50%) scale(.45); } 30% { opacity: 1; } to { opacity: 0; transform: translate(-50%, 50%) scale(1.35); } }
-
 .rutaba-rose-trip-morph { box-shadow: 0 10px 28px rgba(16, 29, 61, .28), 0 0 0 0 rgba(0, 102, 255, .18); animation: rose-trip-arrival 720ms cubic-bezier(.16, 1.25, .3, 1) both; }
 @keyframes rose-trip-arrival { 0% { transform: translateX(-50%) translateY(5px) scale(.88); } 58% { transform: translateX(-50%) translateY(-3px) scale(1.06); } 100% { transform: translateX(-50%) translateY(0) scale(1); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .arrival-card, .arrival-card--arribando, .arrival-card--viajando-green, .arrival-rolling-duration__value, .arrival-fluid-trail__core, .arrival-fluid-trail__tail, .pill-handoff, .pill-impact__ripple, .pill-impact__flash, .rutaba-rose-trip-morph { animation: none !important; transition-duration: 0ms !important; }
+  .arrival-card, .arrival-card--arribando, .arrival-card--viajando-green, .arrival-rolling-duration__value, .arrival-fluid-trail__core, .arrival-fluid-trail__tail, .rutaba-rose-trip-morph { animation: none !important; transition-duration: 0ms !important; }
   .arrival-fluid-trail { display: none; }
 }
 

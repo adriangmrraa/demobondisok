@@ -11,18 +11,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  ArrowLeft,
-  Bell,
-  Bus,
-  MapPin,
-  RefreshCw,
-  MapPinOff,
   AlertTriangle,
   Route,
   CheckCircle2,
 } from 'lucide-react';
 import { BottomNav } from '@/components/ui/bottom-nav';
-import { ArrivalCard } from '@/components/ui/arrival-card';
 import { LineBadge } from '@/components/ui/line-badge';
 import { AssistantBar } from '@/components/home/AssistantBar';
 import { AssistantAnswerSheet } from '@/components/home/AssistantAnswerSheet';
@@ -33,18 +26,17 @@ import { LocationConsentModal } from '@/components/home/LocationConsentModal';
 import { PlaceSelector } from '@/components/home/PlaceSelector';
 import { AssistantWizard } from '@/components/home/AssistantWizard';
 import { MetropolRose } from '@/components/brand/metropol-logo';
-import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { MOCK_STOPS, MOCK_LINES, MOCK_ALERTS } from '@/mock/data';
 import { subscribeToPositions } from '@/mock/live';
 import { useFavorites } from '@/hooks/use-favorites';
 import { useAssistantSession } from '@/hooks/use-assistant-session';
 import { assistantRefFromSession } from '@/lib/assistant-session';
+import { TripPlannerService } from '@/lib/services/trip-planner-service';
+import { TransportService } from '@/lib/services/transport-service';
 import {
   nearbyStopsFor,
-  parseAssistantQuery,
   resolveAssistantQuery,
   type AssistantAnswer,
-  type AssistantIntent,
   type AssistantQuery,
 } from '@/lib/services/assistant-intent-service';
 import type { TripOption } from '@/types/trip-planner';
@@ -52,17 +44,67 @@ import type { VehiclePosition } from '@/lib/data-service';
 import type { LocationPoint } from '@/types/trip-planner';
 
 const ACTIVE_ALERTS = MOCK_ALERTS.filter((a) => a.status !== 'resolved');
-const UNREAD_ALERTS = ACTIVE_ALERTS.length;
 const ALL_LINE_IDS = MOCK_LINES.map((l) => l.id);
 
-function hashOf(s: string): number {
-  return [...s].reduce((a, c) => a + c.charCodeAt(0), 0);
+/**
+ * Aviso de alerta para un recorrido: si su línea tiene una alerta activa,
+ * la tarjeta muestra un badge titilando ("RETRASO"/"DESVÍO"/"CORTE").
+ * Solo Home: el mapa todavía NO refleja la demora (ver backlog en el .md).
+ */
+const ALERT_BADGE_LABEL: Record<string, string> = {
+  delay: 'RETRASO',
+  suspension: 'CORTE',
+  route_change: 'DESVÍO',
+};
+
+function activeAlertLabelForLine(lineId: string): string | null {
+  const alert = ACTIVE_ALERTS.find((a) => a.lineId === lineId && a.disrupcion);
+  return alert ? (ALERT_BADGE_LABEL[alert.type] ?? 'ALERTA') : null;
 }
+
+/**
+ * B2 · "Historial de paradas": recorridos demo precargados que ya funcionan
+ * sobre los datos existentes (líneas 65 y 194). Cada uno es un viaje
+ * origen→destino independiente; un tap lo inicia en el mapa. `lineId` se fija
+ * para no caer en el duplicado de la línea 60 (idéntica a la 65).
+ */
+interface SeededRoute {
+  id: string;
+  originStopId: string;
+  destinationStopId: string;
+  lineId: string;
+}
+
+const SEEDED_ROUTES: SeededRoute[] = [
+  {
+    id: 'seed-65-centenario-barrancas',
+    originStopId: 'stop-65-05',
+    destinationStopId: 'stop-65-09',
+    lineId: 'line-65',
+  },
+  {
+    id: 'seed-65-constitucion-barrancas',
+    originStopId: 'stop-65-01',
+    destinationStopId: 'stop-65-09',
+    lineId: 'line-65',
+  },
+  {
+    id: 'seed-194-once-escobar',
+    originStopId: 'stop-194-once',
+    destinationStopId: 'stop-194-escobar-estacion',
+    lineId: 'line-194',
+  },
+  {
+    id: 'seed-194-once-zarate',
+    originStopId: 'stop-194-once',
+    destinationStopId: 'stop-194-zarate-transferencia',
+    lineId: 'line-194',
+  },
+];
 
 export default function HomePage() {
   const router = useRouter();
   const { favorites } = useFavorites();
-  const [refreshKey, setRefreshKey] = useState(0);
 
   // ─── Asistente del inicio (PBI-017 + PBI-019): fases, permiso decorativo,
   //     selector de lugar y respuesta persistida que refresca con GPS live ───
@@ -70,18 +112,18 @@ export default function HomePage() {
   // La consulta exhibida; la respuesta se DERIVA (useAnswer) para refrescar
   // con el GPS live sin setState dentro de un effect.
   const [activeQuery, setActiveQuery] = useState<AssistantQuery | null>(null);
-  const [activeIntent, setActiveIntent] = useState<AssistantIntent | null>(null);
   // Parada en foco de la hoja → refinamiento contextual ("¿cuándo llega?" aquí).
   const [paradaRef, setParadaRef] = useState<string | undefined>(undefined);
   // Máquina de fases del flujo: idle → consent → selector → answer.
   const [phase, setPhase] = useState<'idle' | 'consent' | 'selector' | 'answer'>('idle');
-  const [pendingQuery, setPendingQuery] = useState<AssistantQuery | null>(null);
   // Wizard de viaje en 3 pasos (PBI-020): overlay propio del chip "¿Cómo llego a…?".
   const [wizardOpen, setWizardOpen] = useState(false);
   // true = al terminar el selector de lugar, reabrir el wizard (paso 1 "Cambiar").
   const [wizardResume, setWizardResume] = useState(false);
-  // El botón de próxima llegada comparte el mismo recorrido completo que Mi Viaje.
-  const [wizardPurpose, setWizardPurpose] = useState<'next-arrival' | 'trip-plan'>('trip-plan');
+  // Destino elegido explícitamente en Home. Se conserva a través del gate de
+  // ubicación para omitir el paso Destino, pero nunca se infiere de texto libre.
+  const [pendingDestino, setPendingDestino] = useState<LocationPoint | null>(null);
+  const [wizardError, setWizardError] = useState<string | null>(null);
   const { session, setConsentido, setLugar, setParadaSelId, setLastQuery } = useAssistantSession();
 
   useEffect(() => {
@@ -91,7 +133,6 @@ export default function HomePage() {
 
   const runAssistant = useCallback(
     (query: AssistantQuery, ctxOverride?: { paradaRef?: string }) => {
-      setActiveIntent(query.intent);
       setActiveQuery(query);
       setPhase('answer');
       setLastQuery({
@@ -117,36 +158,16 @@ export default function HomePage() {
     });
   }, [phase, activeQuery, session, paradaRef, favorites, positions]);
 
-  /** Gate de los 3 chips de ubicación: permiso → selector → respuesta. */
-  const gateLocationQuery = useCallback(
-    (query: AssistantQuery) => {
-      setActiveIntent(query.intent);
-      setParadaRef(undefined);
-      if (!session.consentido) {
-        setPendingQuery(query);
-        setPhase('consent');
-        return;
-      }
-      if (!session.lugar) {
-        setPendingQuery(query);
-        setPhase('selector');
-        return;
-      }
-      runAssistant(query);
-    },
-    [session.consentido, session.lugar, runAssistant],
-  );
-
   /**
-   * §2 Wizard "¿Cómo llego a…?" en 3 pasos: ubicación → parada → destino.
-   * Requiere el mismo gate de consentimiento/lugar que los chips de ubicación.
+   * §2 Wizard de viaje en 3 pasos: ubicación → parada → destino.
+   * Requiere el gate de consentimiento/lugar antes de abrirse.
    * SIEMPRE muestra el wizard: si ya existe una guía completa (PBI-019), el
    * paso "Destino" se reanuda con la parada y el destino anteriores cargados
    * para confirmar o cambiar — nunca se los saltea.
    */
-  const openTripWizard = useCallback((purpose: 'next-arrival' | 'trip-plan' = 'trip-plan') => {
-    setWizardPurpose(purpose);
-    setActiveIntent(purpose === 'next-arrival' ? 'next_arrival' : 'trip_plan');
+  const openTripWizard = useCallback((destination?: LocationPoint) => {
+    setPendingDestino(destination ?? null);
+    setWizardError(null);
     setParadaRef(undefined);
     if (!session.consentido) {
       setWizardResume(true);
@@ -172,23 +193,6 @@ export default function HomePage() {
         }
       : null;
 
-  const handleChip = useCallback(
-    (intent: AssistantIntent) => {
-      // Toggle: volver a tocar el chip activo oculta la hoja SIN borrar el
-      // estado (consentimiento + lugar + última consulta siguen en localStorage).
-      if (intent === activeIntent && phase === 'answer') {
-        setPhase('idle');
-        return;
-      }
-      if (intent === 'trip_plan' || intent === 'next_arrival') {
-        openTripWizard(intent === 'next_arrival' ? 'next-arrival' : 'trip-plan');
-        return;
-      }
-      gateLocationQuery({ intent });
-    },
-    [activeIntent, phase, openTripWizard, gateLocationQuery],
-  );
-
   // ─── Ubicación real o demo. La API se invoca exclusivamente desde el CTA. ───
   const openWizardForLocation = useCallback((location: LocationPoint) => {
     const nearby = findNearbyStops({
@@ -202,9 +206,9 @@ export default function HomePage() {
     setConsentido(true);
     setLugar({ name: location.name, address: location.address, lat: location.lat, lng: location.lng, stopId: location.stopId });
     setParadaSelId(null);
-    setPendingQuery(null);
     setPhase('idle');
     setWizardResume(false);
+    setWizardError(null);
     setWizardOpen(true);
   }, [positions, setConsentido, setLugar, setParadaSelId]);
 
@@ -219,8 +223,7 @@ export default function HomePage() {
 
   const handleConsentClose = useCallback(() => {
     setPhase('idle');
-    setActiveIntent(null);
-    setPendingQuery(null);
+    setPendingDestino(null);
   }, []);
 
   // ─── Handler del selector de lugar ───
@@ -240,37 +243,29 @@ export default function HomePage() {
       // nuevo lugar, sin ejecutar la consulta de llegadas pendiente.
       if (wizardResume) {
         setWizardResume(false);
-        setWizardOpen(true);
-        return;
-      }
-      if (wizardPurpose === 'next-arrival') {
-        setPendingQuery(null);
-        setPhase('idle');
+        setWizardError(null);
         setWizardOpen(true);
         return;
       }
       const query =
-        pendingQuery ??
-        (session.lastQuery
+        session.lastQuery
           ? {
               intent: session.lastQuery.intent,
               destinoText: session.lastQuery.destinoText,
               lineaNumero: session.lastQuery.lineaNumero,
             }
-          : { intent: 'next_arrival' as const });
-      setPendingQuery(null);
+          : { intent: 'next_arrival' as const };
       // El snapshot de sesión se actualiza con el notify() de setLugar en el
       // mismo batch; el useMemo de answer resuelve ya con el lugar nuevo.
       runAssistant(query, { paradaRef: place.stopId });
     },
-    [pendingQuery, session.lastQuery, setLugar, setParadaSelId, wizardResume, wizardPurpose, runAssistant],
+    [session.lastQuery, setLugar, setParadaSelId, wizardResume, runAssistant],
   );
 
   const handlePlaceCancel = useCallback(() => {
     setPhase('idle');
-    setActiveIntent(null);
-    setPendingQuery(null);
     setWizardResume(false);
+    setPendingDestino(null);
   }, []);
 
   // ─── Wizard de viaje (PBI-020) ───
@@ -288,15 +283,33 @@ export default function HomePage() {
   );
 
   const handleWizardComplete = useCallback(
-    (paradaId: string, destinoText: string) => {
+    (paradaId: string, destinoText: string, selectedDestination?: LocationPoint) => {
+      if (selectedDestination) {
+        setWizardError(null);
+        const trip = TripPlannerService.planTrip(paradaId, selectedDestination).find((option) =>
+          option.legs.some((leg) => leg.type === 'ride' && leg.fromStop.id === paradaId),
+        );
+        if (!trip) {
+          setWizardError('No encontramos un colectivo para ese destino desde esta parada. Elegí otra parada cercana.');
+          return false;
+        }
+        setWizardOpen(false);
+        setPendingDestino(null);
+        setParadaSelId(paradaId);
+        setPhase('idle');
+        router.push(tripMapUrl(trip, trip.origin, { boardingStopId: paradaId }));
+        return true;
+      }
       setWizardOpen(false);
+      setPendingDestino(null);
       setParadaSelId(paradaId);
       runAssistant(
         { intent: 'trip_plan', destinoText, originStopId: paradaId },
         { paradaRef: paradaId },
       );
+      return true;
     },
-    [setParadaSelId, runAssistant],
+    [router, setParadaSelId, runAssistant],
   );
 
   const handleWizardChangeLocation = useCallback(() => {
@@ -308,7 +321,7 @@ export default function HomePage() {
   const handleWizardClose = useCallback(() => {
     setWizardOpen(false);
     setWizardResume(false);
-    setActiveIntent(null);
+    setPendingDestino(null);
   }, []);
 
   /**
@@ -344,31 +357,16 @@ export default function HomePage() {
     [runAssistant, session.paradaSelId],
   );
 
-  const handleAskFreeText = useCallback(
-    (text: string) => {
-      const query = parseAssistantQuery(text);
-      if (query.intent === 'next_arrival' || query.intent === 'nearest_stop' || query.intent === 'walk_timing') {
-        gateLocationQuery(query);
-        return;
-      }
-      // Trip con destino en texto libre y wizard ya completo: guía desde la
-      // parada elegida; si no, viaje clásico desde el lugar de referencia.
-      if (query.intent === 'trip_plan' && query.destinoText && session.paradaSelId) {
-        runAssistant(
-          { ...query, originStopId: session.paradaSelId },
-          { paradaRef: session.paradaSelId },
-        );
-        return;
-      }
-      setParadaRef(undefined);
-      runAssistant(query);
+  /** El buscador es destino directo: no se pasa por el parser de preguntas. */
+  const handleDestinationSearch = useCallback(
+    (destination: LocationPoint) => {
+      openTripWizard(destination);
     },
-    [gateLocationQuery, runAssistant, session.paradaSelId],
+    [openTripWizard],
   );
 
   const closeAnswer = useCallback(() => {
     setActiveQuery(null);
-    setActiveIntent(null);
     setParadaRef(undefined);
     setPhase('idle');
   }, []);
@@ -383,30 +381,50 @@ export default function HomePage() {
    * estado zero-bus de la hoja de Home. Reabre el wizard "¿Cómo llego a…?" en el
    * paso Destino CONSERVANDO el origen: `wizardResumeGuide` reanuda con la parada
    * elegida (`session.paradaSelId`) y el último destino, sin resetear el lugar ni
-   * el consentimiento. Reusa el mismo gate que los chips (openTripWizard).
+   * el consentimiento.
    */
   const handleRepickDestination = useCallback(() => {
-    openTripWizard('trip-plan');
+    openTripWizard();
   }, [openTripWizard]);
 
-  const stops = useMemo(
+  /**
+   * B2 · "Historial de paradas": cada recorrido demo se resuelve contra los
+   * datos existentes (parada origen/destino + línea) y muestra la próxima
+   * llegada del colectivo en la parada de abordaje. Se recalcula con el tick
+   * de GPS (1 Hz) igual que el asistente.
+   */
+  const seededRoutes = useMemo(
     () =>
-      favorites.flatMap((favorite) => {
-        const stop = MOCK_STOPS.find((s) => s.id === favorite.stopId);
-        if (!stop) return [];
-        const arrivals = stop.lineIds
-          .slice(0, 2)
-          .map((lineId, i) => {
-            const line = MOCK_LINES.find((l) => l.id === lineId);
-            if (!line) return null;
-            const etaMin =
-              ((hashOf(stop.id + lineId) + refreshKey * 7 + i * 3) % 12) + 1;
-            return { line, etaMin, live: true };
-          })
-          .filter((a) => a !== null);
-        return [{ stop, arrivals }];
+      SEEDED_ROUTES.flatMap((seed) => {
+        const origin = MOCK_STOPS.find((s) => s.id === seed.originStopId);
+        const destination = MOCK_STOPS.find((s) => s.id === seed.destinationStopId);
+        const line = MOCK_LINES.find((l) => l.id === seed.lineId);
+        if (!origin || !destination || !line) return [];
+        const arrival =
+          TransportService.getArrivals(seed.originStopId, positions)
+            .filter((a) => a.lineaId === seed.lineId)
+            .sort((a, b) => a.minutos - b.minutos)[0] ?? null;
+        return [{ seed, origin, destination, line, arrival }];
       }),
-    [favorites, refreshKey],
+    [positions],
+  );
+
+  /** Un tap en un recorrido demo inicia ese viaje en el mapa. */
+  const startSeededTrip = useCallback(
+    (seed: SeededRoute) => {
+      const trip = TripPlannerService.planTrip(seed.originStopId, seed.destinationStopId).find(
+        (option) =>
+          option.legs.some(
+            (leg) =>
+              leg.type === 'ride' &&
+              leg.lineaId === seed.lineId &&
+              leg.fromStop.id === seed.originStopId,
+          ),
+      );
+      if (!trip) return;
+      router.push(tripMapUrl(trip, trip.origin, { boardingStopId: seed.originStopId }));
+    },
+    [router],
   );
 
   const today = new Date().toLocaleDateString('es-AR', {
@@ -415,20 +433,10 @@ export default function HomePage() {
     month: 'long',
   });
 
-  const hasStops = stops.length > 0;
-  const nextArrival = hasStops ? stops[0].arrivals[0] : null;
-
   return (
     <div className="h-dvh bg-canvas flex flex-col overflow-hidden">
       <header className="px-4 pt-6 pb-2 bg-canvas flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2.5">
-          <Link
-            href="/"
-            aria-label="Volver al inicio"
-            className="-ml-2 h-12 w-12 flex items-center justify-center rounded-full text-ink hover:bg-canvas-soft active:scale-95 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
           <MetropolRose className="h-6 w-auto" />
           <div>
             <h1 className="text-[22px] font-bold text-ink leading-tight">
@@ -439,166 +447,65 @@ export default function HomePage() {
             </p>
           </div>
         </div>
-
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          {/* Campana de alertas — badge real con contador activo */}
-          <Link
-            href="/alertas"
-            className="relative h-12 w-12 flex items-center justify-center rounded-full bg-canvas-soft hover:bg-field transition-colors"
-            aria-label={`Ver alertas de servicio${UNREAD_ALERTS > 0 ? `, ${UNREAD_ALERTS} activas` : ''}`}
-          >
-            <Bell className="w-6 h-6 text-text-muted" />
-            {UNREAD_ALERTS > 0 && (
-              <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-white text-[10px] font-bold flex items-center justify-center border-2 border-canvas">
-                {UNREAD_ALERTS}
-              </span>
-            )}
-          </Link>
-        </div>
       </header>
 
       <main className="px-4 flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto overscroll-contain pb-[104px]">
-        {/* Asistente — caja de texto + preguntas sugeridas */}
+        {/* Buscador único de destino */}
         <div className="mt-2">
-          <AssistantBar
-            onIntent={handleChip}
-            onFreeText={handleAskFreeText}
-            activeIntent={activeIntent}
-          />
+          <AssistantBar onSubmit={handleDestinationSearch} />
         </div>
-
-        {/* Llegada destacada */}
-        {nextArrival && (
-          <section className="relative overflow-hidden rounded-3xl bg-[linear-gradient(140deg,#0E2B7A_0%,#1D4ED8_100%)] p-5 text-white shadow-lg mt-2">
-            <Bus className="absolute -right-4 -bottom-5 w-28 h-28 text-white/[0.07] pointer-events-none" />
-            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/55">
-              Próxima llegada
-            </p>
-            <div className="flex items-end justify-between mt-3 relative z-10">
-              <div>
-                <div className="flex items-center gap-2.5">
-                  <span className="h-8 px-2.5 rounded-lg bg-white text-[#0E2B7A] font-extrabold text-sm inline-flex items-center shadow-sm">
-                    {nextArrival.line.shortName}
-                  </span>
-                  <span className="text-sm font-semibold text-white/85">
-                    {nextArrival.line.direction}
-                  </span>
-                </div>
-                <p className="text-xs text-white/60 mt-2">
-                  {stops[0].stop.name}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-5xl font-extrabold leading-none tracking-tight">
-                  {nextArrival.etaMin}
-                  <span className="text-base font-bold ml-1">min</span>
-                </p>
-                <span className="inline-flex items-center gap-1 mt-2 h-5 px-2 rounded-full bg-white/15 border border-white/20 text-[9px] font-bold tracking-widest">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#71EE8A] animate-pulse" />
-                  EN VIVO
-                </span>
-              </div>
-            </div>
-          </section>
-        )}
 
         <section>
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-[20px] font-semibold text-ink">Tus paradas</h2>
-            <span className="text-xs text-text-muted bg-canvas-soft px-2 py-1 rounded-full border border-hairline-soft">
-              {stops.length} {stops.length === 1 ? 'parada' : 'paradas'}
-            </span>
+            <h2 className="text-[20px] font-semibold text-ink">Historial de paradas</h2>
           </div>
 
-          {hasStops ? (
-            <div className="flex flex-col gap-4">
-              {stops.map(({ stop, arrivals }) => (
-                <div
-                  key={stop.id}
-                  className="bg-canvas rounded-2xl border border-hairline shadow-sm overflow-hidden"
+          <div className="flex flex-col gap-3">
+            {seededRoutes.map(({ seed, origin, destination, line, arrival }) => {
+              const alertLabel = activeAlertLabelForLine(seed.lineId);
+              return (
+                <button
+                  key={seed.id}
+                  type="button"
+                  onClick={() => startSeededTrip(seed)}
+                  aria-label={`Iniciar viaje desde ${origin.name} hacia ${destination.name} en la línea ${line.shortName}${alertLabel ? `. Alerta: ${alertLabel}` : ''}`}
+                  className="w-full text-left bg-canvas rounded-2xl border border-hairline shadow-sm p-4 flex items-center gap-3 hover:bg-canvas-soft active:scale-[0.99] transition-all"
                 >
-                  <div className="flex items-center justify-between p-3 border-b border-hairline-soft">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-5 h-5 text-ink" />
-                      <h3 className="text-lg font-bold text-ink">
-                        {stop.name}
-                      </h3>
-                    </div>
-                    <div className="flex gap-1">
-                      {MOCK_LINES.filter((l) =>
-                        stop.lineIds.includes(l.id),
-                      ).map((line) => (
-                        <LineBadge
-                          key={line.id}
-                          shortName={line.shortName}
-                          size="sm"
-                        />
-                      ))}
-                    </div>
+                  <LineBadge shortName={line.shortName} color={line.color} size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-semibold text-text-muted truncate">
+                      {origin.name}
+                    </p>
+                    <p className="text-sm font-bold text-ink truncate">
+                      → {destination.name}
+                    </p>
                   </div>
-                  <div className="p-2">
-                    <div className="flex flex-col gap-1">
-                      {arrivals.map((arrival, i) => (
-                        <ArrivalCard
-                          key={`${arrival.line.id}-${i}`}
-                          lineName={arrival.line.shortName}
-                          lineDirection={arrival.line.direction}
-                          lineColor={arrival.line.color}
-                          etaMin={arrival.etaMin}
-                          live={arrival.live}
-                        />
-                      ))}
+                  <div className="shrink-0 flex flex-col items-end gap-1">
+                    {alertLabel && (
+                      <span className="inline-flex items-center h-5 px-2 rounded-full bg-[#d97706]/10 text-[#d97706] text-[10px] font-bold tracking-wider animate-pulse">
+                        {alertLabel}
+                      </span>
+                    )}
+                    <div className="text-right">
+                      {arrival ? (
+                        <>
+                          <p className="text-xl font-extrabold text-ink leading-none">
+                            {arrival.displayLabel ??
+                              (arrival.minutos === 0 ? 'Llega' : `${arrival.minutos} min`)}
+                          </p>
+                          <span className="text-[10px] font-semibold text-text-muted">
+                            en vivo
+                          </span>
+                        </>
+                      ) : (
+                        <p className="text-xs font-semibold text-text-muted">sin datos</p>
+                      )}
                     </div>
                   </div>
-                  <div className="p-2 pt-0">
-                    <button
-                      onClick={() => router.push(`/parada/${stop.id}`)}
-                      className="w-full h-10 text-sm font-semibold text-ink hover:bg-canvas-soft rounded-lg transition-colors"
-                    >
-                      Ver todas las llegadas
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="bg-canvas rounded-xl border border-hairline p-8 text-center">
-              <MapPinOff className="w-12 h-12 text-text-faint mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-ink mb-2">
-                Sin paradas guardadas
-              </h3>
-              <p className="text-sm text-text-muted mb-4 max-w-[280px] mx-auto">
-                Agregá tus paradas frecuentes para ver las llegadas al instante.
-              </p>
-              <button
-                onClick={() => router.push('/mapas')}
-                className="h-10 px-6 bg-ink text-canvas text-sm font-semibold rounded-lg hover:bg-ink-soft transition-colors active:scale-[0.98]"
-              >
-                Buscar paradas
-              </button>
-            </div>
-          )}
-
-          {hasStops && (
-            <div className="flex items-center justify-center gap-2 mt-3">
-              <span className="text-xs text-text-faint">
-                Última actualización:{' '}
-                {new Date().toLocaleTimeString('es-AR', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </span>
-              <button
-                onClick={() => setRefreshKey((k) => k + 1)}
-                className="text-xs font-semibold text-ink hover:underline inline-flex items-center gap-1"
-                aria-label="Actualizar llegadas"
-              >
-                <RefreshCw className="w-3 h-3" />
-                Actualizar
-              </button>
-            </div>
-          )}
+                </button>
+              );
+            })}
+          </div>
         </section>
 
         {/* Alertas — primer incidente activo del catálogo */}
@@ -691,9 +598,11 @@ export default function HomePage() {
         open={wizardOpen}
         locationName={assistantRefFromSession(session).name}
         nearbyStops={wizardNearbyStops}
-        initialStep={wizardResumeGuide ? 'destino' : undefined}
-        initialParadaId={wizardResumeGuide?.paradaId ?? null}
-        initialDestino={wizardResumeGuide?.destino ?? null}
+        initialStep={!pendingDestino && wizardResumeGuide ? 'destino' : undefined}
+        initialParadaId={!pendingDestino ? wizardResumeGuide?.paradaId ?? null : null}
+        initialDestino={pendingDestino?.name ?? wizardResumeGuide?.destino ?? null}
+        preselectedDestination={pendingDestino}
+        submissionError={wizardError}
         onChangeLocation={handleWizardChangeLocation}
         onClose={handleWizardClose}
         onComplete={handleWizardComplete}

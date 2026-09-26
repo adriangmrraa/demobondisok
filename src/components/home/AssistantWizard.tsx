@@ -34,10 +34,14 @@ interface AssistantWizardProps {
   initialStep?: WizardStep;
   initialParadaId?: string | null;
   initialDestino?: string | null;
+  /** Destino elegido en Home: al existir, el flujo termina al elegir parada. */
+  preselectedDestination?: LocationPoint | null;
+  /** Error recuperable al no encontrar un recorrido desde la parada elegida. */
+  submissionError?: string | null;
   /** Paso 1 completado y lugar confirmado → el padre abre el selector de lugar. */
   onChangeLocation: () => void;
   onClose: () => void;
-  onComplete: (paradaId: string, destinoText: string) => void;
+  onComplete: (paradaId: string, destinoText: string, selectedDestination?: LocationPoint) => boolean;
 }
 
 const STEP_LABELS: Record<WizardStep, string> = {
@@ -60,6 +64,8 @@ export function AssistantWizard({
   initialStep,
   initialParadaId,
   initialDestino,
+  preselectedDestination = null,
+  submissionError = null,
   onChangeLocation,
   onClose,
   onComplete,
@@ -102,6 +108,9 @@ export function AssistantWizard({
     () => nearbyStops.find((s) => s.parada.id === selectedStopId)?.parada ?? null,
     [nearbyStops, selectedStopId],
   );
+  const stepOrder = preselectedDestination
+    ? (['ubicacion', 'paradas'] as WizardStep[])
+    : STEP_ORDER;
 
   // Sugerencias del destino en vivo sobre el geocoder local.
   const destinoSuggestions = useMemo(
@@ -111,7 +120,7 @@ export function AssistantWizard({
 
   if (!open) return null;
 
-  const stepIndex = STEP_ORDER.indexOf(step);
+  const stepIndex = stepOrder.indexOf(step);
   const finish = () => {
     const dest = destino.trim() || destinoSuggestions[0]?.name || '';
     if (selectedStopId && dest) onComplete(selectedStopId, dest);
@@ -127,7 +136,7 @@ export function AssistantWizard({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={`Asistente de viaje. Paso ${stepIndex + 1} de 3: ${STEP_LABELS[step]}`}
+        aria-label={`Asistente de viaje. Paso ${stepIndex + 1} de ${stepOrder.length}: ${STEP_LABELS[step]}`}
         className="w-full max-w-[400px] bg-canvas border border-hairline rounded-3xl shadow-[0_16px_45px_-6px_rgba(16,29,61,0.4)] overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200"
       >
         {/* Header + stepper */}
@@ -136,7 +145,7 @@ export function AssistantWizard({
             {step !== 'ubicacion' ? (
               <button
                 type="button"
-                onClick={() => setStep(STEP_ORDER[stepIndex - 1])}
+                onClick={() => setStep(stepOrder[stepIndex - 1])}
                 aria-label="Volver al paso anterior"
                 className="w-9 h-9 shrink-0 -ml-1 rounded-full hover:bg-canvas-soft flex items-center justify-center text-ink transition-colors"
               >
@@ -148,7 +157,7 @@ export function AssistantWizard({
             <span className="text-sm font-bold text-ink truncate">
               {STEP_LABELS[step]}
               <span className="ml-1.5 text-[11px] font-medium text-text-faint">
-                {stepIndex + 1}/3
+                {stepIndex + 1}/{stepOrder.length}
               </span>
             </span>
           </div>
@@ -164,7 +173,7 @@ export function AssistantWizard({
 
         {/* Pips del stepper */}
         <div className="flex gap-1 px-4 pt-3">
-          {STEP_ORDER.map((s, i) => (
+          {stepOrder.map((s, i) => (
             <span
               key={s}
               aria-hidden
@@ -223,6 +232,16 @@ export function AssistantWizard({
               <p className="text-sm text-text-muted leading-snug mb-1">
                 ¿En qué parada estás esperando?
               </p>
+              {preselectedDestination && (
+                <p className="text-xs text-text-muted">
+                  Destino: <span className="font-semibold text-ink">{preselectedDestination.name}</span>
+                </p>
+              )}
+              {submissionError && (
+                <p role="alert" className="rounded-xl bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
+                  {submissionError}
+                </p>
+              )}
               <ul className="flex flex-col gap-1.5 max-h-[46dvh] overflow-y-auto overscroll-contain no-scrollbar">
                 {nearbyStops.map(({ parada, distanceMeters, walkMinutes }) => {
                   const active = parada.id === selectedStopId;
@@ -232,6 +251,10 @@ export function AssistantWizard({
                         type="button"
                         onClick={() => {
                           setSelectedStopId(parada.id);
+                          if (preselectedDestination) {
+                            onComplete(parada.id, preselectedDestination.name, preselectedDestination);
+                            return;
+                          }
                           setStep('destino');
                         }}
                         className={cn(
