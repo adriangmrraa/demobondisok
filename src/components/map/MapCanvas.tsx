@@ -25,8 +25,8 @@ import { useReducedMotion } from 'motion/react';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-// Configurar URL estática del worker de MapLibre servido desde /public/maplibre
-// Esto resuelve el error "Failed to load module script: MIME type text/html" bajo Next.js Turbopack
+// Serve the MapLibre worker and its shared module from public/.
+// scripts/copy-maplibre-worker.mjs keeps both files version-matched for Next.js.
 if (typeof window !== 'undefined') {
   maplibregl.setWorkerUrl('/maplibre/maplibre-gl-worker.mjs');
 }
