@@ -1,0 +1,436 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-canvas-soft: var(--canvas-soft);
+  --color-field: var(--field);
+  --color-hairline-soft: var(--hairline-soft);
+  --color-hairline: var(--hairline);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-text-muted: var(--text-muted);
+  --color-text-faint: var(--text-faint);
+  --color-electric-blue: var(--electric-blue);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: 16px;
+  --radius-md: 24px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --radius-full: 9999px;
+}
+
+:root {
+  /* Safe areas nativas para notch y home bar en iOS / Android */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+
+  /* DESIGN.MD Monochromatic Gallery Tokens */
+  --canvas: #ffffff;
+  --canvas-soft: #f3f3f3;
+  --field: #f0f0f0;
+  --hairline-soft: #f0f0f0;
+  --hairline: #e0e0e0;
+  --ink: #141414;
+  --ink-soft: #262626;
+  --text-muted: #707070;
+  --text-faint: #adadad;
+  --electric-blue: #0066ff;
+
+  /* sdd/trip-arrival-alert Phase 7: shared VIAJANDO ride yellow. Card bg +
+     pill flash use the SAME token so they combine BY COLOR. Keep in sync
+     with `VIAJANDO_YELLOW` in trip-map-navigation.ts. */
+  --viajando-yellow: #FFD60A;
+
+  /* Shadcn Semantic Mapping */
+  --background: var(--canvas);
+  --foreground: var(--ink);
+  --card: var(--canvas);
+  --card-foreground: var(--ink);
+  --popover: var(--canvas);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: #ffffff;
+  --secondary: var(--canvas-soft);
+  --secondary-foreground: var(--ink);
+  --muted: var(--canvas-soft);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--canvas-soft);
+  --accent-foreground: var(--ink);
+  --destructive: #dc2626;
+  --border: var(--hairline);
+  --input: var(--field);
+  --ring: var(--ink);
+  --radius: 24px;
+}
+
+.dark {
+  /* DESIGN.MD Dark Neutral Palette */
+  --canvas: #121212;
+  --canvas-soft: #1a1a1a;
+  --field: #222222;
+  --hairline-soft: #262626;
+  --hairline: #333333;
+  --ink: #f5f5f5;
+  --ink-soft: #e5e5e5;
+  --text-muted: #a0a0a0;
+  --text-faint: #666666;
+  --electric-blue: #3385ff;
+
+  /* Shadcn Semantic Mapping */
+  --background: var(--canvas);
+  --foreground: var(--ink);
+  --card: var(--canvas);
+  --card-foreground: var(--ink);
+  --popover: var(--canvas);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: #121212;
+  --secondary: var(--canvas-soft);
+  --secondary-foreground: var(--ink);
+  --muted: var(--canvas-soft);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--canvas-soft);
+  --accent-foreground: var(--ink);
+  --destructive: #ef4444;
+  --border: var(--hairline);
+  --input: var(--field);
+  --ring: var(--ink);
+}
+
+html, body {
+  height: 100dvh;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  font-family: var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  letter-spacing: 0;
+}
+
+/* Ocultar barra de desplazamiento nativa para apariencia de app nativa */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Animación de pulso de radar en vehículos en vivo (aceleración GPU a 60fps) */
+@keyframes bus-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.65);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(245, 158, 11, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+}
+
+.bus-marker-pulse {
+  animation: bus-pulse 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+  will-change: box-shadow, transform;
+}
+
+/* trip-arrival-alert: 3-state arrival motion (sdd/trip-arrival-alert).
+   CSS-only, compositor props (opacity/transform/box-shadow) so the blink
+   never contends with the MapLibre WebGL main thread. */
+@keyframes arrival-blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes transfer-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes pill-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.5);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(220, 38, 38, 0);
+    transform: scale(1.02);
+  }
+}
+
+.animate-arrival-blink {
+  animation: arrival-blink 1s ease-in-out infinite;
+  will-change: opacity;
+}
+
+.animate-transfer-pop {
+  animation: transfer-pop 0.6s ease-out;
+  will-change: transform;
+}
+
+.pill-pulse {
+  animation: pill-pulse 1.6s ease-in-out infinite;
+  will-change: box-shadow, transform;
+}
+
+/* trip-arrival-alert Phase 7: VIAJANDO ride motion.
+   - transfer-rise: energy orb travels from the card UP toward the top
+     "TU VIAJE" pill (origen→destino) during the 2.5s PASSED window.
+   - ride-pulse: yellow glow on the VIAJANDO card, SAME 1.2s rhythm as the
+     pill flash so card + pill read as one synced system (color only —
+     neither element moves from its dock).
+   - pill-ride-sync: top pill flashes its normal canvas color ↔ the SAME
+     yellow token as the card. CSS-only, compositor props only. */
+@keyframes transfer-rise {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 6px) scale(0.6);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -88px) scale(1);
+  }
+}
+
+@keyframes ride-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 214, 10, 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(255, 214, 10, 0);
+  }
+}
+
+@keyframes pill-ride-sync {
+  0%, 100% {
+    background-color: var(--canvas);
+  }
+  50% {
+    background-color: var(--viajando-yellow);
+  }
+}
+
+.transfer-orb {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  width: 12px;
+  height: 12px;
+  margin-bottom: -2px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, #ffffff 0%, var(--viajando-yellow) 55%, rgba(255, 214, 10, 0) 75%);
+  box-shadow: 0 0 12px 3px rgba(255, 214, 10, 0.8);
+  pointer-events: none;
+  animation: transfer-rise 1.1s ease-out forwards;
+  will-change: transform, opacity;
+}
+
+.animate-ride-pulse {
+  animation: ride-pulse 1.2s ease-in-out infinite;
+  will-change: box-shadow;
+}
+
+.pill-ride-sync {
+  animation: pill-ride-sync 1.2s ease-in-out infinite;
+  will-change: background-color;
+}
+
+/* Pulso vivo sincronizado para timeline y mapas */
+@keyframes rutaba-live-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 0.6;
+  }
+}
+
+/* Aura dock de la rosa Metropol — ver docs/metropol/METROPOL-ROSA-DESIGN.md */
+@keyframes rutaba-rose-glow {
+  0%, 100% {
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.32), 0 0 16px rgba(139, 92, 246, 0.22);
+  }
+  50% {
+    box-shadow: 0 8px 28px rgba(139, 92, 246, 0.55), 0 0 32px rgba(139, 92, 246, 0.45);
+  }
+}
+
+.rutaba-rose-btn {
+  animation: rutaba-rose-glow 3.2s ease-in-out infinite;
+}
+
+.rutaba-rose-btn[data-active='true'] {
+  animation: none;
+  box-shadow: 0 8px 30px rgba(139, 92, 246, 0.6), 0 0 36px rgba(139, 92, 246, 0.5);
+}
+
+/* Shine / drive para CTAs de horarios */
+@keyframes rutaba-shine {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+@keyframes rutaba-drive {
+  0% {
+    transform: translateX(-8%);
+  }
+  50% {
+    transform: translateX(8%);
+  }
+  100% {
+    transform: translateX(-8%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rutaba-rose-aura,
+  .rutaba-rose-btn,
+  .rutaba-shine,
+  .rutaba-drive,
+  .animate-arrival-blink,
+  .animate-transfer-pop,
+  .animate-ride-pulse,
+  .transfer-orb,
+  .pill-ride-sync,
+  .pill-pulse {
+    animation: none !important;
+  }
+
+  .rutaba-rose-btn {
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.32), 0 0 16px rgba(139, 92, 246, 0.22);
+  }
+}
+
+/* Utilidades para Safe Areas móviles */
+.pt-safe {
+  padding-top: max(16px, env(safe-area-inset-top));
+}
+
+.pb-safe {
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+
+/* Posicionamiento y estilo de controles nativos MapLibre GL acorde a DESIGN.MD */
+.maplibregl-ctrl-top-right {
+  top: calc(max(14px, env(safe-area-inset-top)) + var(--map-ctrl-offset, 58px)) !important;
+  transition: top 300ms ease-out !important;
+  right: 16px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  z-index: 20 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  width: 40px !important;
+  pointer-events: none !important;
+}
+
+.maplibregl-ctrl-top-right .maplibregl-ctrl {
+  margin: 0 !important;
+  pointer-events: auto !important;
+}
+
+.maplibregl-ctrl-group {
+  width: 40px !important;
+  box-sizing: border-box !important;
+  background-color: var(--canvas) !important;
+  border: 1px solid var(--hairline) !important;
+  border-radius: 9999px !important;
+  overflow: hidden !important;
+  box-shadow: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+}
+
+.maplibregl-ctrl-group button {
+  width: 38px !important;
+  height: 38px !important;
+  box-sizing: border-box !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid var(--hairline-soft) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: background-color 0.15s ease, transform 0.1s ease !important;
+}
+
+.maplibregl-ctrl-group button:last-child {
+  border-bottom: none !important;
+}
+
+.maplibregl-ctrl-group button:hover {
+  background-color: var(--canvas-soft) !important;
+}
+
+.maplibregl-ctrl-group button:active {
+  transform: scale(0.95) !important;
+}
+
+/* Iconos de MapLibre en modo claro y oscuro */
+.maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+  opacity: 0.85;
+}
+
+.dark .maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+  filter: invert(1) brightness(1.6) !important;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+}
