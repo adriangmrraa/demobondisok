@@ -60,6 +60,9 @@ export default function TransportesAppPage() {
   const [stopFocusNonce, setStopFocusNonce] = useState(0);
   const [selectedVehiculo, setSelectedVehiculo] = useState<VehiclePosition | null>(null);
   const [cameraMode, setCameraMode] = useState<CameraMode>("overview");
+  // Vista 3D en Viaje: la cámara dual (bondi+parada) se inclina con pitch/bearing
+  // y arranca activada al abrir/entrar al viaje (pedido de producto).
+  const [trip3D, setTrip3D] = useState(true);
 
   // ─── Estado del Modo "Viaje" (Ubicaciones Arbitrarias / Paradas / POIs) ──
   const [isTripMode, setIsTripMode] = useState<boolean>(false);
@@ -437,12 +440,15 @@ export default function TransportesAppPage() {
     return () => window.cancelAnimationFrame(frame);
   }, [onboard, selectedVehiculo]);
 
-  // Countdown minutes for the white card: geometric ETA while NORMAL (down to
-  // 1 min inclusive). Falls back to the feed arrival when the track can't
-  // project, so the pill restores visible instead of rendering empty.
-  const arrivalMinutes = arrivalEta
-    ? Math.max(1, Math.ceil(arrivalEta.etaSeconds / 60))
-    : (expectedArrival ? Math.max(1, expectedArrival.minutos) : null);
+  // Countdown minutes for the white card: mismo valor que la fila de abordaje y
+  // el hero (`getLlegadas.minutos`) para que el número no quede desparejo entre
+  // las 3 superficies. `arrivalEta` (geométrico) sigue manejando solo la fase
+  // ARRIBANDO/PASSED. Fallback geométrico si no hay arrival del feed.
+  const arrivalMinutes = expectedArrival
+    ? Math.max(1, expectedArrival.minutos)
+    : arrivalEta
+      ? Math.max(1, Math.ceil(arrivalEta.etaSeconds / 60))
+      : null;
 
   // Boarded identity for the transfer/riding card: live ETA while the bus is
   // still the nearest arrival, onboard snapshot once it wraps past the stop.
@@ -696,6 +702,7 @@ export default function TransportesAppPage() {
   const handleOpenTripMode = useCallback(() => {
     setIsTripMode(true);
     setTripViewVisible(true);
+    setTrip3D(true);
     setOriginLocation((prev) => {
       if (prev) return prev;
       const seed = TripPlannerService.resolveLocationPoint(SIMULATED_USER_LOCATION.name);
@@ -752,21 +759,35 @@ export default function TransportesAppPage() {
   useEffect(() => {
     if (onboard || latchedArriving) return;
     if (!resolvedTrip?.boardingStopId || !resolvedTrip.lineId || positions.length === 0) return;
+    const pin = vehiclePin && vehiclePin.forTripKey === resolvedTrip.key ? vehiclePin : null;
+    if (pin && pin.unitId === MANUAL_NONE_UNIT) return; // descarte explícito del usuario
+
+    // Unidad tapeada (cualquier línea de la parada): resolver contra TODAS las
+    // llegadas — no solo la línea recomendada — y NUNCA caer a arrivals[0]. Sin
+    // esto, la fila other-line quedaba fuera del filtro por línea, el target caía
+    // a la llegada más próxima y el mapa elegía el colectivo equivocado.
+    if (boardingUnitKey) {
+      const stopArrivals = TransportService.getLlegadasPorParada(resolvedTrip.boardingStopId, positions);
+      const tapped = stopArrivals.find((a) => boardingUnitKeyOf(a.lineaId, a.interno) === boardingUnitKey);
+      if (!tapped) return; // sin telemetría aún: se resuelve cuando llegue el feed
+      if (selectedVehiculo?.lineId === tapped.lineaId && selectedVehiculo?.unitId === tapped.interno) return;
+      const tappedVehicle = positions.find((p) => p.lineId === tapped.lineaId && p.unitId === tapped.interno);
+      if (!tappedVehicle) return;
+      const tappedFrame = window.requestAnimationFrame(() => {
+        setSelectedVehiculo(tappedVehicle);
+        setSelectedLineaId(tappedVehicle.lineId);
+        setSelectedRamalId(tappedVehicle.ramalId || null);
+        if (tripViewVisible) setCameraMode(resolvedTrip.boardingStopId ? "follow-trip" : "follow-vehicle");
+      });
+      return () => window.cancelAnimationFrame(tappedFrame);
+    }
+
     const arrivals = TransportService.getLlegadasPorParada(
       resolvedTrip.boardingStopId,
       positions.filter((position) => position.lineId === resolvedTrip.lineId),
     );
     if (arrivals.length === 0) return;
-    const pin = vehiclePin && vehiclePin.forTripKey === resolvedTrip.key ? vehiclePin : null;
-    if (pin && pin.unitId === MANUAL_NONE_UNIT) return; // descarte explícito del usuario
-    // sdd/trip-options-upgrade: la fila tapeada manda sobre pin/semilla/arrivals[0].
-    // Nota: arrivals acá ya viene filtrado por resolvedTrip.lineId; la fila
-    // other-line llega por handleSelectBoardingOption (setState directo, como
-    // handleBusSelect) y por eso no necesita pasar por este resolver.
-    let target = boardingUnitKey
-      ? arrivals.find((a) => boardingUnitKeyOf(a.lineaId, a.interno) === boardingUnitKey)
-      : undefined;
-    target ??= pin && pin.unitId !== MANUAL_NONE_UNIT
+    let target = pin && pin.unitId !== MANUAL_NONE_UNIT
       ? arrivals.find((a) => a.interno === pin.unitId)
       : undefined;
     if (!target && tripSeed?.vehicleUnitId && tripSeed.selectedTripId === resolvedTrip.trip.id) {
@@ -855,6 +876,7 @@ export default function TransportesAppPage() {
   const handleEnterTripView = useCallback(() => {
     setIsTripMode(true);
     setTripViewVisible(true);
+    setTrip3D(true);
     setTripReframeNonce((n) => n + 1);
     if (selectedVehiculo) {
       setCameraMode(followTripStop ? "follow-trip" : "follow-vehicle");
@@ -989,8 +1011,12 @@ export default function TransportesAppPage() {
   }, [followTripStop, tripKey]);
 
   const handleToggle3D = useCallback(() => {
+    if (isTripMode) {
+      setTrip3D((v) => !v);
+      return;
+    }
     setCameraMode((prev) => (prev === "navigation-vehicle" ? "follow-vehicle" : "navigation-vehicle"));
-  }, []);
+  }, [isTripMode]);
 
   const handleResetCamera = useCallback(() => {
     setSelectedLineaId("line-65");
@@ -1008,6 +1034,8 @@ export default function TransportesAppPage() {
   const TRIP_STACK_GAP = "0px";
 
   const hasActivePill = Boolean(selectedVehiculo || selectedRamal);
+  // 3D activo: en Viaje lo controla `trip3D`; fuera, el modo navigation-vehicle.
+  const is3DActive = isTripMode ? trip3D : cameraMode === "navigation-vehicle";
 
   return (
     <div className="relative w-full h-full min-h-dvh overflow-hidden bg-background text-foreground select-none">
@@ -1110,10 +1138,10 @@ export default function TransportesAppPage() {
 
                     {/* Fila 2: Próxima parada y tiempo estimado COMPLETO sin puntos suspensivos */}
                     {selectedVehicleInfo.nextStopName && selectedVehicleInfo.minutesToNextStop !== null && (
-                      <div className="flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold pl-0.5 leading-snug">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                      <div className="flex items-center gap-1.5 text-[11px] text-[#2f6b57] dark:text-[#8fcdb4] font-semibold pl-0.5 leading-snug">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#3f8a6f] animate-pulse shrink-0" />
                         <span>
-                          Próxima parada: <span className="font-bold text-ink underline decoration-emerald-500/40 decoration-1 underline-offset-2">{selectedVehicleInfo.nextStopName}</span> (~{selectedVehicleInfo.minutesToNextStop} min)
+                          Próxima parada: <span className="font-bold text-ink underline decoration-[#3f8a6f]/40 decoration-1 underline-offset-2">{selectedVehicleInfo.nextStopName}</span> (~{selectedVehicleInfo.minutesToNextStop} min)
                         </span>
                       </div>
                     )}
@@ -1174,6 +1202,7 @@ export default function TransportesAppPage() {
               selectedKey={selectedKey}
               cameraMode={cameraMode}
               onCameraModeChange={setCameraMode}
+              trip3D={isTripMode ? trip3D : false}
               followTripStop={followTripStop}
               cameraBottomPadding={isTripMode ? tripBottomPadding : selectedParada ? 360 : 140}
               center={[-58.4250, -34.5950]}
@@ -1225,10 +1254,10 @@ export default function TransportesAppPage() {
             {selectedVehiculo && (
               <button
                 onClick={handleToggle3D}
-                title={cameraMode === "navigation-vehicle" ? "Cambiar a vista 2D" : "Volver a la vista 3D"}
+                title={is3DActive ? "Cambiar a vista 2D" : "Volver a la vista 3D"}
                 aria-label="Alternar modo 3D"
                 className={`w-10 h-10 rounded-full border flex items-center justify-center active:scale-95 transition-all ${
-                  cameraMode === "navigation-vehicle"
+                  is3DActive
                     ? "bg-primary text-primary-foreground border-primary font-medium"
                     : "bg-canvas/95 text-foreground border-hairline hover:bg-canvas-soft"
                 }`}

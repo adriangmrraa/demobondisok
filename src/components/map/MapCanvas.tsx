@@ -139,6 +139,8 @@ export interface MapCanvasProps {
   selectedKey?: string | null;
   cameraMode?: CameraMode;
   cameraBottomPadding?: number;
+  /** Viaje en 3D: la cámara dual bondi+parada usa pitch/bearing. */
+  trip3D?: boolean;
   onCameraModeChange?: (mode: CameraMode) => void;
   center?: [number, number];
   theme?: 'light' | 'dark';
@@ -227,6 +229,28 @@ const ROUTE_STOPS: RouteStop[] = MOCK_STOPS.flatMap((s) =>
 const BASEMAP_LIGHT = 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json';
 const BASEMAP_DARK = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 const TICK_MS = 1000;
+
+/**
+ * Ajusta el padding de `fitBounds` al tamaño real del canvas. Con el sheet de
+ * Viaje expandido el padding pedido puede superar el alto del viewport y
+ * MapLibre aborta el encuadre ("Map cannot fit within canvas with the given
+ * bounds, padding, and/or offset"), dejando la cámara sin mover: no se aleja al
+ * elegir un coche lejano ni se reacomoda al colapsar. Se recorta el fondo/derecha
+ * para garantizar siempre un área visible mínima y que el zoom se adapte.
+ */
+const MIN_FIT_VISIBLE_PX = 88;
+function clampFitPadding(
+  map: maplibregl.Map,
+  desired: { top: number; bottom: number; left: number; right: number },
+): { top: number; bottom: number; left: number; right: number } {
+  const cw = map.getCanvas().clientWidth || 0;
+  const ch = map.getCanvas().clientHeight || 0;
+  const top = Math.min(desired.top, Math.max(0, ch - MIN_FIT_VISIBLE_PX));
+  const bottom = Math.min(desired.bottom, Math.max(0, ch - top - MIN_FIT_VISIBLE_PX));
+  const left = Math.min(desired.left, Math.max(0, cw - MIN_FIT_VISIBLE_PX));
+  const right = Math.min(desired.right, Math.max(0, cw - left - MIN_FIT_VISIBLE_PX));
+  return { top, bottom, left, right };
+}
 
 /**
  * Reloj maestro del pulso de ruta (1800 ms, spec de diseño #861): el
@@ -329,6 +353,7 @@ export function MapCanvas({
   // sdd/trip-options-upgrade 3.2: padding dinámico (160 colapsado / 514 expandido).
   // Sin cambio de fitBounds — solo el aire inferior que pide el sheet.
   cameraBottomPadding = 116,
+  trip3D = false,
   onCameraModeChange,
   center = [-58.3816, -34.6037],
   theme = 'light',
@@ -360,6 +385,7 @@ export function MapCanvas({
   const followTripStopRef = useRef<{ lat: number; lng: number } | null>(followTripStop);
   const cameraModeRef = useRef(cameraMode);
   const cameraBottomPaddingRef = useRef(cameraBottomPadding);
+  const trip3DRef = useRef(trip3D);
   const cameraModeHandlerRef = useRef(onCameraModeChange);
   const selectHandlerRef = useRef(onBusSelect);
   const stopSelectHandlerRef = useRef(onStopSelect);
@@ -485,12 +511,12 @@ export function MapCanvas({
       const map = mapRef.current;
       if (!map || !focusRequest) return;
       map.fitBounds(focusRequest.bounds, {
-        padding: {
+        padding: clampFitPadding(map, {
           top: 130,
           bottom: (focusRequest.bottomPadding ?? cameraBottomPadding) + 48,
           left: 60,
           right: 60,
-        },
+        }),
         duration: 900,
         essential: true,
       });
@@ -793,7 +819,10 @@ export function MapCanvas({
       // padding respeta el sheet.
       const selKey = selectedRef.current;
       const mode = cameraModeRef.current;
-      if (selKey && mode === 'follow-trip') {
+      // Encuadre dual SIEMPRE que haya parada de abordaje (2D y 3D): el bondi
+      // elegido y la parada quedan arriba del modal, con zoom según distancia.
+      const tripHasStop = Boolean(followTripStopRef.current);
+      if (selKey && (mode === 'follow-trip' || ((mode === 'follow-vehicle' || mode === 'navigation-vehicle') && tripHasStop))) {
         applyFollowTripFrame(TICK_MS + 120);
       } else if (selKey && (mode === 'follow-vehicle' || mode === 'navigation-vehicle')) {
         const live = motionMap.get(selKey)?.frame(Date.now());
@@ -822,7 +851,7 @@ export function MapCanvas({
         followUserFrame();
         return;
       }
-      if (mode === 'follow-trip') {
+      if (mode === 'follow-trip' || ((mode === 'follow-vehicle' || mode === 'navigation-vehicle') && followTripStopRef.current)) {
         applyFollowTripFrame(450);
         return;
       }
@@ -882,15 +911,15 @@ export function MapCanvas({
             [Math.max(live.lng, stop.lng), Math.max(live.lat, stop.lat)],
           ],
           {
-            padding: {
+            padding: clampFitPadding(map, {
               top: 200,
               bottom: cameraBottomPaddingRef.current + 80,
               left: 48,
               right: 48,
-            },
+            }),
             maxZoom: 16.2,
-            pitch: 0,
-            bearing: 0,
+            pitch: trip3DRef.current || cameraModeRef.current === 'navigation-vehicle' ? 52 : 0,
+            bearing: trip3DRef.current || cameraModeRef.current === 'navigation-vehicle' ? live.heading : 0,
             duration,
             easing: (t) => t,
           },
@@ -2460,8 +2489,9 @@ export function MapCanvas({
     cameraBottomPaddingRef.current = cameraBottomPadding;
     cameraModeHandlerRef.current = onCameraModeChange;
     followTripStopRef.current = followTripStop;
+    trip3DRef.current = trip3D;
     cameraApplyRef.current();
-  }, [cameraMode, cameraBottomPadding, onCameraModeChange, followTripStop]);
+  }, [cameraMode, cameraBottomPadding, onCameraModeChange, followTripStop, trip3D]);
 
   // Fix de ubicación → actualiza puck y, en follow-user, recentra cámara.
   useEffect(() => {

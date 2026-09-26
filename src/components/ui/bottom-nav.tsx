@@ -55,10 +55,10 @@ export function BottomNav({
   const isYellowRide = arrivalPhase === 'VIAJANDO_YELLOW';
   const isCritical = arrivalPhase === 'ARRIBANDO';
   const roseBgClass = isTripMode
-    ? isGreenRide ? 'bg-[#15803D]' : isYellowRide ? 'bg-[var(--viajando-yellow)]' : isCritical ? 'bg-red-600' : 'bg-canvas'
+    ? isGreenRide ? 'bg-[var(--viajando-green)]' : isYellowRide ? 'bg-[var(--viajando-yellow)]' : isCritical ? 'bg-red-600' : 'bg-canvas'
     : dark ? 'bg-[#1D2B4F]' : 'bg-white';
   const roseRingClass = isTripMode
-    ? isGreenRide ? 'ring-[#15803D] ring-[5px]' : isYellowRide ? 'ring-[var(--viajando-yellow)] ring-[5px]' : isCritical ? 'ring-red-600 ring-[5px]' : 'ring-electric-blue ring-[5px]'
+    ? isGreenRide ? 'ring-[var(--viajando-green)] ring-[5px]' : isYellowRide ? 'ring-[var(--viajando-yellow)] ring-[5px]' : isCritical ? 'ring-red-600 ring-[5px]' : 'ring-electric-blue ring-[5px]'
     : dark ? 'ring-[#1D2B4F] ring-4' : 'ring-white ring-4';
   const roseMono = isTripMode && (isGreenRide || isYellowRide || isCritical);
   const handleRoseClick = (event: React.MouseEvent<HTMLAnchorElement>) => {

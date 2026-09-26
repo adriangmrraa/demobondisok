@@ -276,7 +276,7 @@ export default function ViajePanel({
                           </span>
                         </span>
                       </span>
-                      <span aria-live="polite" className="text-xs font-bold text-[#16a34a] shrink-0 tabular-nums">
+                      <span aria-live="polite" className="text-xs font-bold text-[#2f6b57] dark:text-[#8fcdb4] shrink-0 tabular-nums">
                         {row.displayLabel}
                       </span>
                     </button>

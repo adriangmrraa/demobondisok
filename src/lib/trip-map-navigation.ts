@@ -173,10 +173,10 @@ export const TRANSFER_MS = 2500;
 /** How long the green VIAJANDO board-confirmed beat holds before the ride
  * turns yellow. Brief on purpose: green = "boarding confirmed", yellow = ride. */
 export const VIAJANDO_GREEN_MS = 3000;
-/** Shared yellow token for the VIAJANDO ride: card bg + pill flash use the
+/** Shared muted-gold token for the VIAJANDO ride: card bg + pill flash use the
  * SAME value so they combine BY COLOR (card stays docked, pill stays on top).
- * #FFD60A on #141414 ≈ 12:1 (AAA); keep in sync with `--viajando-yellow`. */
-export const VIAJANDO_YELLOW = '#FFD60A';
+ * #A98B4E on #141414 ≈ 5.4:1 (AA); keep in sync with `--viajando-yellow`. */
+export const VIAJANDO_YELLOW = '#A98B4E';
 /** Stops ridden onboard before the demo loops back to a new bus. */
 export const RIDING_STOPS = 2;
 /** Fallback: release the ride even if stop counting stalls (sparse route). */

@@ -60,10 +60,11 @@
   --text-faint: #adadad;
   --electric-blue: #0066ff;
 
-  /* sdd/trip-arrival-alert Phase 7: shared VIAJANDO ride yellow. Card bg +
-     pill flash use the SAME token so they combine BY COLOR. Keep in sync
-     with `VIAJANDO_YELLOW` in trip-map-navigation.ts. */
-  --viajando-yellow: #FFD60A;
+  /* sdd/trip-arrival-alert Phase 7: estados VIAJANDO. Tonos desaturados para
+     no romper la estética monocromática + azul eléctrico (menos contraste,
+     menos ruido). Keep in sync with `VIAJANDO_YELLOW` en trip-map-navigation.ts. */
+  --viajando-yellow: #a98b4e;
+  --viajando-green: #2f5d4b;
 
   /* Shadcn Semantic Mapping */
   --background: var(--canvas);
@@ -236,10 +237,10 @@ html, body {
 
 @keyframes ride-pulse {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(255, 214, 10, 0.55);
+    box-shadow: 0 0 0 0 rgba(169, 139, 78, 0.55);
   }
   50% {
-    box-shadow: 0 0 0 10px rgba(255, 214, 10, 0);
+    box-shadow: 0 0 0 10px rgba(169, 139, 78, 0);
   }
 }
 
@@ -260,8 +261,8 @@ html, body {
   height: 12px;
   margin-bottom: -2px;
   border-radius: 9999px;
-  background: radial-gradient(circle, #ffffff 0%, var(--viajando-yellow) 55%, rgba(255, 214, 10, 0) 75%);
-  box-shadow: 0 0 12px 3px rgba(255, 214, 10, 0.8);
+  background: radial-gradient(circle, #ffffff 0%, var(--viajando-yellow) 55%, rgba(169, 139, 78, 0) 75%);
+  box-shadow: 0 0 12px 3px rgba(169, 139, 78, 0.8);
   pointer-events: none;
   animation: transfer-rise 1.1s ease-out forwards;
   will-change: transform, opacity;
@@ -451,8 +452,8 @@ html, body {
 .arrival-card--normal,
 .arrival-card--passed { --arrival-surface: #ffffff; --arrival-border: #e0e0e0; --arrival-ink: #141414; }
 .arrival-card--arribando { --arrival-surface: #dc2626; --arrival-border: #991b1b; --arrival-ink: #ffffff; animation: arrival-critical-glow 1.55s cubic-bezier(.45, 0, .55, 1) infinite; }
-.arrival-card--viajando-green { --arrival-surface: #15803d; --arrival-border: #0f5132; --arrival-ink: #ffffff; animation: trip-card-morph 780ms cubic-bezier(.16, 1, .3, 1) both; }
-.arrival-card--viajando-yellow { --arrival-surface: var(--viajando-yellow); --arrival-border: #d9a800; --arrival-ink: #141414; }
+.arrival-card--viajando-green { --arrival-surface: var(--viajando-green); --arrival-border: #244a3b; --arrival-ink: #ffffff; animation: trip-card-morph 780ms cubic-bezier(.16, 1, .3, 1) both; }
+.arrival-card--viajando-yellow { --arrival-surface: var(--viajando-yellow); --arrival-border: #8c723e; --arrival-ink: #141414; }
 
 .arrival-card__eyebrow { color: color-mix(in srgb, currentColor 72%, transparent); font-size: 10px; font-weight: 700; letter-spacing: .14em; line-height: 1.2; text-transform: uppercase; }
 .arrival-card__eta { display: inline-flex; overflow: hidden; border-radius: 999px; background: #141414; color: #fff; padding: .25rem .625rem; font-size: .75rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.15; }
@@ -474,17 +475,17 @@ html, body {
    trail without the cost of canvas, filters, or layout each frame. */
 .arrival-fluid-trail { position: absolute; z-index: 4; left: 50%; bottom: 100%; width: 58px; height: 110px; pointer-events: none; transform: translateX(-50%); }
 .arrival-fluid-trail__core, .arrival-fluid-trail__tail { position: absolute; left: 50%; bottom: -5px; display: block; border-radius: 999px; transform: translateX(-50%); }
-.arrival-fluid-trail__core { width: 13px; height: 13px; background: radial-gradient(circle at 35% 30%, #fff 0 11%, #ffe98a 33%, var(--viajando-yellow) 62%, rgba(255, 214, 10, 0) 74%); box-shadow: 0 0 18px 5px rgba(255, 214, 10, .85); animation: fluid-core-rise 1080ms cubic-bezier(.16, 1, .3, 1) forwards; }
-.arrival-fluid-trail__tail { width: 25px; height: 74px; transform-origin: bottom center; background: linear-gradient(to top, rgba(255, 214, 10, .78), rgba(255, 214, 10, .28) 45%, transparent 100%); filter: blur(7px); animation: fluid-tail-rise 1080ms cubic-bezier(.16, 1, .3, 1) forwards; }
+.arrival-fluid-trail__core { width: 13px; height: 13px; background: radial-gradient(circle at 35% 30%, #fff 0 11%, #e6d9b0 33%, var(--viajando-yellow) 62%, rgba(169, 139, 78, 0) 74%); box-shadow: 0 0 18px 5px rgba(169, 139, 78, .85); animation: fluid-core-rise 1080ms cubic-bezier(.16, 1, .3, 1) forwards; }
+.arrival-fluid-trail__tail { width: 25px; height: 74px; transform-origin: bottom center; background: linear-gradient(to top, rgba(169, 139, 78, .78), rgba(169, 139, 78, .28) 45%, transparent 100%); filter: blur(7px); animation: fluid-tail-rise 1080ms cubic-bezier(.16, 1, .3, 1) forwards; }
 @keyframes fluid-core-rise { 0% { opacity: 0; transform: translate(-50%, 9px) scale(.55); } 12% { opacity: 1; } 72% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -101px) scale(1.1); } }
 @keyframes fluid-tail-rise { 0% { opacity: 0; transform: translate(-50%, 12px) scaleY(.25); } 16% { opacity: .92; } 100% { opacity: 0; transform: translate(-50%, -84px) scaleY(1.2); } }
 
 .pill-handoff { position: relative; isolation: isolate; animation: pill-handoff-spring 820ms cubic-bezier(.16, 1.35, .3, 1) both; }
 .pill-impact { position: absolute; z-index: -1; left: 50%; bottom: -3px; width: 1px; height: 1px; pointer-events: none; }
 .pill-impact__ripple, .pill-impact__flash { position: absolute; left: 50%; bottom: 0; display: block; border-radius: 999px; transform: translate(-50%, 50%); }
-.pill-impact__ripple { width: 18px; height: 8px; border: 1px solid rgba(255, 214, 10, .9); animation: pill-impact-ripple 720ms cubic-bezier(.16, 1, .3, 1) forwards; }
-.pill-impact__flash { width: 54px; height: 22px; background: radial-gradient(ellipse, rgba(255, 244, 190, .9), rgba(255, 214, 10, .2) 42%, transparent 72%); filter: blur(3px); animation: pill-impact-flash 560ms ease-out forwards; }
-@keyframes pill-handoff-spring { 0% { transform: scale(1); } 46% { transform: scale(1.03); box-shadow: 0 16px 38px -12px rgba(255, 214, 10, .62); } 100% { transform: scale(1); } }
+.pill-impact__ripple { width: 18px; height: 8px; border: 1px solid rgba(169, 139, 78, .9); animation: pill-impact-ripple 720ms cubic-bezier(.16, 1, .3, 1) forwards; }
+.pill-impact__flash { width: 54px; height: 22px; background: radial-gradient(ellipse, rgba(228, 214, 178, .9), rgba(169, 139, 78, .2) 42%, transparent 72%); filter: blur(3px); animation: pill-impact-flash 560ms ease-out forwards; }
+@keyframes pill-handoff-spring { 0% { transform: scale(1); } 46% { transform: scale(1.03); box-shadow: 0 16px 38px -12px rgba(169, 139, 78, .62); } 100% { transform: scale(1); } }
 @keyframes pill-impact-ripple { from { opacity: .8; transform: translate(-50%, 50%) scale(.55); } to { opacity: 0; transform: translate(-50%, 50%) scale(4.8); } }
 @keyframes pill-impact-flash { from { opacity: 0; transform: translate(-50%, 50%) scale(.45); } 30% { opacity: 1; } to { opacity: 0; transform: translate(-50%, 50%) scale(1.35); } }
 
@@ -526,7 +527,7 @@ html, body {
   width: 74px;
   height: 138px;
   border-radius: 60% 60% 28% 28%;
-  background: linear-gradient(to top, rgba(255, 183, 3, .02), rgba(255, 214, 10, .55) 35%, rgba(255, 255, 255, .72) 66%, transparent 100%);
+  background: linear-gradient(to top, rgba(255, 183, 3, .02), rgba(169, 139, 78, .55) 35%, rgba(255, 255, 255, .72) 66%, transparent 100%);
   filter: blur(16px);
   transform-origin: bottom center;
   animation: energy-aura-rise 1280ms cubic-bezier(.18, .86, .28, 1) both;
@@ -545,7 +546,7 @@ html, body {
   height: 22px;
   border-radius: 999px;
   background: radial-gradient(circle at 36% 31%, #fff 0 14%, #fff7bf 27%, #ffe36a 48%, #ffb703 68%, rgba(255,183,3,0) 75%);
-  box-shadow: 0 0 18px 7px rgba(255, 214, 10, .9), 0 0 42px 12px rgba(255, 183, 3, .42);
+  box-shadow: 0 0 18px 7px rgba(169, 139, 78, .9), 0 0 42px 12px rgba(255, 183, 3, .42);
   animation: energy-comet-rise 1180ms cubic-bezier(.14, 1, .28, 1) both;
 }
 .arrival-energy-spectrum__spark {
