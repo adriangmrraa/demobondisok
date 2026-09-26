@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { ArrowUpDown, X, Search, Navigation, CornerDownLeft, ChevronDown, Crosshair, Eraser } from "lucide-react";
+import { ArrowUpDown, X, Search, Navigation, CornerDownLeft, ChevronDown, Crosshair, Eraser, LocateFixed, Loader2 } from "lucide-react";
 import { LocationPoint } from "@/types/trip-planner";
 import { TripPlannerService, KNOWN_POIS } from "@/lib/services/trip-planner-service";
 import { SIMULATED_USER_LOCATION } from "@/lib/config/user-location";
@@ -19,6 +19,10 @@ interface ViajeHeaderProps {
   mapPickTarget?: "origin" | "destination" | null;
   onCancelMapPick?: () => void;
   onClear?: () => void;
+  /** Usa la ubicación real del dispositivo como origen (pide permiso al navegador). */
+  onUseDeviceLocation?: () => void;
+  geoLoading?: boolean;
+  geoError?: string | null;
   initialCollapsed?: boolean;
   collapseWhenComplete?: boolean;
   onCollapsedChange?: (collapsed: boolean) => void;
@@ -45,6 +49,9 @@ export default function ViajeHeader({
   mapPickTarget,
   onCancelMapPick,
   onClear,
+  onUseDeviceLocation,
+  geoLoading = false,
+  geoError = null,
   initialCollapsed = false,
   collapseWhenComplete = false,
   onCollapsedChange,
@@ -348,6 +355,18 @@ export default function ViajeHeader({
                     <Crosshair className="w-3.5 h-3.5 text-electric-blue" />
                     <span className="hidden xs:inline">En mapa</span>
                   </button>
+                  {onUseDeviceLocation && (
+                    <button
+                      type="button"
+                      onClick={onUseDeviceLocation}
+                      disabled={geoLoading}
+                      title="Usar mi ubicación actual"
+                      aria-label="Usar mi ubicación actual como origen"
+                      className="w-9 h-9 rounded-full bg-canvas-soft hover:bg-field border border-hairline flex items-center justify-center text-electric-blue shrink-0 transition-all active:scale-95 shadow-xs disabled:opacity-50 disabled:pointer-events-none"
+                    >
+                      {geoLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LocateFixed className="w-4 h-4" />}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -444,6 +463,12 @@ export default function ViajeHeader({
             <ArrowUpDown className="w-3.5 h-3.5" />
           </button>
         </div>
+
+        {geoError && (
+          <p role="alert" className="mt-2 px-1 text-[11px] font-medium leading-snug text-text-muted">
+            {geoError}
+          </p>
+        )}
 
         {/* Sugerencias rápidas de destinos emblemáticos */}
         {!destinationLocation && !activeField && (

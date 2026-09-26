@@ -19,7 +19,7 @@ import type { MapFocusRequest, PlannerMapPoints, PlannerMapPulse } from "@/compo
 import { Parada } from "@/types/transport";
 import { TripOption, LocationPoint, TransitLeg } from "@/types/trip-planner";
 import { Navigation, RotateCcw, Eye, X, Search } from "lucide-react";
-import { SIMULATED_USER_LOCATION, SIMULATED_LOCATION_LABEL } from "@/lib/config/user-location";
+import { SIMULATED_USER_LOCATION, SIMULATED_LOCATION_LABEL, requestDeviceLocation, DeviceLocationError } from "@/lib/config/user-location";
 import { parseTripMapState, buildTripMapState, tripMapUrlFromState, etaToBoardingStop, hasPassedStop, hasCompletedRide, viajandoSubPhase, ARRIVAL_EPS_M, ARRIVAL_EPS_S, BOARDING_DWELL_MS, type TripMapNavigationState, type ArrivalPhase } from "@/lib/trip-map-navigation";
 import { buildBoardingOptions, boardingHeroLabel, boardingUnitKeyOf } from "@/lib/services/trip-boarding-options";
 import { useTheme } from "@/components/theme/ThemeProvider";
@@ -63,6 +63,9 @@ export default function TransportesAppPage() {
   // Vista 3D en Viaje: la cámara dual (bondi+parada) se inclina con pitch/bearing
   // y arranca activada al abrir/entrar al viaje (pedido de producto).
   const [trip3D, setTrip3D] = useState(true);
+  // Ubicación real del dispositivo como origen (botón circular en el header).
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
 
   // ─── Estado del Modo "Viaje" (Ubicaciones Arbitrarias / Paradas / POIs) ──
   const [isTripMode, setIsTripMode] = useState<boolean>(false);
@@ -592,6 +595,21 @@ export default function TransportesAppPage() {
     setDestinationLocation(loc);
   }, []);
 
+  // Botón circular de ubicación real: pide permiso al navegador (debe salir de un
+  // gesto del usuario en iOS/Android) y guarda el fix como origen del viaje.
+  const handleUseDeviceLocation = useCallback(async () => {
+    setGeoError(null);
+    setGeoLoading(true);
+    try {
+      const loc = await requestDeviceLocation();
+      handleSelectOrigin({ name: loc.name, lat: loc.lat, lng: loc.lng, isArbitrary: true, source: "text" });
+    } catch (error) {
+      setGeoError(error instanceof DeviceLocationError ? error.message : "No pudimos obtener tu ubicación.");
+    } finally {
+      setGeoLoading(false);
+    }
+  }, [handleSelectOrigin]);
+
   // sdd/trip-options-upgrade 2.3: el colapso del panel re-encuadra (expand Y collapse).
   const handlePanelCollapsedChange = useCallback((collapsed: boolean) => {
     setIsTripPanelCollapsed(collapsed);
@@ -733,6 +751,7 @@ export default function TransportesAppPage() {
     const frame = window.requestAnimationFrame(() => {
       setTripSeed(request);
       setIsTripMode(true);
+      setTrip3D(true);
       setOriginLocation(origin);
       setDestinationLocation(destination);
       setSelectedTripId(request.selectedTripId ?? null);
@@ -1064,6 +1083,9 @@ export default function TransportesAppPage() {
         mapPickTarget={mapPickTarget}
         onStartMapPick={handleStartMapPick}
         onCancelMapPick={handleCancelMapPick}
+        onUseDeviceLocation={handleUseDeviceLocation}
+        geoLoading={geoLoading}
+        geoError={geoError}
         initialCollapsed={Boolean(resolvedTrip)}
         collapseWhenComplete={Boolean(resolvedTrip)}
         onCollapsedChange={setIsTripHeaderCollapsed}
