@@ -1163,10 +1163,7 @@ export default function TransportesAppPage() {
           )}
 
           {/* Canvas de Mapa MapLibre WebGL — capa fija, sin reflow del header */}
-          <div
-            className="absolute inset-0 z-0 overflow-hidden"
-            style={{ willChange: "transform" }}
-          >
+          <div className="absolute inset-0 z-0 overflow-hidden">
             <DynamicMap
               positions={filteredPositions}
               highlightLines={effectiveHighlightLines}
