@@ -2434,17 +2434,15 @@ export function MapCanvas({
     <div
       ref={containerRef}
       className={className}
-      style={{
-        width: '100%',
-        height: '100%',
-        // Capa de composición aislada: el header/dropdown no re-pinta el
-        // backdrop sobre el WebGL (sin backdrop-blur no hay readback, pero
-        // translateZ + isolation refuerzan el boundary de compositor).
-        willChange: 'transform',
-        transform: 'translateZ(0)',
-        backfaceVisibility: 'hidden',
-        isolation: 'isolate',
-      }}
+      // NO promover este contenedor a capa compuesta propia. MapLibre inyecta
+      // su <canvas> WebGL acá adentro: si el padre lleva `transform: translateZ(0)`
+      // + `will-change: transform` + `backface-visibility: hidden`, WebKit (Safari
+      // iOS y cualquier WKWebView, incluido el browser in-app de Telegram) culla
+      // la capa del canvas en el plano 3D coplanar y NO la pinta: el mapa queda
+      // en negro sin tiles, sin colectivos, sin recorrido y sin paradas, mientras
+      // el resto del DOM (header, cards, modales) se ve perfecto. Blink (Chrome
+      // desktop / Android) tolera el hack y por eso el bug es iOS-only.
+      style={{ width: '100%', height: '100%' }}
     />
   );
 }
