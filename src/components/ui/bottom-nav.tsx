@@ -7,6 +7,7 @@ import { Bus, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MetropolRose } from '@/components/brand/metropol-logo';
 import { useTheme } from '@/components/theme/ThemeProvider';
+import type { ArrivalPhase } from '@/lib/trip-map-navigation';
 
 /**
  * Bottom nav unificado de la app (home + mapas).
@@ -20,6 +21,8 @@ export interface BottomNavProps {
   onToggleLineMenu?: () => void;
   onActivateTripMode?: () => void;
   isTripMode?: boolean;
+  /** Visual phase only; never changes the trip state machine. */
+  arrivalPhase?: ArrivalPhase;
   /** Hay contenido de viaje para alternar (modo Viaje o colectivo seguido). */
   tripToggleActive?: boolean;
   /** Un toque en la rosa alterna la vista del viaje sin perder el estado. */
@@ -34,6 +37,7 @@ export function BottomNav({
   onToggleLineMenu,
   onActivateTripMode,
   isTripMode = false,
+  arrivalPhase,
   tripToggleActive = false,
   onToggleTripView,
 }: BottomNavProps) {
@@ -47,25 +51,16 @@ export function BottomNav({
   const mapaActive = onMap;
   const dark = resolvedTheme === 'dark';
 
-  // Modo Viaje ON: círculo electric-blue marcado (no transparente) + ring más
-  // grueso; en oscuro, disco blanco sólido contrastando con la barra. Flor intacta.
-  // OFF: blanco en claro / navy Metropol en oscuro. El aura SIEMPRE queda violeta.
+  const isGreenRide = arrivalPhase === 'VIAJANDO_GREEN';
+  const isYellowRide = arrivalPhase === 'VIAJANDO_YELLOW';
+  const isCritical = arrivalPhase === 'ARRIBANDO';
   const roseBgClass = isTripMode
-    ? dark
-      ? 'bg-white'
-      : 'bg-electric-blue/40'
-    : dark
-      ? 'bg-[#1D2B4F]'
-      : 'bg-white';
-
+    ? isGreenRide ? 'bg-[#15803D]' : isYellowRide ? 'bg-[var(--viajando-yellow)]' : isCritical ? 'bg-red-600' : 'bg-canvas'
+    : dark ? 'bg-[#1D2B4F]' : 'bg-white';
   const roseRingClass = isTripMode
-    ? dark
-      ? 'ring-white ring-[5px]'
-      : 'ring-electric-blue ring-[5px]'
-    : dark
-      ? 'ring-[#1D2B4F] ring-4'
-      : 'ring-white ring-4';
-
+    ? isGreenRide ? 'ring-[#15803D] ring-[5px]' : isYellowRide ? 'ring-[var(--viajando-yellow)] ring-[5px]' : isCritical ? 'ring-red-600 ring-[5px]' : 'ring-electric-blue ring-[5px]'
+    : dark ? 'ring-[#1D2B4F] ring-4' : 'ring-white ring-4';
+  const roseMono = isTripMode && (isGreenRide || isYellowRide || isCritical);
   const handleRoseClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     const now = Date.now();
     const isDouble = now - lastTapRef.current < DOUBLE_TAP_MS;
@@ -158,14 +153,15 @@ export function BottomNav({
             data-active={mapaActive}
             onClick={handleRoseClick}
             className={cn(
-              'absolute left-1/2 -translate-x-1/2 -top-3.5 z-10 flex flex-col items-center justify-center w-[56px] h-[56px] rounded-full active:scale-95 transition-all duration-200 rutaba-rose-btn touch-manipulation',
+              'absolute left-1/2 -translate-x-1/2 -top-3.5 z-10 flex flex-col items-center justify-center w-[56px] h-[56px] rounded-full active:scale-95 transition-[background-color,box-shadow,transform,ring-color] duration-500 [transition-timing-function:cubic-bezier(.16,1,.3,1)] rutaba-rose-btn touch-manipulation',
+              isTripMode && 'rutaba-rose-trip-morph',
               roseBgClass,
               roseRingClass,
             )}
             aria-label={onMap && tripToggleActive ? "Mostrar u ocultar la vista del viaje. Doble toque para abrir Modo Viaje" : "Ir al mapa. Doble toque para abrir Modo Viaje"}
             aria-current={mapaActive ? 'page' : undefined}
           >
-            <MetropolRose className="h-7 w-auto" />
+            <MetropolRose variant={roseMono ? "mono" : "full"} className={cn("h-7 w-auto", roseMono && (isYellowRide ? "text-[#1D2B4F]" : "text-white"))} />
           </Link>
         </div>
       </div>

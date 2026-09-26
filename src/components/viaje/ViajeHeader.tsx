@@ -29,6 +29,8 @@ interface ViajeHeaderProps {
    * on top, card stays docked — they combine BY COLOR only. Takes precedence
    * over `arrivalPulse` when both are true. */
   arrivalRideSync?: boolean;
+  /** Replays the physical handoff when the vehicle boards. */
+  arrivalHandoff?: boolean;
 }
 
 export default function ViajeHeader({
@@ -48,6 +50,7 @@ export default function ViajeHeader({
   onCollapsedChange,
   arrivalPulse = false,
   arrivalRideSync = false,
+  arrivalHandoff = false,
 }: ViajeHeaderProps) {
   const [activeField, setActiveField] = useState<"origin" | "destination" | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -189,7 +192,8 @@ export default function ViajeHeader({
         <div
           data-arrival-pill={arrivalPulse || arrivalRideSync ? "true" : undefined}
           data-arrival-ride={arrivalRideSync ? "true" : undefined}
-          className={`bg-canvas dark:bg-canvas border border-hairline rounded-full pl-4 pr-2 py-2 shadow-md flex items-center gap-2 select-none${arrivalRideSync ? " pill-ride-sync" : arrivalPulse ? " pill-pulse" : ""}`}
+          data-arrival-handoff={arrivalHandoff ? "true" : undefined}
+          className={`bg-canvas dark:bg-canvas border border-hairline rounded-full pl-4 pr-2 py-2 shadow-md flex items-center gap-2 select-none${arrivalRideSync ? " pill-ride-sync" : arrivalPulse ? " pill-pulse" : ""}${arrivalHandoff ? " pill-handoff" : ""}`}
           {...handleProps}
           onClick={(e) => {
             if ((e.target as HTMLElement).closest("button")) return;
@@ -197,6 +201,12 @@ export default function ViajeHeader({
           }}
           title="Expandir"
         >
+          {arrivalHandoff && (
+            <span aria-hidden="true" className="pill-impact">
+              <span className="pill-impact__ripple" />
+              <span className="pill-impact__flash" />
+            </span>
+          )}
           <span className="w-2 h-2 rounded-full bg-electric-blue shrink-0" />
           <span className="text-xs font-bold text-ink truncate flex-1">
             {originLocation?.name} → {destinationLocation?.name}

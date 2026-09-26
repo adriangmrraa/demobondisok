@@ -7,6 +7,7 @@ import LiveTransportBubble from "@/components/ui-shell/LiveTransportBubble";
 import { BottomNav } from "@/components/ui/bottom-nav";
 import ViajeHeader from "@/components/viaje/ViajeHeader";
 import ViajePanel from "@/components/viaje/ViajePanel";
+import ArrivalStatusCard from "@/components/viaje/ArrivalStatusCard";
 import { TransportService } from "@/lib/services/transport-service";
 import { TripPlannerService } from "@/lib/services/trip-planner-service";
 import { subscribeToPositions } from "@/mock/live";
@@ -1040,6 +1041,7 @@ export default function TransportesAppPage() {
         onCollapsedChange={setIsTripHeaderCollapsed}
         arrivalPulse={arrivalPhase === 'PASSED' || arrivalPhase === 'VIAJANDO_GREEN'}
         arrivalRideSync={arrivalPhase === 'VIAJANDO_YELLOW'}
+        arrivalHandoff={arrivalPhase === 'PASSED'}
       />
             ) : (
               <div className="w-full flex flex-col items-center gap-2">
@@ -1185,6 +1187,7 @@ export default function TransportesAppPage() {
               tripSegments={isTripViewActive && selectedTrip ? selectedTrip.segments : null}
               tripUsedStopIds={isTripViewActive && selectedTrip ? resolvedTripUsedStopIds : null}
               tripFocus={isTripViewActive && !!selectedTrip}
+              tripPulseActive={arrivalPhase === 'VIAJANDO_GREEN' || arrivalPhase === 'VIAJANDO_YELLOW'}
               pickMode={Boolean(mapPickTarget)}
               onMapPick={handleMapPick}
               userLocation={userLocation}
@@ -1193,74 +1196,15 @@ export default function TransportesAppPage() {
           </div>
 
           {isTripViewActive && isTripHeaderCollapsed && resolvedTrip && selectedVehiculo && (expectedArrival || onboard) && cardLineaNumero && cardUnitId && (
-            // White card docked under the top pill (zero-gap token, mt-0).
-            // Arrival machine (sdd/trip-arrival-alert + Phase 7 VIAJANDO):
-            // NORMAL restores the X-min countdown pill; ARRIBANDO flips to red
-            // blink and HOLDS through the boarding dwell (resolver frozen from
-            // the latch — Phase 6, kept); PASSED returns to white +
-            // transfer-pop + energy orb rising toward the minimized top pill
-            // (2.5s window always renders: card gate keeps the onboard
-            // snapshot); VIAJANDO_GREEN (green-700/white ≈4.9:1 AA) confirms
-            // boarding briefly; VIAJANDO_YELLOW (yellow #FFD60A/#141414 ≈12:1
-            // AAA) rides 1–2 stops glued to the MOVING bus with the pill
-            // flashing the SAME yellow token at the SAME 1.2s rhythm (color
-            // sync only — card stays docked, pill stays on top). Boarded
-            // identity renders from the onboard snapshot so the transfer
-            // window can't unmount if the feed ETA wraps past the stop.
-            // Fixed (non-token) ink keeps contrast over the map in both themes.
-            <div className="absolute left-4 right-4 top-[calc(max(14px,env(safe-area-inset-top))+72px+var(--trip-stack-gap,0px))] z-30 mx-auto max-w-[320px] pointer-events-none">
-              <div
-                aria-live="polite"
-                data-arrival-phase={arrivalPhase}
-                className={`pointer-events-auto relative mt-0 flex items-center justify-between gap-3 rounded-2xl border px-3.5 py-2.5 shadow-xl backdrop-blur-md ${
-                  arrivalPhase === 'ARRIBANDO'
-                    ? 'animate-arrival-blink border-red-700 bg-red-600 text-white'
-                    : arrivalPhase === 'VIAJANDO_GREEN'
-                      ? 'border-[#0f5132] bg-[#15803D] text-white'
-                      : arrivalPhase === 'VIAJANDO_YELLOW'
-                        ? 'animate-ride-pulse border-[#d9a800] bg-[var(--viajando-yellow)] text-[#141414]'
-                        : `border-[#e0e0e0] bg-white text-[#141414]${arrivalPhase === 'PASSED' ? ' animate-transfer-pop' : ''}`
-                }`}
-              >
-                {arrivalPhase === 'PASSED' && (
-                  <span aria-hidden="true" data-transfer-orb className="transfer-orb" />
-                )}
-                <div className="min-w-0">
-                  <p className={`text-[10px] font-bold uppercase tracking-[0.14em] ${arrivalPhase === 'ARRIBANDO' || arrivalPhase === 'VIAJANDO_GREEN' ? 'text-white/80' : arrivalPhase === 'VIAJANDO_YELLOW' ? 'text-[#5c4a00]' : 'text-[#707070]'}`}>{arrivalPhase === 'VIAJANDO_GREEN' || arrivalPhase === 'VIAJANDO_YELLOW' ? 'Viajando' : 'Tu colectivo'}</p>
-                  {arrivalPhase === 'ARRIBANDO' ? (
-                    <p className="truncate text-sm font-black tracking-wide">ARRIBANDO · Línea {cardLineaNumero}</p>
-                  ) : arrivalPhase === 'VIAJANDO_GREEN' || arrivalPhase === 'VIAJANDO_YELLOW' ? (
-                    <p className="truncate text-sm font-bold">VIAJANDO · Línea {cardLineaNumero} · coche {cardUnitId}{selectedVehicleInfo?.nextStopName ? ` → ${selectedVehicleInfo.nextStopName}` : ''}</p>
-                  ) : (
-                    <p className="truncate text-sm font-bold">Línea {cardLineaNumero} · coche {cardUnitId}</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {arrivalPhase === 'NORMAL' && arrivalMinutes !== null && (
-                    <span data-arrival-eta className="rounded-full bg-[#141414] px-2.5 py-1 text-xs font-bold tabular-nums text-white">
-                      {arrivalMinutes} min
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    onClick={handleExitTripView}
-                    title="Salir de la vista de viaje (se conserva el viaje)"
-                    aria-label="Ocultar vista de viaje"
-                    className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-colors ${
-                      arrivalPhase === 'ARRIBANDO' || arrivalPhase === 'VIAJANDO_GREEN'
-                        ? 'bg-white/15 hover:bg-white/25 text-white/80 hover:text-white'
-                        : arrivalPhase === 'VIAJANDO_YELLOW'
-                          ? 'bg-black/10 hover:bg-black/15 text-[#141414]/70 hover:text-[#141414]'
-                          : 'bg-[#f3f3f3] hover:bg-[#e8e8e8] text-[#707070] hover:text-[#141414]'
-                    }`}
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            </div>
+            <ArrivalStatusCard
+              phase={arrivalPhase}
+              minutes={arrivalMinutes}
+              lineNumber={cardLineaNumero}
+              unitId={cardUnitId}
+              nextStopName={selectedVehicleInfo?.nextStopName ?? undefined}
+              onDismiss={handleExitTripView}
+            />
           )}
-
           {/* Controles Flotantes en el Mapa */}
           <div
             className={`absolute right-4 z-20 flex flex-col gap-2 pointer-events-auto items-center w-10 transition-all duration-300 ease-out ${
@@ -1362,6 +1306,7 @@ export default function TransportesAppPage() {
         onToggleLineMenu={handleToggleLineMenu}
         onActivateTripMode={handleOpenTripMode}
         isTripMode={isTripViewActive}
+        arrivalPhase={isTripViewActive ? arrivalPhase : undefined}
         tripToggleActive={hasTripContent}
         onToggleTripView={handleToggleTripView}
       />

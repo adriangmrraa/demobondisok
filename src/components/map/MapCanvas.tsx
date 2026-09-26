@@ -145,6 +145,8 @@ export interface MapCanvasProps {
   userLocation?: UserLocationPoint | null;
   /** El sheet expandido tapa el mapa → pausa el pulso (spec #861) */
   routePulsePaused?: boolean;
+  /** Runs a light pulse over the ride leg while the user is onboard. */
+  tripPulseActive?: boolean;
   /** Modo "elegir en el mapa" del planificador: el próximo tap fija un punto. */
   pickMode?: boolean;
   onMapPick?: (lngLat: [number, number]) => void;
@@ -332,6 +334,7 @@ export function MapCanvas({
   theme = 'light',
   userLocation = null,
   routePulsePaused = false,
+  tripPulseActive = false,
   pickMode = false,
   onMapPick,
   focusRequest = null,
@@ -370,6 +373,7 @@ export function MapCanvas({
   const userLocationRef = useRef<UserLocationPoint | null>(userLocation);
   const userLocationApplyRef = useRef<() => void>(() => {});
   const pulsePausedRef = useRef<boolean>(routePulsePaused);
+  const tripPulseActiveRef = useRef<boolean>(tripPulseActive);
   const pickModeRef = useRef<boolean>(pickMode);
   const pickHandlerRef = useRef(onMapPick);
   const plannerPointsRef = useRef<PlannerMapPoints | null>(plannerPoints);
@@ -1079,6 +1083,10 @@ export function MapCanvas({
     let lastRotateRefresh = 0;
     const scheduleRotateRefresh = () => {
       const now = performance.now();
+      if (tripPulseActiveRef.current && !reduceMotionRef.current && map.getLayer('trip-seg-pulse')) {
+        const tripPhase = Math.floor((now % (TRIP_FLOW_STEP_MS * TRIP_DASH.length)) / TRIP_FLOW_STEP_MS);
+        if (tripPhase !== lastTripFlowPhase) { lastTripFlowPhase = tripPhase; map.setPaintProperty('trip-seg-pulse', 'line-dasharray', TRIP_DASH[tripPhase]!); }
+      }
       if (now - lastRotateRefresh < 120) return;
       lastRotateRefresh = now;
       refreshVehicles();
@@ -1107,7 +1115,10 @@ export function MapCanvas({
       [0, 3, 5, 4], [0, 4, 5, 3], [0, 5, 5, 2], [0, 6, 5, 1],
     ];
     const FLOW_STEP_MS = 80;
+    const TRIP_FLOW_STEP_MS = 90;
+    const TRIP_DASH: number[][] = [[0, 0, 2, 8], [0, 1, 2, 7], [0, 2, 2, 6], [0, 3, 2, 5], [0, 4, 2, 4], [0, 5, 2, 3], [0, 6, 2, 2], [0, 7, 2, 1], [0, 8, 2, 0], [1, 8, 1, 0]];
     let lastFlowPhase = -1;
+    let lastTripFlowPhase = -1;
     const applyFlowPhase = (phase: number) => {
       if (!map.getLayer('route-flow-head')) return;
       map.setPaintProperty('route-flow-head', 'line-dasharray', DASH_HEAD[phase]!);
@@ -1135,6 +1146,10 @@ export function MapCanvas({
       pulseRaf = null;
       if (disposed) return;
       const now = performance.now();
+      if (tripPulseActiveRef.current && !reduceMotionRef.current && map.getLayer('trip-seg-pulse')) {
+        const tripPhase = Math.floor((now % (TRIP_FLOW_STEP_MS * TRIP_DASH.length)) / TRIP_FLOW_STEP_MS);
+        if (tripPhase !== lastTripFlowPhase) { lastTripFlowPhase = tripPhase; map.setPaintProperty('trip-seg-pulse', 'line-dasharray', TRIP_DASH[tripPhase]!); }
+      }
       const phase = (((now - PULSE_ORIGIN) % PULSE_PERIOD_MS) / PULSE_PERIOD_MS) * Math.PI * 2;
       const breatheA = 0.5 - 0.5 * Math.cos(phase);
       const breatheB = 0.5 - 0.5 * Math.cos(phase + Math.PI);
@@ -1161,8 +1176,10 @@ export function MapCanvas({
       }
       setHalo('route-halo-a', 0, 6);
       setHalo('route-halo-b', 0, 10);
+      if (map.getLayer('trip-seg-pulse')) map.setPaintProperty('trip-seg-pulse', 'line-opacity', 0);
     };
     const startPulse = () => {
+      if (map.getLayer('trip-seg-pulse')) map.setPaintProperty('trip-seg-pulse', 'line-opacity', tripPulseActiveRef.current ? 0.88 : 0);
       if (pulsePausedRef.current) return;
       if (reduceMotionRef.current) {
         setHalo('route-halo-a', 0.16, 8);
@@ -2237,6 +2254,11 @@ export function MapCanvas({
         },
       });
 
+      map.addLayer({
+        id: 'trip-seg-pulse', type: 'line', source: 'trip-active-segments',
+        filter: ['==', ['get', 'type'], 'ride'],
+        paint: { 'line-color': '#FFFFFF', 'line-width': 1.5, 'line-opacity': 0, 'line-blur': 0.35, 'line-dasharray': [0, 0, 2, 8] },
+      });
       // Reaplica modo foco tras (re)instalación (ej: cambio de tema).
       if (tripFocusRef.current) {
         for (const layerId of TRIP_FOCUS_HIDDEN_LAYERS) {
@@ -2423,6 +2445,11 @@ export function MapCanvas({
     }
   }, [routePulsePaused]);
 
+  useEffect(() => {
+    tripPulseActiveRef.current = tripPulseActive;
+    if (tripPulseActive) pulseControlRef.current?.start();
+    else if (!pulseControlRef.current?.isFocused()) pulseControlRef.current?.stop();
+  }, [tripPulseActive]);
   // Tema claro/oscuro → swap de basemap + reinstalación de capas
   useEffect(() => {
     if (themeRef.current === theme) return;
