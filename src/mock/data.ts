@@ -49,7 +49,6 @@ export const ROUTE_COLORS_BY_DIRECTION = {
 };
 
 export const RAMAL_COLORS: Record<string, string> = {
-  'ramal-60-a': '#7C3AED',
   'ramal-65-troncal': '#0284C7',
   'ramal-194-a': '#06B6D4',
   'ramal-194-b': '#A855F7',
@@ -138,8 +137,6 @@ export const MOCK_UNITS: Record<string, string[]> = {
     // Ramal I (Diferencial Retiro - Zárate)
     '601', '603'
   ],
-  // sdd/trip-options-upgrade 1.2: 3rd-line data-only sim (corredor 65, DATASET-driven)
-  'line-60': ['701', '703', '705'],
 };
 
 // ─── Alertas Oficiales de Servicio ────────────────────────────────────

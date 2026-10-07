@@ -67,7 +67,7 @@ export default function DiagramaPage() {
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-ink leading-tight">Línea {line.shortName}</p>
-                  <p className="mt-0.5 text-xs text-text-muted truncate">{line.name}</p>
+                  <p className="mt-0.5 text-xs text-text-muted line-clamp-2 break-words">{line.name}</p>
                 </div>
                 <span className="shrink-0 text-[10px] font-bold text-electric-blue px-2 py-0.5 rounded-full bg-electric-blue/10">
                   Ver esquema

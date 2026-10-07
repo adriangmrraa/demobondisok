@@ -40,7 +40,7 @@ export default function DiagramaLineaPage({ params }: PageProps) {
         </Link>
         <div className="flex-1 min-w-0">
           <h1 className="text-[22px] font-bold text-ink leading-tight">Diagrama</h1>
-          <p className="text-xs text-text-muted truncate">Línea {line.shortName} · {line.name}</p>
+          <p className="text-xs text-text-muted line-clamp-2 break-words">Línea {line.shortName} · {line.name}</p>
         </div>
         <LineDisplay
           number={line.shortName}

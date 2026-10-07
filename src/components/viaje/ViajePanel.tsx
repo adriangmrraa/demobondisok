@@ -342,7 +342,7 @@ export default function ViajePanel({
                     </div>
                   </div>
 
-                  <p className="text-xs text-text-muted font-medium break-words line-clamp-1" title={opt.title}>
+                   <p className="text-xs text-text-muted font-medium break-words line-clamp-2" title={opt.title}>
                     {opt.title}
                   </p>
 
