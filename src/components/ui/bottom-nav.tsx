@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useRef } from 'react';
+import { Suspense, useRef } from 'react';
 import { Home, Map, MapPin, Search, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MetropolRose } from '@/components/brand/metropol-logo';
@@ -70,7 +70,54 @@ function currentView(pathname: string, viewParam: string | null): BottomNavView 
   return 'en-vivo';
 }
 
-export function BottomNav({
+export function BottomNav(props: BottomNavProps) {
+  return (
+    <Suspense fallback={<BottomNavSkeleton />}>
+      <BottomNavInner {...props} />
+    </Suspense>
+  );
+}
+
+/** Fallback del Suspense: nav neutral sin estado activo. */
+function BottomNavSkeleton() {
+  return (
+    <nav
+      className="fixed bottom-0 left-0 w-full z-50 px-3 pb-[max(env(safe-area-inset-bottom),10px)] pt-2 pointer-events-none"
+      aria-label="Navegación principal"
+      role="navigation"
+    >
+      <div className="max-w-[420px] sm:max-w-md mx-auto relative pointer-events-auto">
+        <div className="relative h-[68px] rounded-[28px] border border-hairline bg-canvas shadow-[0_10px_36px_rgba(16,29,61,0.16)]">
+          <div className="grid grid-cols-[1fr_1fr_56px_1fr_1fr] h-full items-stretch px-1.5">
+            <div className="flex flex-col items-center justify-center h-full text-text-muted">
+              <Home className="w-5 h-5 mb-0.5 shrink-0" />
+              <span className="text-[10px] leading-none font-medium">Inicio</span>
+            </div>
+            <div className="flex flex-col items-center justify-center h-full text-text-muted">
+              <Map className="w-5 h-5 mb-0.5 shrink-0" />
+              <span className="text-[10px] leading-none font-medium">Red Metro</span>
+            </div>
+            <div className="flex flex-col items-center justify-center h-full text-text-muted">
+              <Search className="w-5 h-5 mb-0.5 shrink-0" />
+              <span className="text-[10px] leading-none font-medium">¿Cómo llego?</span>
+            </div>
+            <div aria-hidden className="w-[56px] shrink-0" />
+            <div className="flex flex-col items-center justify-center h-full text-text-muted">
+              <Layers className="w-5 h-5 mb-0.5 shrink-0" />
+              <span className="text-[10px] leading-none font-medium">Diagrama</span>
+            </div>
+            <div className="flex flex-col items-center justify-center h-full text-text-muted">
+              <MapPin className="w-5 h-5 mb-0.5 shrink-0" />
+              <span className="text-[10px] leading-none font-medium">En vivo</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+function BottomNavInner({
   onActivateTripMode,
   isTripMode = false,
   arrivalPhase,
