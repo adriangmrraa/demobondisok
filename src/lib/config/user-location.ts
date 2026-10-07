@@ -3,6 +3,8 @@ export interface UserLocation {
   lat: number;
   lng: number;
   name: string;
+  address?: string;
+  stopId?: string;
   isSimulated: boolean;
   /** Heading del usuario en grados (0=Norte, 90=Este). Solo disponible si el dispositivo lo provee. */
   heading?: number | null;
@@ -14,6 +16,7 @@ export const SIMULATED_USER_LOCATION: UserLocation = {
   lat: -34.604463,
   lng: -58.434711,
   name: 'Parque Centenario',
+  address: 'Av. Díaz Vélez y Leopoldo Marechal, CABA',
   isSimulated: true,
   // Heading simulado hacia el sur (camina desde Parque Centenario hacia el centro)
   heading: 180,
