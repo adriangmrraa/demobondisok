@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import DynamicMap from "@/components/map/DynamicMap";
+import { MapViewBanner } from "@/components/map/MapViewBanner";
 import LineSelectorBar, { getRamalLetter, getRamalDisplayName } from "@/components/ui-shell/LineSelectorBar";
 import LiveTransportBubble from "@/components/ui-shell/LiveTransportBubble";
 import { BottomNav } from "@/components/ui/bottom-nav";
@@ -1163,6 +1164,11 @@ export default function TransportesAppPage() {
               SIN translateZ(0): forzar capa GPU en este header coplanaba
               el <canvas> WebGL del mapa en WebKit (Safari iOS) y lo dejaba
               en negro. Ver docs/INCIDENTE-MAPA-iOS-SAFARI.md. */}
+
+          {/* Banner de "Vista en construcción" para tabs del bottom nav
+              que aún no tienen vista implementada (Red Metro, Diagrama).
+              Se muestra solo cuando ?view=red-metro o ?view=diagrama. */}
+          <MapViewBanner />
           <div
             className="absolute top-[max(14px,env(safe-area-inset-top))] left-4 right-4 z-30 max-w-md mx-auto pointer-events-auto flex flex-col items-center gap-2"
           >
