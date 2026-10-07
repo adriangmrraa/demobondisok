@@ -107,10 +107,10 @@ export default function FloatingSearch({
                       {linea.numero}
                     </span>
                     <div className="truncate">
-                      <p className="text-xs font-semibold text-ink truncate">
+                      <p className="text-xs font-semibold text-ink truncate" title={linea.nombre}>
                         {linea.nombre}
                       </p>
-                      <p className="text-[11px] text-text-muted truncate">{linea.empresa}</p>
+                      <p className="text-[11px] text-text-muted truncate" title={linea.empresa}>{linea.empresa}</p>
                     </div>
                   </button>
                 ))}
@@ -137,10 +137,10 @@ export default function FloatingSearch({
                       <MapPin className="w-3.5 h-3.5" />
                     </div>
                     <div className="truncate">
-                      <p className="text-xs font-semibold text-ink truncate">
+                      <p className="text-xs font-semibold text-ink truncate" title={parada.nombre}>
                         {parada.nombre}
                       </p>
-                      <p className="text-[11px] text-text-muted truncate">{parada.direccion}</p>
+                      <p className="text-[11px] text-text-muted truncate" title={parada.direccion}>{parada.direccion}</p>
                     </div>
                   </button>
                 ))}

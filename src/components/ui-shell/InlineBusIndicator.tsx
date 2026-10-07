@@ -47,7 +47,7 @@ export function InlineBusIndicator({
         {/* Datos de la unidad y destino inmediato */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold text-ink truncate">
+            <span className="text-xs font-semibold text-ink truncate" title={`Unidad ${bus.unitId}`}>
               Unidad {bus.unitId}
             </span>
             <span className="text-[11px] font-medium text-text-muted tabular-nums">
@@ -58,7 +58,7 @@ export function InlineBusIndicator({
           <div className="flex items-center gap-1 text-[11px] text-text-muted truncate">
             <span>Hacia</span>
             <ArrowRight className="w-2.5 h-2.5 text-text-muted shrink-0" />
-            <span className="font-medium text-ink truncate">
+            <span className="font-medium text-ink truncate" title={bus.toStop.nombre}>
               {bus.toStop.nombre}
             </span>
           </div>

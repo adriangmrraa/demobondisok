@@ -274,7 +274,10 @@ export default function ViajePanel({
                         >
                           {row.lineaNumero}
                         </span>
-                        <span className="text-xs font-bold text-ink truncate">
+                        <span
+                          className="text-xs font-bold text-ink truncate"
+                          title={`Coche ${row.interno} ${row.kind === "same-nearest" ? "· más próximo" : row.kind === "same-late" ? "· siguiente" : "· otra línea"}`}
+                        >
                           Coche {row.interno}
                           <span className="ml-1.5 text-[10px] font-semibold text-text-muted">
                             {row.kind === "same-nearest" ? "· más próximo" : row.kind === "same-late" ? "· siguiente" : "· otra línea"}

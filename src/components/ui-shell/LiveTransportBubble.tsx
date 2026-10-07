@@ -251,7 +251,7 @@ export default function LiveTransportBubble({
             {selectedParada ? (
               <div className="p-2.5 rounded-xl bg-canvas-soft border border-hairline-soft space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-ink truncate">
+                  <span className="text-xs font-bold text-ink truncate" title={`📍 ${selectedParada.nombre}`}>
                     📍 {selectedParada.nombre}
                   </span>
                   <span className="text-[10px] text-text-muted">Parada seleccionada</span>
@@ -311,7 +311,7 @@ export default function LiveTransportBubble({
                     <span className="text-[10px] font-bold text-text-muted w-4">
                       #{idx + 1}
                     </span>
-                    <span className="text-xs font-semibold truncate">{p.nombre}</span>
+                    <span className="text-xs font-semibold truncate" title={p.nombre}>{p.nombre}</span>
                   </div>
                   <span className="text-[10px] text-text-muted shrink-0 ml-1">Ver</span>
                 </button>

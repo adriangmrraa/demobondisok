@@ -143,7 +143,7 @@ export function FeatureTour({ show, onClose }: FeatureTourProps) {
                     >
                       <ExtraIcon className="w-5 h-5" />
                     </span>
-                    <span className="text-[10px] font-semibold text-text-muted truncate max-w-full px-0.5">
+                    <span className="text-[10px] font-semibold text-text-muted truncate max-w-full px-0.5" title={extra.label}>
                       {extra.label}
                     </span>
                   </div>

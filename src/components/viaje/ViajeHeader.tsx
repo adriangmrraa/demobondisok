@@ -158,7 +158,7 @@ export default function ViajeHeader({
               <Crosshair className="w-4 h-4" />
             </div>
             <div className="truncate">
-              <span className="text-xs font-black text-ink block leading-tight truncate">
+              <span className="text-xs font-black text-ink block leading-tight truncate" title={`Fijar ${isOrigin ? "Origen" : "Destino"} en el mapa`}>
                 Fijar {isOrigin ? "Origen" : "Destino"} en el mapa
               </span>
               <span className="text-[11px] text-text-muted font-medium block truncate mt-0.5" title="Tocá cualquier punto del mapa para obtener sus coordenadas">
@@ -528,7 +528,7 @@ export default function ViajeHeader({
                 <p className="text-xs font-bold text-ink truncate leading-tight" title={loc.name}>
                   {loc.name}
                 </p>
-                <p className="text-[10px] text-text-muted truncate mt-0.5">
+                <p className="text-[10px] text-text-muted truncate mt-0.5" title={loc.address || "Punto de ubicación en AMBA"}>
                   {loc.address || "Punto de ubicación en AMBA"}
                 </p>
               </div>
