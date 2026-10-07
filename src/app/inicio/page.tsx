@@ -25,6 +25,7 @@ import { buildTripJourneyUrl } from '@/lib/trip-map-navigation';
 import { requestDeviceLocation, SIMULATED_USER_LOCATION } from '@/lib/config/user-location';
 import { nearbyStopsFor as findNearbyStops } from '@/lib/services/assistant-intent-service';
 import { LocationConsentModal } from '@/components/home/LocationConsentModal';
+import { FeatureTour, hasSeenFeatureTour } from '@/components/onboarding/FeatureTour';
 import { PlaceSelector } from '@/components/home/PlaceSelector';
 import { AssistantWizard } from '@/components/home/AssistantWizard';
 import { MetropolRose } from '@/components/brand/metropol-logo';
@@ -121,6 +122,7 @@ export default function HomePage() {
   // Wizard de viaje en 3 pasos (PBI-020): overlay propio del chip "¿Cómo llego a…?".
   const [wizardOpen, setWizardOpen] = useState(false);
   const [lineLookupOpen, setLineLookupOpen] = useState(false);
+  const [showFeatureTour, setShowFeatureTour] = useState(false);
   // true = al terminar el selector de lugar, reabrir el wizard (paso 1 "Cambiar").
   const [wizardResume, setWizardResume] = useState(false);
   // Destino elegido explícitamente en Home. Se conserva a través del gate de
@@ -218,10 +220,12 @@ export default function HomePage() {
   const handleConsentUseReal = useCallback(async () => {
     const location = await requestDeviceLocation();
     openWizardForLocation({ ...location, source: 'text' });
+    if (!hasSeenFeatureTour()) setShowFeatureTour(true);
   }, [openWizardForLocation]);
 
   const handleConsentUseDemo = useCallback(() => {
     openWizardForLocation({ ...SIMULATED_USER_LOCATION, source: 'simulated' });
+    if (!hasSeenFeatureTour()) setShowFeatureTour(true);
   }, [openWizardForLocation]);
 
   const handleConsentClose = useCallback(() => {
@@ -617,6 +621,9 @@ export default function HomePage() {
       {phase === 'selector' && (
         <PlaceSelector onSelect={handlePlaceSelect} onCancel={handlePlaceCancel} />
       )}
+
+      {/* Tour de features (PBI-019): 3 pantallas, skipeable, persistente. */}
+      <FeatureTour show={showFeatureTour} onClose={() => setShowFeatureTour(false)} />
 
       {/* §2 Wizard "¿Cómo llego a…?" en 3 pasos (PBI-020). Con guía previa
           persistida, reanuda en el paso Destino con los datos cargados. */}
