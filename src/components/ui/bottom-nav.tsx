@@ -109,18 +109,6 @@ function BottomNavInner({
   const isDiagrama = pathname === '/diagrama';
   const isEnVivo = pathname === '/mapas';
 
-  const roseBgClass = isTripMode
-    ? isGreenRide
-      ? 'bg-[var(--viajando-green)]'
-      : isYellowRide
-        ? 'bg-[var(--viajando-yellow)]'
-        : isCritical
-          ? 'bg-red-600'
-          : 'bg-canvas'
-    : dark
-      ? 'bg-[#1D2B4F]'
-      : 'bg-canvas';
-
   return (
     <nav
       className="fixed bottom-0 left-0 w-full z-50 px-3 pb-[max(env(safe-area-inset-bottom),10px)] pt-2 pointer-events-none"
@@ -149,7 +137,6 @@ function BottomNavInner({
             active={isEnVivo}
             isTripMode={isTripMode}
             arrivalPhase={arrivalPhase}
-            roseBgClass={roseBgClass}
             tripToggleActive={tripToggleActive}
             onToggleTripView={onToggleTripView}
             onActivateTripMode={onActivateTripMode}
@@ -228,7 +215,6 @@ interface RoseNavItemProps {
   active: boolean;
   isTripMode: boolean;
   arrivalPhase?: ArrivalPhase;
-  roseBgClass: string;
   tripToggleActive: boolean;
   onToggleTripView?: () => void;
   onActivateTripMode?: () => void;
@@ -243,7 +229,6 @@ function RoseNavItem({
   active,
   isTripMode,
   arrivalPhase,
-  roseBgClass,
   tripToggleActive,
   onToggleTripView,
   onActivateTripMode,
@@ -296,20 +281,8 @@ function RoseNavItem({
     >
       <div
         className={cn(
-          'w-10 h-10 rounded-full flex items-center justify-center transition-[background-color,box-shadow,transform,ring-color] duration-500 [transition-timing-function:cubic-bezier(.16,1,.3,1)] rutaba-rose-btn',
-          isTripMode && 'rutaba-rose-trip-morph',
-          roseBgClass,
-          isTripMode
-            ? isGreenRide
-              ? 'ring-[var(--viajando-green)] ring-[3px]'
-              : isYellowRide
-                ? 'ring-[var(--viajando-yellow)] ring-[3px]'
-                : isCritical
-                  ? 'ring-red-600 ring-[3px]'
-                  : 'ring-electric-blue ring-[3px]'
-            : active
-              ? 'ring-2 ring-ink'
-              : 'ring-1 ring-hairline',
+          'w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-200',
+          active ? 'bg-canvas-soft' : 'bg-transparent group-hover:bg-canvas-soft/60',
         )}
       >
         <MetropolRose
