@@ -17,13 +17,14 @@ import type { ArrivalPhase } from '@/lib/trip-map-navigation';
  *   └────────────────────────────────────────────────────────────────────┘
  *
  * Layout: grid-cols-5 con cada item del mismo ancho. Los 5 items comparten
- * el MISMO esqueleto vertical: justify-end + gap-1.5 + pb-1 (todo anclado al
+ * el MISMO esqueleto vertical: justify-end + gap-1.5 + pb-0.5 (anclado al
  * fondo de la celda) y el MISMO label (min-h-[24px], centrado) — así los
  * textos quedan en una sola línea base. El slot de ícono normal mide 30px
- * (px-2.5 py-1) y el círculo de la Rosa 44px (w-11 h-11): bases alineadas,
- * y la Rosa sobresale 14px hacia arriba (centro 7px arriba) — el efecto FAB
- * se logra por geometría, NO por absolute positioning ni transform (eso
- * descuadraba el grid en mobile portrait 360dp).
+ * (px-2.5 py-1) y el círculo de la Rosa 40px (w-10 h-10): los centros se
+ * igualan con translate-y-[5px] (=(40-30)/2), dejando 3px de gap visual
+ * sobre el label. Se usa transform SOLO para eso (centrar la flor con los
+ * otros íconos); no hay absolute positioning (descuadra el grid en mobile
+ * portrait 360dp). Altura total del nav ≈102px a 390dp de ancho.
  *
  * Cada item navega a su propia ruta:
  *   - Inicio → /inicio
@@ -69,21 +70,21 @@ export function BottomNav(props: BottomNavProps) {
 function BottomNavSkeleton() {
   return (
     <nav
-      className="fixed bottom-0 left-0 w-full z-50 px-3 pb-[max(env(safe-area-inset-bottom),10px)] pt-2 pointer-events-none"
+      className="fixed bottom-0 left-0 w-full z-50 px-3 pb-[max(env(safe-area-inset-bottom),10px)] pt-1 pointer-events-none"
       aria-label="Navegación principal"
       role="navigation"
     >
       <div className="max-w-[420px] sm:max-w-md mx-auto pointer-events-auto">
-        <div className="min-h-[76px] rounded-[28px] border border-hairline bg-canvas shadow-[0_10px_36px_rgba(16,29,61,0.16)] grid grid-cols-5 items-stretch px-1.5 pt-2 pb-3">
+        <div className="min-h-[76px] rounded-[28px] border border-hairline bg-canvas shadow-[0_10px_36px_rgba(16,29,61,0.16)] grid grid-cols-5 items-stretch px-1.5 pt-1 pb-2">
           {[Home, Map, Search, Layers, MapPin].map((Icon, i) => (
             <div
               key={i}
-              className="flex flex-col items-center justify-end h-full gap-1.5 pb-1 px-0.5 text-text-muted"
+              className="flex flex-col items-center justify-end h-full gap-1.5 pb-0.5 px-0.5 text-text-muted"
             >
               <div className="flex items-center justify-center px-2.5 py-1 rounded-full">
                 <Icon className="w-[22px] h-[22px] shrink-0" />
               </div>
-              <span className="text-[10px] leading-[1.15] text-center line-clamp-2 max-w-full px-1 mt-1 min-h-[24px] flex items-center justify-center">
+              <span className="text-[10px] leading-[1.15] text-center line-clamp-2 max-w-full px-1 mt-0.5 min-h-[24px] flex items-center justify-center">
                 ...
               </span>
             </div>
@@ -117,12 +118,12 @@ function BottomNavInner({
 
   return (
     <nav
-      className="fixed bottom-0 left-0 w-full z-50 px-3 pb-[max(env(safe-area-inset-bottom),10px)] pt-2 pointer-events-none"
+      className="fixed bottom-0 left-0 w-full z-50 px-3 pb-[max(env(safe-area-inset-bottom),10px)] pt-1 pointer-events-none"
       aria-label="Navegación principal"
       role="navigation"
     >
       <div className="max-w-[420px] sm:max-w-md mx-auto pointer-events-auto">
-        <div className="min-h-[76px] rounded-[28px] border border-hairline bg-canvas shadow-[0_10px_36px_rgba(16,29,61,0.16)] grid grid-cols-5 items-stretch px-1.5 pt-2 pb-3">
+        <div className="min-h-[76px] rounded-[28px] border border-hairline bg-canvas shadow-[0_10px_36px_rgba(16,29,61,0.16)] grid grid-cols-5 items-stretch px-1.5 pt-1 pb-2">
           <NavItem
             href="/red-metro"
             label="Red Metropol"
@@ -182,7 +183,7 @@ function NavItem({ href, label, icon: Icon, active, className, 'aria-label': ari
     <Link
       href={href}
       className={cn(
-        'group flex flex-col items-center justify-end h-full gap-1.5 pb-1 rounded-2xl transition-all duration-200 active:scale-95 touch-manipulation min-w-0 px-0.5',
+        'group flex flex-col items-center justify-end h-full gap-1.5 pb-0.5 rounded-2xl transition-all duration-200 active:scale-95 touch-manipulation min-w-0 px-0.5',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink',
         active ? 'text-ink' : 'text-text-muted hover:text-ink',
         className,
@@ -205,7 +206,7 @@ function NavItem({ href, label, icon: Icon, active, className, 'aria-label': ari
       </div>
       <span
         className={cn(
-          'text-[10px] leading-[1.15] text-center whitespace-normal line-clamp-2 max-w-full px-1 mt-1 min-h-[24px] flex items-center justify-center',
+          'text-[10px] leading-[1.15] text-center whitespace-normal line-clamp-2 max-w-full px-1 mt-0.5 min-h-[24px] flex items-center justify-center',
           active ? 'font-bold text-ink' : 'font-medium text-text-muted',
         )}
       >
@@ -274,7 +275,7 @@ function RoseNavItem({
       data-active={active}
       onClick={handleClick}
       className={cn(
-        'group flex flex-col items-center justify-end h-full gap-1.5 pb-1 rounded-2xl transition-all duration-200 active:scale-95 touch-manipulation min-w-0 px-0.5',
+        'group flex flex-col items-center justify-end h-full gap-1.5 pb-0.5 rounded-2xl transition-all duration-200 active:scale-95 touch-manipulation min-w-0 px-0.5',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink',
         active ? 'text-ink' : 'text-text-muted hover:text-ink',
       )}
@@ -287,7 +288,7 @@ function RoseNavItem({
     >
       <div
         className={cn(
-          'w-11 h-11 rounded-full flex items-center justify-center translate-y-[7px] transition-colors duration-200',
+          'w-10 h-10 rounded-full flex items-center justify-center translate-y-[5px] transition-colors duration-200',
           active ? 'bg-canvas-soft' : 'bg-transparent group-hover:bg-canvas-soft/60',
         )}
       >
@@ -298,7 +299,7 @@ function RoseNavItem({
       </div>
       <span
         className={cn(
-          'text-[10px] leading-[1.15] text-center whitespace-normal line-clamp-2 max-w-full px-1 mt-1 min-h-[24px] flex items-center justify-center',
+          'text-[10px] leading-[1.15] text-center whitespace-normal line-clamp-2 max-w-full px-1 mt-0.5 min-h-[24px] flex items-center justify-center',
           active ? 'font-bold text-ink' : 'font-medium text-text-muted',
         )}
       >
