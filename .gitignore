@@ -64,3 +64,5 @@ tmp/
 
 dev.log
 dev.log.err
+
+.vercel
