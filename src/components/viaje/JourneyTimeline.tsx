@@ -1,9 +1,12 @@
 import { Bus, Footprints, GitBranch, MapPin } from 'lucide-react';
 import { imperativeStepLabel } from '@/lib/journey-guide';
+import { walkDirectionLabel } from '@/lib/walk-direction';
 import type { TripStep } from '@/types/trip-planner';
 
 interface JourneyTimelineProps {
   steps: TripStep[];
+  /** Heading del usuario en grados (0=Norte). Opcional: si no se provee, las direcciones son absolutas. */
+  userHeading?: number | null;
 }
 
 function StepIcon({ type }: { type: TripStep['type'] }) {
@@ -12,7 +15,7 @@ function StepIcon({ type }: { type: TripStep['type'] }) {
   return <Bus className="size-4" />;
 }
 
-export function JourneyTimeline({ steps }: JourneyTimelineProps) {
+export function JourneyTimeline({ steps, userHeading }: JourneyTimelineProps) {
   return (
     <ol aria-label="Pasos del viaje" className="space-y-0">
       {steps.map((step, index) => (
@@ -22,7 +25,12 @@ export function JourneyTimeline({ steps }: JourneyTimelineProps) {
             step.type === 'ride' ? 'border-electric-blue bg-electric-blue text-white' : step.type === 'transfer' ? 'border-amber-500/40 bg-amber-100 text-amber-800' : 'border-hairline bg-canvas-soft text-ink'
           }`}><StepIcon type={step.type} /></span>
           <div className="min-w-0 pt-0.5">
-            <p className="font-bold leading-snug text-ink">{imperativeStepLabel(step)}</p>
+            <p className="font-bold leading-snug text-ink">{imperativeStepLabel(step, userHeading)}</p>
+            {step.type === 'walk' && step.walkBearing != null ? (
+              <p className="mt-1 text-xs font-semibold text-electric-blue">
+                {walkDirectionLabel(step.walkBearing, userHeading)}
+              </p>
+            ) : null}
             <div className="mt-1 flex flex-wrap gap-x-2 text-xs text-text-muted">
               <span>{step.durationMinutes} min</span>
               {step.stopCount ? <span>{step.stopCount} parada{step.stopCount === 1 ? '' : 's'}</span> : null}
