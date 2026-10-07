@@ -281,13 +281,13 @@ function RoseNavItem({
     >
       <div
         className={cn(
-          'w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-200',
+          'w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-200',
           active ? 'bg-canvas-soft' : 'bg-transparent group-hover:bg-canvas-soft/60',
         )}
       >
         <MetropolRose
           variant={roseMono ? 'mono' : 'full'}
-          className={cn('h-5 w-auto', roseMono && (isYellowRide ? 'text-[#1D2B4F]' : 'text-white'))}
+          className={cn('h-[22px] w-[22px]', roseMono && (isYellowRide ? 'text-[#1D2B4F]' : 'text-white'))}
         />
       </div>
       <span
