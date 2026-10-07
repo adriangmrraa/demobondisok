@@ -6,6 +6,7 @@ import { TripOption, LocationPoint } from "@/types/trip-planner";
 import { TripPlannerService } from "@/lib/services/trip-planner-service";
 import { useDragCollapse } from "@/lib/hooks/use-drag-collapse";
 import type { BoardingOptionRow } from "@/lib/services/trip-boarding-options";
+import { walkDirectionLabel } from "@/lib/walk-direction";
 
 interface ViajePanelProps {
   options: TripOption[];
@@ -28,6 +29,9 @@ interface ViajePanelProps {
   onCollapsedChange?: (collapsed: boolean) => void;
   /** sdd/trip-options-upgrade 2.5: re-pick de destino sin perder el origen. */
   onRepickDestination?: () => void;
+  /** Heading del usuario en grados (0=Norte). Se pasa al JourneyTimeline
+   *  para mostrar la dirección del paso a pie (a tu izquierda / al frente / etc.). */
+  userHeading?: number | null;
 }
 
 export default function ViajePanel({
@@ -47,6 +51,7 @@ export default function ViajePanel({
   liveFooterLabel = null,
   onCollapsedChange,
   onRepickDestination,
+  userHeading = null,
 }: ViajePanelProps) {
   // Diagnóstico de cobertura cuando no hay rutas: ¿qué lado falla?
   const coverageInfo = useMemo(() => {
@@ -406,6 +411,11 @@ export default function ViajePanel({
                   >
                     {step.description}
                   </p>
+                  {step.type === "walk" && step.walkBearing != null ? (
+                    <p className="mt-1 text-xs font-semibold text-electric-blue">
+                      {walkDirectionLabel(step.walkBearing, userHeading)}
+                    </p>
+                  ) : null}
                   <p className="mt-1 text-[11px] font-semibold text-text-muted tabular-nums">
                     ~{step.durationMinutes} min
                   </p>

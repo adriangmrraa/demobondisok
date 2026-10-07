@@ -57,7 +57,7 @@ export default function TransportesAppPage() {
   const alertas = useMemo(() => TransportService.getAlertas(), []);
 
   const [positions, setPositions] = useState<VehiclePosition[]>([]);
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number; heading?: number | null; accuracy?: number } | null>(null);
   const [selectedLineaId, setSelectedLineaId] = useState<string | null>(null);
   const [selectedRamalId, setSelectedRamalId] = useState<string | null>(null);
   const [selectedParada, setSelectedParada] = useState<Parada | null>(null);
@@ -1386,10 +1386,14 @@ export default function TransportesAppPage() {
               </button>
             )}
 
-            <button
+              <button
               onClick={() => {
                 setUserLocation((prev) =>
-                  prev ? null : { lat: SIMULATED_USER_LOCATION.lat, lng: SIMULATED_USER_LOCATION.lng }
+                  prev ? null : {
+                    lat: SIMULATED_USER_LOCATION.lat,
+                    lng: SIMULATED_USER_LOCATION.lng,
+                    heading: SIMULATED_USER_LOCATION.heading ?? null,
+                  }
                 );
               }}
               title={userLocation ? "Desactivar mi ubicación simulada" : "Activar mi ubicación simulada (Parque Centenario)"}
@@ -1423,6 +1427,7 @@ export default function TransportesAppPage() {
               liveFooterLabel={expectedArrival?.displayLabel ?? boardingHeroLive}
               onCollapsedChange={handlePanelCollapsedChange}
               onRepickDestination={handleRepickDestination}
+              userHeading={userLocation?.heading ?? null}
             />
           ) : (
             <LiveTransportBubble

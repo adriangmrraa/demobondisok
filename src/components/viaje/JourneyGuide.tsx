@@ -4,6 +4,7 @@ import { buildJourneyGuideModel } from '@/lib/journey-guide';
 import { tripMapUrlFromState, type TripMapNavigationState } from '@/lib/trip-map-navigation';
 import type { TripOption } from '@/types/trip-planner';
 import { JourneyTimeline } from './JourneyTimeline';
+import { LineDisplay } from '@/components/ui/line-display';
 
 interface JourneyGuideProps {
   option: TripOption;
@@ -26,7 +27,13 @@ export function JourneyGuide({ option, state, etaMinutes, onBackToOptions, userH
         <div className="rounded-3xl bg-ink p-5 text-canvas shadow-[0_16px_35px_-16px_rgba(0,0,0,0.65)]">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-canvas/65">Tu próximo colectivo</p>
           <div className="mt-3 flex items-end gap-4">
-            <span className="text-6xl font-black leading-none tracking-tight">{model.hero.lineNumber}</span>
+            <LineDisplay
+              number={model.hero.lineNumber}
+              color={model.hero.color}
+              textColor={model.hero.textColor}
+              size="xl"
+              aria-label={`Línea ${model.hero.lineNumber} en pantalla`}
+            />
             <span className="mb-1 rounded-full bg-[#dcfce7] px-3 py-1.5 text-sm font-black text-[#166534]">{model.hero.etaLabel}</span>
           </div>
           <p className="mt-4 break-words text-base font-bold leading-snug">Hacia {model.hero.direction}</p>
