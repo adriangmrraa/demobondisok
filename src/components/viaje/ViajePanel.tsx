@@ -400,30 +400,36 @@ export default function ViajePanel({
 
                 {/* Detalle del paso */}
                 <div className="flex-1 min-w-0 pt-0.5">
-                  <div className="flex items-center justify-between gap-1">
-                    <p className="text-xs font-bold text-ink break-words line-clamp-2 leading-tight" title={step.description}>
-                      {step.description}
-                    </p>
-                    <span className="text-[10px] font-semibold text-text-muted shrink-0">
-                      ~{step.durationMinutes} min
-                    </span>
-                  </div>
+                  <p
+                    className="text-sm font-bold text-ink break-words leading-snug"
+                    title={step.description}
+                  >
+                    {step.description}
+                  </p>
+                  <p className="mt-1 text-[11px] font-semibold text-text-muted tabular-nums">
+                    ~{step.durationMinutes} min
+                  </p>
 
                   {step.type === "ride" && (
-                    <div className="mt-1 flex items-center gap-2 flex-wrap">
+                    <div className="mt-2 flex items-center gap-2 flex-wrap">
                       <span
-                        className="px-2 py-0.5 rounded-full text-[10px] font-black text-white"
-                        style={{ backgroundColor: step.lineaColor || "#1D4ED8" }}
+                        className="px-2.5 py-1 rounded-full text-xs font-black text-white shadow-sm"
+                        style={{ backgroundColor: step.lineaColor || "var(--ink)" }}
                       >
                         Línea {step.lineaNumero}
                       </span>
                       {step.ramalCodigo && (
-                        <span className="text-[10px] text-text-muted font-medium truncate">
-                          Ramal {step.ramalCodigo}{step.ramalNombre ? ` · ${step.ramalNombre}` : ""}
+                        <span
+                          className="text-xs text-text-muted font-medium break-words"
+                          title={step.ramalNombre ? `Ramal ${step.ramalCodigo} · ${step.ramalNombre}` : `Ramal ${step.ramalCodigo}`}
+                        >
+                          {step.ramalNombre
+                            ? `Ramal ${step.ramalCodigo} · ${step.ramalNombre}`
+                            : `Ramal ${step.ramalCodigo}`}
                         </span>
                       )}
                       {step.stopCount !== undefined && step.stopCount > 0 && (
-                        <span className="text-[10px] text-text-muted font-medium">
+                        <span className="text-xs text-text-muted font-medium">
                           · {step.stopCount} parada{step.stopCount !== 1 ? "s" : ""}
                         </span>
                       )}

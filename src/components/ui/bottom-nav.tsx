@@ -128,7 +128,7 @@ function BottomNavInner({
       role="navigation"
     >
       <div className="max-w-[420px] sm:max-w-md mx-auto pointer-events-auto">
-        <div className="min-h-[76px] rounded-[28px] border border-hairline bg-canvas shadow-[0_10px_36px_rgba(16,29,61,0.16)] grid grid-cols-5 items-stretch px-1.5 py-1.5">
+        <div className="min-h-[76px] rounded-[28px] border border-hairline bg-canvas shadow-[0_10px_36px_rgba(16,29,61,0.16)] grid grid-cols-5 items-stretch px-1.5 pt-2 pb-3">
           <NavItem
             href="/red-metro"
             label="Red Metropol"
@@ -189,7 +189,7 @@ function NavItem({ href, label, icon: Icon, active, className, 'aria-label': ari
     <Link
       href={href}
       className={cn(
-        'group flex flex-col items-center justify-center h-full rounded-2xl transition-all duration-200 active:scale-95 touch-manipulation min-w-0 px-0.5',
+        'group flex flex-col items-center justify-end h-full gap-1.5 pb-1 rounded-2xl transition-all duration-200 active:scale-95 touch-manipulation min-w-0 px-0.5',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink',
         active ? 'text-ink' : 'text-text-muted hover:text-ink',
         className,
