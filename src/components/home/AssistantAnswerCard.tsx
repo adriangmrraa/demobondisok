@@ -105,7 +105,7 @@ export function AssistantAnswerCard({
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <LineBadge shortName={a.lineaNumero} color={a.colorHex} size="sm" />
-                  <span className="text-sm text-ink font-semibold truncate">{a.ramal}</span>
+                      <span className="text-sm text-ink font-semibold truncate" title={a.ramal}>{a.ramal}</span>
                 </div>
                 <span className="text-sm font-bold text-[#16a34a] shrink-0">
                   {a.displayLabel ?? (a.minutos === 0 ? 'Llega' : `${a.minutos} min`)}
@@ -279,7 +279,7 @@ export function AssistantAnswerCard({
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <LineBadge shortName={a.lineaNumero} color={a.colorHex} size="sm" />
-                      <span className="text-sm text-ink font-semibold truncate">{a.ramal}</span>
+                  <span className="text-sm text-ink font-semibold truncate" title={a.ramal}>{a.ramal}</span>
                     </div>
                     <span className="text-sm font-bold text-[#16a34a] shrink-0">
                       {a.displayLabel ?? (a.minutos === 0 ? 'Llega' : `${a.minutos} min`)}
@@ -337,8 +337,8 @@ export function AssistantAnswerCard({
               onClick={() => onSelectCandidate?.(c)}
               className="text-left bg-canvas-soft hover:bg-field border border-hairline-soft rounded-lg px-3 py-2 transition-colors"
             >
-              <p className="text-sm font-bold text-ink truncate">{c.name}</p>
-              {c.address && <p className="text-xs text-text-muted truncate">{c.address}</p>}
+              <p className="text-sm font-bold text-ink truncate" title={c.name}>{c.name}</p>
+              {c.address && <p className="text-xs text-text-muted truncate" title={c.address}>{c.address}</p>}
             </button>
           ))}
         </div>
