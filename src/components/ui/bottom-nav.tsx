@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { Suspense, useRef } from 'react';
 import { Home, Map, MapPin, Search, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -10,35 +10,32 @@ import { useTheme } from '@/components/theme/ThemeProvider';
 import type { ArrivalPhase } from '@/lib/trip-map-navigation';
 
 /**
- * Bottom nav unificado de Metropol AMBA — 5 items.
+ * Bottom nav unificado de Metropol AMBA — 5 items en grid uniforme.
  *
- *   ┌────────────────────────────────────────────────────────────────┐
- *   │ [🏠 Inicio] [🗺️ Red Metro] [🔍 ¿Cómo llego?] [🌹 En vivo] [📊 Diagrama] │
- *   └────────────────────────────────────────────────────────────────┘
+ *   ┌────────────────────────────────────────────────────────────────────┐
+ *   │ [🏠 Inicio] [🗺️ Red Metro] [🔍 ¿Cómo?] [📊 Diagrama] [🌹 En vivo] │
+ *   └────────────────────────────────────────────────────────────────────┘
  *
- * Estructura: el FAB central (la rosa) representa "En vivo" y conserva los
- * 3 comportamientos legacy (un toque, doble tap, color según arrivalPhase).
- * Los 4 tabs laterales son Link directos a /mapas?view=X (excepto Inicio).
+ * Layout: grid-cols-5 con cada item del mismo ancho. El item 5 (En vivo)
+ * usa la Rosa como ícono distintivo, con un círculo de marca y label
+ * "En vivo" abajo. La Rosa mantiene los 3 comportamientos legacy
+ * (un toque, doble tap, color según arrivalPhase) vía onClick handler
+ * con detección de doble tap. NO hay absolute positioning ni FAB
+ * elevado (eso descuadraba el grid en mobile portrait 360dp).
  *
- * Las 4 vistas se mapean al query param `view`:
- *   - view=en-vivo (default): mapa con colectivos.
- *   - view=red-metro: vista territorial con municipios (placeholder).
- *   - view=como-llego: wizard de viaje (placeholder mientras se implementa).
- *   - view=diagrama: esquema de líneas tipo Moovit/SUBE (placeholder).
+ * Cada item navega a su propia ruta:
+ *   - Inicio → /inicio
+ *   - Red Metro → /red-metro
+ *   - ¿Cómo? → /como-llego
+ *   - Diagrama → /diagrama
+ *   - En vivo (Rosa) → /mapas (con ?trip=1 si doble tap en viaje)
  *
- * Props legacy (`isLineMenuOpen`, `onToggleLineMenu`) se mantienen para
- * no romper consumidores existentes pero ya no se usan en el render.
+ * Legacy: el query param ?view=X en /mapas ya no se usa (las vistas son
+ * páginas separadas). Se mantiene MapViewBanner como fallback para URLs
+ * con ?view=red-metro o ?view=diagrama por compatibilidad.
  */
 
-export type BottomNavView = 'inicio' | 'red-metro' | 'como-llego' | 'en-vivo' | 'diagrama';
-
 export interface BottomNavProps {
-  /** @deprecated Mantenido por compatibilidad. La lógica de líneas vive en el LineSelectorBar del mapa. */
-  isLineMenuOpen?: boolean;
-  /** @deprecated Mantenido por compatibilidad. */
-  onToggleLineMenu?: () => void;
-  /** Doble tap en la rosa cuando el handler externo lo provee. */
-  onActivateTripMode?: () => void;
   /** El viaje está activo (la rosa se transforma visualmente). */
   isTripMode?: boolean;
   /** Phase visual del viaje (no controla state machine). */
@@ -47,28 +44,16 @@ export interface BottomNavProps {
   tripToggleActive?: boolean;
   /** Un toque en la rosa alterna la vista del viaje sin perder el estado. */
   onToggleTripView?: () => void;
+  /** Doble tap en la rosa cuando el handler externo lo provee. */
+  onActivateTripMode?: () => void;
+  /** @deprecated Mantenido por compatibilidad. */
+  isLineMenuOpen?: boolean;
+  /** @deprecated Mantenido por compatibilidad. */
+  onToggleLineMenu?: () => void;
 }
 
 const DOUBLE_TAP_MS = 320;
 const TRIP_QUERY = 'trip=1';
-
-const VIEW_PARAM: Record<Exclude<BottomNavView, 'inicio'>, string> = {
-  'red-metro': 'red-metro',
-  'como-llego': 'como-llego',
-  'en-vivo': 'en-vivo',
-  'diagrama': 'diagrama',
-};
-
-function currentView(pathname: string, viewParam: string | null): BottomNavView {
-  if (pathname === '/inicio') return 'inicio';
-  if (pathname === '/mapas') {
-    if (viewParam === 'red-metro') return 'red-metro';
-    if (viewParam === 'como-llego') return 'como-llego';
-    if (viewParam === 'diagrama') return 'diagrama';
-    return 'en-vivo';
-  }
-  return 'en-vivo';
-}
 
 export function BottomNav(props: BottomNavProps) {
   return (
@@ -86,31 +71,17 @@ function BottomNavSkeleton() {
       aria-label="Navegación principal"
       role="navigation"
     >
-      <div className="max-w-[420px] sm:max-w-md mx-auto relative pointer-events-auto">
-        <div className="relative h-[68px] rounded-[28px] border border-hairline bg-canvas shadow-[0_10px_36px_rgba(16,29,61,0.16)]">
-          <div className="grid grid-cols-[1fr_1fr_56px_1fr_1fr] h-full items-stretch px-1.5">
-            <div className="flex flex-col items-center justify-center h-full text-text-muted">
-              <Home className="w-5 h-5 mb-0.5 shrink-0" />
-              <span className="text-[10px] leading-none font-medium">Inicio</span>
+      <div className="max-w-[420px] sm:max-w-md mx-auto pointer-events-auto">
+        <div className="h-[64px] rounded-[28px] border border-hairline bg-canvas shadow-[0_10px_36px_rgba(16,29,61,0.16)] grid grid-cols-5 items-center px-1.5">
+          {[Home, Map, Search, Layers, MapPin].map((Icon, i) => (
+            <div
+              key={i}
+              className="flex flex-col items-center justify-center h-full text-text-muted"
+            >
+              <Icon className="w-5 h-5 mb-0.5 shrink-0" />
+              <span className="text-[10px] leading-none font-medium">...</span>
             </div>
-            <div className="flex flex-col items-center justify-center h-full text-text-muted">
-              <Map className="w-5 h-5 mb-0.5 shrink-0" />
-              <span className="text-[10px] leading-none font-medium">Red Metro</span>
-            </div>
-            <div className="flex flex-col items-center justify-center h-full text-text-muted">
-              <Search className="w-5 h-5 mb-0.5 shrink-0" />
-              <span className="text-[10px] leading-none font-medium">¿Cómo llego?</span>
-            </div>
-            <div aria-hidden className="w-[56px] shrink-0" />
-            <div className="flex flex-col items-center justify-center h-full text-text-muted">
-              <Layers className="w-5 h-5 mb-0.5 shrink-0" />
-              <span className="text-[10px] leading-none font-medium">Diagrama</span>
-            </div>
-            <div className="flex flex-col items-center justify-center h-full text-text-muted">
-              <MapPin className="w-5 h-5 mb-0.5 shrink-0" />
-              <span className="text-[10px] leading-none font-medium">En vivo</span>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </nav>
@@ -118,24 +89,25 @@ function BottomNavSkeleton() {
 }
 
 function BottomNavInner({
-  onActivateTripMode,
   isTripMode = false,
   arrivalPhase,
   tripToggleActive = false,
   onToggleTripView,
+  onActivateTripMode,
 }: BottomNavProps) {
   const pathname = usePathname();
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const { resolvedTheme } = useTheme();
-  const lastTapRef = useRef<number>(0);
-  const onMap = pathname === '/mapas';
-  const view = currentView(pathname, searchParams.get('view'));
   const dark = resolvedTheme === 'dark';
 
   const isGreenRide = arrivalPhase === 'VIAJANDO_GREEN';
   const isYellowRide = arrivalPhase === 'VIAJANDO_YELLOW';
   const isCritical = arrivalPhase === 'ARRIBANDO';
+
+  const isInicio = pathname === '/inicio';
+  const isRedMetro = pathname === '/red-metro';
+  const isComoLlego = pathname === '/como-llego';
+  const isDiagrama = pathname === '/diagrama';
+  const isEnVivo = pathname === '/mapas';
 
   const roseBgClass = isTripMode
     ? isGreenRide
@@ -147,56 +119,7 @@ function BottomNavInner({
           : 'bg-canvas'
     : dark
       ? 'bg-[#1D2B4F]'
-      : 'bg-white';
-
-  const roseRingClass = isTripMode
-    ? isGreenRide
-      ? 'ring-[var(--viajando-green)] ring-[5px]'
-      : isYellowRide
-        ? 'ring-[var(--viajando-yellow)] ring-[5px]'
-        : isCritical
-          ? 'ring-red-600 ring-[5px]'
-          : 'ring-electric-blue ring-[5px]'
-    : dark
-      ? 'ring-[#1D2B4F] ring-4'
-      : 'ring-white ring-4';
-
-  const roseMono = isTripMode && (isGreenRide || isYellowRide || isCritical);
-  const enVivoActive = view === 'en-vivo';
-
-  const handleRoseClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
-    const now = Date.now();
-    const isDouble = now - lastTapRef.current < DOUBLE_TAP_MS;
-    lastTapRef.current = now;
-
-    if (!isDouble) {
-      if (onMap && tripToggleActive && onToggleTripView) {
-        event.preventDefault();
-        onToggleTripView();
-        return;
-      }
-      if (!onMap) return;
-      // Si no estamos en En vivo, llevar al usuario allá
-      if (view !== 'en-vivo') {
-        event.preventDefault();
-        router.push('/mapas');
-      }
-      return;
-    }
-
-    event.preventDefault();
-    lastTapRef.current = 0;
-
-    if (onActivateTripMode) {
-      onActivateTripMode();
-      return;
-    }
-
-    if (onMap) return;
-    const base = pathname.replace(/[?&]trip=1/g, '').replace(/\?$/, '');
-    const next = base.includes('?') ? `${base}&${TRIP_QUERY}` : `${base}?${TRIP_QUERY}`;
-    router.push(next);
-  };
+      : 'bg-canvas';
 
   return (
     <nav
@@ -204,74 +127,48 @@ function BottomNavInner({
       aria-label="Navegación principal"
       role="navigation"
     >
-      <div className="max-w-[420px] sm:max-w-md mx-auto relative pointer-events-auto">
-        <div className="relative h-[68px] rounded-[28px] border border-hairline bg-canvas shadow-[0_10px_36px_rgba(16,29,61,0.16)]">
-          <div className="grid grid-cols-[1fr_1fr_56px_1fr_1fr] h-full items-stretch px-1.5">
-            <NavItem
-              href="/inicio"
-              label="Inicio"
-              icon={Home}
-              active={view === 'inicio'}
-              aria-label="Ir a inicio"
-            />
-            <NavItem
-              href={`/mapas?view=${VIEW_PARAM['red-metro']}`}
-              label="Red Metro"
-              icon={Map}
-              active={view === 'red-metro'}
-              aria-label="Ver la red metropolitana"
-            />
-            <NavItem
-              href={`/mapas?view=${VIEW_PARAM['como-llego']}`}
-              label="¿Cómo llego?"
-              icon={Search}
-              active={view === 'como-llego'}
-              aria-label="Planificar un viaje"
-              className="truncate"
-            />
-
-            {/* Spacer central bajo la rosa FAB */}
-            <div aria-hidden className="w-[56px] shrink-0" />
-
-            <NavItem
-              href={`/mapas?view=${VIEW_PARAM.diagrama}`}
-              label="Diagrama"
-              icon={Layers}
-              active={view === 'diagrama'}
-              aria-label="Ver diagrama de líneas"
-            />
-            <NavItem
-              href={`/mapas?view=${VIEW_PARAM['en-vivo']}`}
-              label="En vivo"
-              icon={MapPin}
-              active={enVivoActive}
-              aria-label="Ver mapa en vivo"
-            />
-          </div>
-
-          {/* Rosa elevada al centro exacto → En vivo (doble tap: Modo Viaje) */}
-          <Link
-            href={`/mapas?view=${VIEW_PARAM['en-vivo']}`}
-            data-active={enVivoActive}
-            onClick={handleRoseClick}
-            className={cn(
-              'absolute left-3/5 -translate-x-1/2 -top-4 z-10 flex flex-col items-center justify-center w-[60px] h-[60px] rounded-full active:scale-95 transition-[background-color,box-shadow,transform,ring-color] duration-500 [transition-timing-function:cubic-bezier(.16,1,.3,1)] rutaba-rose-btn touch-manipulation',
-              isTripMode && 'rutaba-rose-trip-morph',
-              roseBgClass,
-              roseRingClass,
-            )}
-            aria-label={
-              onMap && tripToggleActive
-                ? 'Mostrar u ocultar la vista del viaje. Doble toque para abrir Modo Viaje'
-                : 'Ir al mapa en vivo. Doble toque para abrir Modo Viaje'
-            }
-            aria-current={enVivoActive ? 'page' : undefined}
-          >
-            <MetropolRose
-              variant={roseMono ? 'mono' : 'full'}
-              className={cn('h-7 w-auto', roseMono && (isYellowRide ? 'text-[#1D2B4F]' : 'text-white'))}
-            />
-          </Link>
+      <div className="max-w-[420px] sm:max-w-md mx-auto pointer-events-auto">
+        <div className="h-[64px] rounded-[28px] border border-hairline bg-canvas shadow-[0_10px_36px_rgba(16,29,61,0.16)] grid grid-cols-5 items-stretch px-1.5">
+          <NavItem
+            href="/inicio"
+            label="Inicio"
+            icon={Home}
+            active={isInicio}
+            aria-label="Ir a inicio"
+          />
+          <NavItem
+            href="/red-metro"
+            label="Red Metro"
+            icon={Map}
+            active={isRedMetro}
+            aria-label="Ver la red metropolitana"
+          />
+          <NavItem
+            href="/como-llego"
+            label="¿Cómo?"
+            icon={Search}
+            active={isComoLlego}
+            aria-label="Planificar un viaje"
+          />
+          <NavItem
+            href="/diagrama"
+            label="Diagrama"
+            icon={Layers}
+            active={isDiagrama}
+            aria-label="Ver diagrama de líneas"
+          />
+          <RoseNavItem
+            href="/mapas"
+            label="En vivo"
+            active={isEnVivo}
+            isTripMode={isTripMode}
+            arrivalPhase={arrivalPhase}
+            roseBgClass={roseBgClass}
+            tripToggleActive={tripToggleActive}
+            onToggleTripView={onToggleTripView}
+            onActivateTripMode={onActivateTripMode}
+            pathname={pathname}
+          />
         </div>
       </div>
     </nav>
@@ -316,4 +213,121 @@ function NavItem({ href, label, icon: Icon, active, className, 'aria-label': ari
       </span>
     </Link>
   );
+}
+
+interface RoseNavItemProps {
+  href: string;
+  label: string;
+  active: boolean;
+  isTripMode: boolean;
+  arrivalPhase?: ArrivalPhase;
+  roseBgClass: string;
+  tripToggleActive: boolean;
+  onToggleTripView?: () => void;
+  onActivateTripMode?: () => void;
+  pathname: string;
+}
+
+/** Item 5 del grid: la Rosa como FAB dentro de la grilla, con label 'En vivo'.
+ *  Mantiene los 3 comportamientos legacy (un toque, doble tap, color). */
+function RoseNavItem({
+  href,
+  label,
+  active,
+  isTripMode,
+  arrivalPhase,
+  roseBgClass,
+  tripToggleActive,
+  onToggleTripView,
+  onActivateTripMode,
+  pathname,
+}: RoseNavItemProps) {
+  const lastTapRef = useDoubleTap();
+
+  const isGreenRide = arrivalPhase === 'VIAJANDO_GREEN';
+  const isYellowRide = arrivalPhase === 'VIAJANDO_YELLOW';
+  const isCritical = arrivalPhase === 'ARRIBANDO';
+  const roseMono = isTripMode && (isGreenRide || isYellowRide || isCritical);
+
+  const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    const { isDouble } = lastTapRef.registerTap();
+    if (!isDouble) {
+      if (active && tripToggleActive && onToggleTripView) {
+        event.preventDefault();
+        onToggleTripView();
+        return;
+      }
+      return;
+    }
+    event.preventDefault();
+    if (onActivateTripMode) {
+      onActivateTripMode();
+      return;
+    }
+    if (pathname === '/mapas') return;
+    const base = pathname.replace(/[?&]trip=1/g, '').replace(/\?$/, '');
+    const next = base.includes('?') ? `${base}&${TRIP_QUERY}` : `${base}?${TRIP_QUERY}`;
+    window.location.href = next;
+  };
+
+  return (
+    <Link
+      href={href}
+      data-active={active}
+      onClick={handleClick}
+      className={cn(
+        'flex flex-col items-center justify-center h-full rounded-2xl transition-all duration-200 active:scale-95 touch-manipulation min-w-0',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink',
+        active ? 'text-ink' : 'text-text-muted hover:text-ink',
+      )}
+      aria-label={
+        active && tripToggleActive
+          ? 'Mostrar u ocultar la vista del viaje. Doble toque para abrir Modo Viaje'
+          : 'Ir al mapa en vivo. Doble toque para abrir Modo Viaje'
+      }
+      aria-current={active ? 'page' : undefined}
+    >
+      <div
+        className={cn(
+          'w-9 h-9 rounded-full flex items-center justify-center transition-[background-color,box-shadow,transform,ring-color] duration-500 [transition-timing-function:cubic-bezier(.16,1,.3,1)] rutaba-rose-btn',
+          isTripMode && 'rutaba-rose-trip-morph',
+          roseBgClass,
+          isTripMode
+            ? isGreenRide
+              ? 'ring-[var(--viajando-green)] ring-[3px]'
+              : isYellowRide
+                ? 'ring-[var(--viajando-yellow)] ring-[3px]'
+                : isCritical
+                  ? 'ring-red-600 ring-[3px]'
+                  : 'ring-electric-blue ring-[3px]'
+            : 'ring-1 ring-hairline',
+        )}
+      >
+        <MetropolRose
+          variant={roseMono ? 'mono' : 'full'}
+          className={cn('h-5 w-auto', roseMono && (isYellowRide ? 'text-[#1D2B4F]' : 'text-white'))}
+        />
+      </div>
+      <span
+        className={cn(
+          'text-[10px] leading-none mt-0.5 truncate max-w-full px-0.5',
+          active ? 'font-bold' : 'font-medium',
+        )}
+      >
+        {label}
+      </span>
+    </Link>
+  );
+}
+
+function useDoubleTap() {
+  const lastTapRef = useRef<number>(0);
+  return {
+    registerTap: () => {
+      const now = Date.now();
+      const isDouble = now - lastTapRef.current < DOUBLE_TAP_MS;
+      lastTapRef.current = now;
+      return { isDouble };
+    },
+  };
 }
