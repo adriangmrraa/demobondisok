@@ -31,6 +31,8 @@ Tres colores de marca definidos en `src/components/brand/metropol-logo.tsx:34-38
 | `METROPOL_COLORS.green` | `#228135` | Hojas verdes de la rosa |
 
 > El logo es un SVG oficial extraído de `metropol.com.ar`. Variantes: `full` (colores) y `mono` (currentColor).
+>
+> **Token de marca en código:** `tokens.brand.primary = #1D2B4F` (`src/lib/theme.ts:9`) — el mismo navy del wordmark. Es el valor a usar cuando el código necesite "el azul Metropol" (superficies, acentos de marca); `primaryHover = #152248`.
 
 ### Tono
 
@@ -92,6 +94,8 @@ Invierte el modelo:
 ## Tokens de datos del transporte (cromáticos)
 
 Estos tokens viven en los DATOS, no en CSS. La razón: cada línea de colectivo tiene su color de marca propio, y el color **viaja con la línea** a través de la base (`routes.json`, `metropol.json`).
+
+> **Nota sobre `metropol.json`:** la base scrapeada del sitio **no define colores** (campos: `number`, `name`, `image`, `recorridos[]`, `flota`). Es contenido editorial, no tokens. Los colores por línea viven en `src/data/routes.json`; la única excepción es la Línea 65, cuyos colores oficiales (celeste/rojo) están en `src/lib/theme.ts` (`fleetColors`). Si buscás "color" en `metropol.json`, no va a estar — usar `routes.json` o `linea.color`/`linea.colorHex` en runtime.
 
 ### Colores por línea (de `src/data/routes.json`)
 
@@ -410,15 +414,13 @@ Crossfade por zoom (interpolate top-level, sin writes por frame).
 
 Período **1800ms module-level** (origen en `performance.now()`). Dos halos contrafase (`route-halo-a` y `route-halo-b`) con `line-blur` para el efecto de "respiración". Solo anima `line-opacity` y `line-blur` (uniforms GPU baratos).
 
-### ⚠️ Pitfall conocido: iOS Safari mapa en blanco
+### ✅ Pitfall resuelto: iOS Safari mapa en blanco (PBI-014)
 
-**Causa:** `transform: translateZ(0)` en un ancestro del `<canvas>` WebGL crea un bug de compositing en WebKit que deja el canvas en negro.
+**Causa:** `transform: translateZ(0)` en un ancestro del `<canvas>` WebGL creaba un bug de compositing en WebKit que dejaba el canvas en negro (afectaba iPhone/iPad; Blink lo toleraba, por eso era iOS-only).
 
-**Culpable actual:** `src/app/mapas/page.tsx:1165` (header flotante con `style={{ transform: "translateZ(0)" }}`).
+**Fix aplicado:** se quitó el `translateZ(0)` del header flotante de `src/app/mapas/page.tsx` (commit `c0871ea`). Verificado en WebKit real (Playwright, iPhone 11, contra producción) el 2026-10-07: tiles, zoom y trip mode OK. Detalle en `docs/INCIDENTE-MAPA-iOS-SAFARI.md`.
 
-**Fix propuesta:** una línea. Ver `docs/DIAGNOSTICO-IPHONE-SAFARI.md` para el análisis completo y el plan de verificación.
-
-**Regla de oro:** **NUNCA** promover a capa compuesta un ancestro del contenedor de MapCanvas. Ver el comentario en `MapCanvas.tsx:2696-2706` que documenta este patrón.
+**Regla de oro (vigente):** **NUNCA** promover a capa compuesta un ancestro del contenedor de MapCanvas — ni `translateZ(0)`, ni `will-change: transform`, ni `translate3d`. Ver el comentario en `MapCanvas.tsx:2696-2706` que documenta este patrón.
 
 ---
 
@@ -605,7 +607,7 @@ Para auditar que el código cumple este DESIGN.MD:
 - `docs/DIAGNOSTICO-IPHONE-SAFARI.md` — bug del mapa en iOS + fix propuesta
 - `docs/INCIDENTE-MAPA-iOS-SAFARI.md` — documento original del incidente
 - `docs/BRECHAS-vs-REPO.md` — análisis de brechas plan vs código real
-- `docs/backlog.json` — backlog Scrum (19 PBIs, pivoteado al repo real)
+- `docs/backlog.json` — backlog Scrum (32 PBIs, fuente de verdad del proyecto)
 - `docs/BRAINSTORMING.md` — exploración de ideas
 - `docs/COMPARATIVA.md` — comparativa cliente vs Replit
 - `docs/DESIGN.md` — brief de diseño original (versión 1, abstracta)
@@ -614,4 +616,4 @@ Para auditar que el código cumple este DESIGN.MD:
 
 **Última actualización:** 2026-10-07
 **Mantenedor:** equipo Fusa Labs / pre-mvp-transportes
-**Próxima revisión:** post-fix del bug iOS Safari (PBI-014)
+**Próxima revisión:** al agregar componentes o tokens nuevos (PBI-014 ya cerrado)
