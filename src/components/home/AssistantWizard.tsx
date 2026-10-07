@@ -265,7 +265,7 @@ export function AssistantWizard({
                         )}
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-bold text-ink truncate" title={parada.nombre}>
+                          <p className="text-sm font-bold text-ink break-words line-clamp-2" title={parada.nombre}>
                             {parada.nombre}
                           </p>
                           <p className="text-[11px] text-text-muted">

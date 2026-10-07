@@ -334,7 +334,7 @@ export default function ViajePanel({
                     </div>
                   </div>
 
-                  <p className="text-xs text-text-muted font-medium truncate">
+                  <p className="text-xs text-text-muted font-medium break-words line-clamp-1" title={opt.title}>
                     {opt.title}
                   </p>
 
@@ -401,7 +401,7 @@ export default function ViajePanel({
                 {/* Detalle del paso */}
                 <div className="flex-1 min-w-0 pt-0.5">
                   <div className="flex items-center justify-between gap-1">
-                    <p className="text-xs font-bold text-ink truncate leading-tight">
+                    <p className="text-xs font-bold text-ink break-words line-clamp-2 leading-tight" title={step.description}>
                       {step.description}
                     </p>
                     <span className="text-[10px] font-semibold text-text-muted shrink-0">
