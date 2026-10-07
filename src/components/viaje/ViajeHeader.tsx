@@ -161,7 +161,7 @@ export default function ViajeHeader({
               <span className="text-xs font-black text-ink block leading-tight truncate">
                 Fijar {isOrigin ? "Origen" : "Destino"} en el mapa
               </span>
-              <span className="text-[11px] text-text-muted font-medium block truncate mt-0.5">
+              <span className="text-[11px] text-text-muted font-medium block truncate mt-0.5" title="Tocá cualquier punto del mapa para obtener sus coordenadas">
                 Tocá cualquier punto del mapa para obtener sus coordenadas
               </span>
             </div>
@@ -194,7 +194,7 @@ export default function ViajeHeader({
           title="Expandir"
         >
           <span aria-hidden="true" className="w-2 h-2 rounded-full bg-electric-blue shrink-0 animate-arrival-blink" />
-          <span className="text-xs font-bold text-ink truncate flex-1">
+          <span className="text-xs font-bold text-ink truncate flex-1" title={`${originLocation?.name ?? ""} → ${destinationLocation?.name ?? ""}`}>
             {originLocation?.name} → {destinationLocation?.name}
           </span>
           <button
@@ -316,7 +316,7 @@ export default function ViajeHeader({
                       <span className="text-[10px] text-text-muted font-medium block leading-none">
                         ¿Desde dónde?
                       </span>
-                      <span className="text-xs font-bold text-ink truncate block mt-0.5">
+                      <span className="text-xs font-bold text-ink truncate block mt-0.5" title={originLocation?.name || userSimulatedLocationName || "Seleccionar punto de partida"}>
                         {originLocation?.name || userSimulatedLocationName || "Seleccionar punto de partida"}
                       </span>
                     </div>
@@ -408,6 +408,7 @@ export default function ViajeHeader({
                         className={`text-xs font-bold truncate block mt-0.5 ${
                           destinationLocation ? "text-ink" : "text-electric-blue font-semibold"
                         }`}
+                        title={destinationLocation?.name}
                       >
                         {destinationLocation?.name || "Elegí tu destino"}
                       </span>
@@ -503,7 +504,7 @@ export default function ViajeHeader({
                 <Navigation className="w-3.5 h-3.5" />
               </div>
               <div className="truncate flex-1">
-                <p className="text-xs font-bold text-electric-blue truncate leading-tight">
+                <p className="text-xs font-bold text-electric-blue truncate leading-tight" title={`Usar "${searchQuery.trim()}"`}>
                   Usar &quot;{searchQuery.trim()}&quot;
                 </p>
                 <p className="text-[10px] text-text-muted truncate mt-0.5">
@@ -524,7 +525,7 @@ export default function ViajeHeader({
                 <Navigation className="w-3.5 h-3.5 text-ink" />
               </div>
               <div className="truncate flex-1">
-                <p className="text-xs font-bold text-ink truncate leading-tight">
+                <p className="text-xs font-bold text-ink truncate leading-tight" title={loc.name}>
                   {loc.name}
                 </p>
                 <p className="text-[10px] text-text-muted truncate mt-0.5">

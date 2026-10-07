@@ -117,7 +117,7 @@ export default function LiveTransportBubble({
                 Línea {selectedLinea.numero}
               </span>
               <div className="truncate">
-                <p className="text-xs font-bold text-ink truncate leading-tight">
+                <p className="text-xs font-bold text-ink truncate leading-tight" title={selectedRamal ? selectedRamal.nombre : selectedLinea.nombre}>
                   {selectedRamal ? selectedRamal.nombre : selectedLinea.nombre}
                 </p>
                 <p className="text-[10px] text-text-muted flex items-center gap-1 mt-0.5">

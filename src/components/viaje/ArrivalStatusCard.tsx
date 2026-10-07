@@ -55,11 +55,11 @@ export default function ArrivalStatusCard({
         <div className="min-w-0">
           <p className="arrival-card__eyebrow">{isRiding ? "Viajando" : "Tu colectivo"}</p>
           {isArriving ? (
-            <p className="truncate text-sm font-black tracking-wide">ARRIBANDO · Línea {lineNumber}</p>
+            <p className="truncate text-sm font-black tracking-wide" title={`ARRIBANDO · Línea ${lineNumber}`}>ARRIBANDO · Línea {lineNumber}</p>
           ) : isRiding ? (
-            <p className="truncate text-sm font-bold">VIAJANDO · Línea {lineNumber} · coche {unitId}{nextStopName ? ` → ${nextStopName}` : ""}</p>
+            <p className="truncate text-sm font-bold" title={nextStopName ? `VIAJANDO · Línea ${lineNumber} · coche ${unitId} → ${nextStopName}` : `VIAJANDO · Línea ${lineNumber} · coche ${unitId}`}>VIAJANDO · Línea {lineNumber} · coche {unitId}{nextStopName ? ` → ${nextStopName}` : ""}</p>
           ) : (
-            <p className="truncate text-sm font-bold">Línea {lineNumber} · coche {unitId}</p>
+            <p className="truncate text-sm font-bold" title={`Línea ${lineNumber} · coche ${unitId}`}>Línea {lineNumber} · coche {unitId}</p>
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
