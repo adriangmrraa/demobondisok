@@ -8,50 +8,10 @@ import { BottomNav } from '@/components/ui/bottom-nav';
 import { MOCK_LINES } from '@/mock/data';
 import { LineDisplay } from '@/components/ui/line-display';
 import metropolData from '@/data/metropol.json';
+import { combinacionesDeParada } from '@/lib/combinaciones';
 
 interface PageProps {
   params: Promise<{ lineId: string }>;
-}
-
-/** Tipos de combinación (tren / subte) que pueden aparecer en una parada. */
-type Combinacion = {
-  id: string;
-  label: string;
-  color: string;
-  /** Tren o subte. */
-  mode: 'tren' | 'subte';
-};
-
-const TREN_LINES: Combinacion[] = [
-  { id: 'roca', label: 'Roca', color: '#1D4ED8', mode: 'tren' },
-  { id: 'mitre', label: 'Mitre', color: '#7C3AED', mode: 'tren' },
-  { id: 'sarmiento', label: 'Sarmiento', color: '#0EA5E9', mode: 'tren' },
-  { id: 'sanmartin', label: 'San Martín', color: '#10B981', mode: 'tren' },
-  { id: 'belgranonorte', label: 'Belgrano Norte', color: '#F59E0B', mode: 'tren' },
-];
-
-const SUBTE_LINES: Combinacion[] = [
-  { id: 'A', label: 'Subte A', color: '#3B82F6', mode: 'subte' },
-  { id: 'B', label: 'Subte B', color: '#EF4444', mode: 'subte' },
-  { id: 'C', label: 'Subte C', color: '#0EA5E9', mode: 'subte' },
-  { id: 'D', label: 'Subte D', color: '#10B981', mode: 'subte' },
-  { id: 'E', label: 'Subte E', color: '#8B5CF6', mode: 'subte' },
-  { id: 'H', label: 'Subte H', color: '#FCD34D', mode: 'subte' },
-];
-
-/** Devuelve las combinaciones (tren/subte) detectadas en una parada por su nombre. */
-function combinacionesDeParada(nombre: string): Combinacion[] {
-  const lower = nombre.toLowerCase();
-  const combinaciones: Combinacion[] = [];
-  if (lower.includes('estación') || lower.includes('ffcc')) {
-    // Si tiene 'Estación' en el nombre, infiere tren (heurística simple).
-    combinaciones.push(TREN_LINES[1]); // Mitre como default razonable
-  }
-  if (lower.includes('subte')) {
-    const match = SUBTE_LINES.find((s) => lower.includes(`subte ${s.id.toLowerCase()}`) || lower.includes(`subte ${s.label.toLowerCase()}`));
-    if (match) combinaciones.push(match);
-  }
-  return combinaciones;
 }
 
 export default function DiagramaLineaPage({ params }: PageProps) {
