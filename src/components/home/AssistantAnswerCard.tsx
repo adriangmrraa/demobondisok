@@ -12,7 +12,7 @@ import { LineBadge } from '@/components/ui/line-badge';
 import type { AssistantAnswer } from '@/lib/services/assistant-intent-service';
 import type { LocationPoint, TripOption } from '@/types/trip-planner';
 import type { EstimacionLlegada } from '@/types/transport';
-import { buildTripMapUrl } from '@/lib/trip-map-navigation';
+import { buildTripJourneyUrl } from '@/lib/trip-map-navigation';
 import { cn } from '@/lib/utils';
 
 interface AssistantAnswerCardProps {
@@ -29,12 +29,12 @@ interface AssistantAnswerCardProps {
 }
 
 /** One portable contract for Home and Mi Viaje navigation. */
-export function tripMapUrl(
+export function tripJourneyUrl(
   trip: TripOption,
   origin: LocationPoint,
   options: { boardingStopId?: string; arrival?: EstimacionLlegada } = {},
 ): string {
-  return buildTripMapUrl(trip, origin, { boardingStopId: options.boardingStopId ?? origin.stopId, arrival: options.arrival });
+  return buildTripJourneyUrl(trip, origin, { boardingStopId: options.boardingStopId ?? origin.stopId, arrival: options.arrival });
 }
 
 const FEASIBILITY_STYLE: Record<string, string> = {
@@ -63,7 +63,7 @@ export function AssistantAnswerCard({
       onOpenTripOnMap(trip, origin, boardingStopId, arrival);
       return;
     }
-    router.push(tripMapUrl(trip, origin, { boardingStopId, arrival }));
+    router.push(tripJourneyUrl(trip, origin, { boardingStopId, arrival }));
   };
 
   /** Tocar una línea de la lista de llegadas: al mapa con parada + línea enfocadas. */
@@ -192,7 +192,7 @@ export function AssistantAnswerCard({
             onClick={() => openTrip(answer.trip, answer.origin)}
             className="w-full h-11 bg-ink text-canvas rounded-xl font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           >
-            <Navigation className="w-4 h-4" /> Ver el viaje completo en el mapa
+            <Navigation className="w-4 h-4" /> Ver el viaje completo
           </button>
         </div>
       )}
@@ -299,7 +299,7 @@ export function AssistantAnswerCard({
               }
               className="w-full h-11 bg-ink text-canvas rounded-xl font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
             >
-              <Navigation className="w-4 h-4" /> Ver el viaje completo en el mapa
+              <Navigation className="w-4 h-4" /> Ver el viaje completo
             </button>
           )}
         </div>

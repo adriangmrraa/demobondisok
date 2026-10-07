@@ -1,6 +1,7 @@
 import assert from "node:assert";
 import { TripPlannerService, KNOWN_POIS } from "./trip-planner-service";
 import { TransitLeg } from "@/types/trip-planner";
+import { buildJourneyGuideModel, imperativeStepLabel, journeyEtaLabel } from "@/lib/journey-guide";
 
 console.log("▶ Ejecutando Suite Exhaustiva de Pruebas del Motor de Viaje (Puntos 21 y 22)...");
 
@@ -186,3 +187,20 @@ console.log("▶ Ejecutando Suite Exhaustiva de Pruebas del Motor de Viaje (Punt
 }
 
 console.log("\n🎉 ¡Todos los 8 casos de prueba + caso especial pasaron con éxito!");
+
+// =========================================================================
+// Expo: adaptador de guía (orden, destino extenso y ETA no disponible)
+// =========================================================================
+{
+  const origin = KNOWN_POIS.find((p) => p.name === "Barrancas de Belgrano")!;
+  const destination = KNOWN_POIS.find((p) => p.name === "Centro de Transferencia de Zárate")!;
+  const transferTrip = TripPlannerService.planTrip(origin, destination).find((trip) => trip.transfersCount === 1)!;
+  const guide = buildJourneyGuideModel(transferTrip, 3);
+  assert.strictEqual(guide.hero?.lineNumber, "65", "La guía debe destacar la primera línea");
+  assert.strictEqual(guide.hero?.etaLabel, "Arriba en 3 min", "La ETA debe ser visible en formato pasajero");
+  assert.deepStrictEqual(guide.steps.map((step) => step.id), transferTrip.steps.map((step) => step.id), "La línea de tiempo debe conservar el orden del planificador");
+  assert.ok(guide.steps.some((step) => step.type === "transfer"), "La combinación debe aparecer en la guía");
+  assert.strictEqual(journeyEtaLabel(null), "Sin seguimiento en vivo");
+  assert.ok(imperativeStepLabel(guide.steps[0]).startsWith("Caminá") || imperativeStepLabel(guide.steps[0]).startsWith("Esperá"));
+  console.log("  ✓ Guía Expo: prioridad de línea, orden, combinación y ETA validados.");
+}
