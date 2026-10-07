@@ -128,14 +128,7 @@ function BottomNavInner({
       role="navigation"
     >
       <div className="max-w-[420px] sm:max-w-md mx-auto pointer-events-auto">
-        <div className="h-[64px] rounded-[28px] border border-hairline bg-canvas shadow-[0_10px_36px_rgba(16,29,61,0.16)] grid grid-cols-5 items-stretch px-1.5">
-          <NavItem
-            href="/inicio"
-            label="Inicio"
-            icon={Home}
-            active={isInicio}
-            aria-label="Ir a inicio"
-          />
+        <div className="h-[68px] rounded-[28px] border border-hairline bg-canvas shadow-[0_10px_36px_rgba(16,29,61,0.16)] grid grid-cols-5 items-stretch px-1.5">
           <NavItem
             href="/red-metro"
             label="Red Metro"
@@ -150,13 +143,6 @@ function BottomNavInner({
             active={isComoLlego}
             aria-label="Planificar un viaje"
           />
-          <NavItem
-            href="/diagrama"
-            label="Diagrama"
-            icon={Layers}
-            active={isDiagrama}
-            aria-label="Ver diagrama de líneas"
-          />
           <RoseNavItem
             href="/mapas"
             label="En vivo"
@@ -168,6 +154,20 @@ function BottomNavInner({
             onToggleTripView={onToggleTripView}
             onActivateTripMode={onActivateTripMode}
             pathname={pathname}
+          />
+          <NavItem
+            href="/diagrama"
+            label="Diagrama"
+            icon={Layers}
+            active={isDiagrama}
+            aria-label="Ver diagrama de líneas"
+          />
+          <NavItem
+            href="/inicio"
+            label="Inicio"
+            icon={Home}
+            active={isInicio}
+            aria-label="Ir a inicio"
           />
         </div>
       </div>
@@ -189,7 +189,7 @@ function NavItem({ href, label, icon: Icon, active, className, 'aria-label': ari
     <Link
       href={href}
       className={cn(
-        'flex flex-col items-center justify-center h-full rounded-2xl transition-all duration-200 active:scale-95 touch-manipulation min-w-0',
+        'group flex flex-col items-center justify-center h-full mx-1 rounded-2xl transition-all duration-200 active:scale-95 touch-manipulation min-w-0',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink',
         active ? 'text-ink' : 'text-text-muted hover:text-ink',
         className,
@@ -197,16 +197,23 @@ function NavItem({ href, label, icon: Icon, active, className, 'aria-label': ari
       aria-label={ariaLabel ?? label}
       aria-current={active ? 'page' : undefined}
     >
-      <Icon
+      <div
         className={cn(
-          'w-5 h-5 mb-0.5 transition-transform shrink-0',
-          active && 'scale-110',
+          'flex items-center justify-center px-2.5 py-1 rounded-full transition-colors duration-200',
+          active ? 'bg-canvas-soft' : 'bg-transparent group-hover:bg-canvas-soft/60',
         )}
-      />
+      >
+        <Icon
+          className={cn(
+            'w-[22px] h-[22px] transition-transform shrink-0',
+            active && 'scale-110',
+          )}
+        />
+      </div>
       <span
         className={cn(
-          'text-[10px] leading-none truncate max-w-full px-0.5',
-          active ? 'font-bold' : 'font-medium',
+          'text-[10px] leading-none truncate max-w-full px-1 mt-0.5',
+          active ? 'font-bold text-ink' : 'font-medium',
         )}
       >
         {label}
@@ -289,7 +296,7 @@ function RoseNavItem({
     >
       <div
         className={cn(
-          'w-9 h-9 rounded-full flex items-center justify-center transition-[background-color,box-shadow,transform,ring-color] duration-500 [transition-timing-function:cubic-bezier(.16,1,.3,1)] rutaba-rose-btn',
+          'w-10 h-10 rounded-full flex items-center justify-center transition-[background-color,box-shadow,transform,ring-color] duration-500 [transition-timing-function:cubic-bezier(.16,1,.3,1)] rutaba-rose-btn',
           isTripMode && 'rutaba-rose-trip-morph',
           roseBgClass,
           isTripMode
@@ -300,7 +307,9 @@ function RoseNavItem({
                 : isCritical
                   ? 'ring-red-600 ring-[3px]'
                   : 'ring-electric-blue ring-[3px]'
-            : 'ring-1 ring-hairline',
+            : active
+              ? 'ring-2 ring-ink'
+              : 'ring-1 ring-hairline',
         )}
       >
         <MetropolRose
