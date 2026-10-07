@@ -10,6 +10,9 @@ interface JourneyTimelineProps {
   steps: TripStep[];
   /** Heading del usuario en grados (0=Norte). Opcional: si no se provee, las direcciones son absolutas. */
   userHeading?: number | null;
+  /** ID del step actual (parada donde está el pasajero ahora). Si se provee, ese step
+   *  se resalta con dot más grande, color saturado y micro-animación de pulso. */
+  currentStepId?: string | null;
 }
 
 function StepIcon({ type }: { type: TripStep['type'] }) {
@@ -18,7 +21,7 @@ function StepIcon({ type }: { type: TripStep['type'] }) {
   return <Bus className="size-4" />;
 }
 
-export function JourneyTimeline({ steps, userHeading }: JourneyTimelineProps) {
+export function JourneyTimeline({ steps, userHeading, currentStepId }: JourneyTimelineProps) {
   const [openCombinacion, setOpenCombinacion] = useState<Combinacion | null>(null);
   const [combinacionParada, setCombinacionParada] = useState<string | undefined>(undefined);
 
@@ -37,14 +40,40 @@ export function JourneyTimeline({ steps, userHeading }: JourneyTimelineProps) {
       <ol aria-label="Pasos del viaje" className="space-y-0">
         {steps.map((step, index) => {
           const combinaciones = step.toStopName ? combinacionesDeParada(step.toStopName) : [];
+          const isCurrent = currentStepId != null && step.id === currentStepId;
+          const stepBaseBg =
+            step.type === 'ride'
+              ? 'border-electric-blue bg-electric-blue text-white'
+              : step.type === 'transfer'
+                ? 'border-amber-500/40 bg-amber-100 text-amber-800'
+                : 'border-hairline bg-canvas-soft text-ink';
+          const stepIconWrap = isCurrent
+            ? 'size-10 border-2 shadow-[0_0_0_4px_rgba(59,130,246,0.18)] animate-pulse'
+            : 'size-8 border';
+          const stepTitleClass = isCurrent
+            ? 'font-bold leading-snug text-ink text-base'
+            : 'font-bold leading-snug text-ink';
           return (
             <li key={step.id} className="relative flex gap-3 pb-5 last:pb-0">
               {index < steps.length - 1 && <span aria-hidden className="absolute left-[15px] top-8 h-[calc(100%-20px)] w-px bg-hairline" />}
-              <span className={`relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border ${
-                step.type === 'ride' ? 'border-electric-blue bg-electric-blue text-white' : step.type === 'transfer' ? 'border-amber-500/40 bg-amber-100 text-amber-800' : 'border-hairline bg-canvas-soft text-ink'
-              }`}><StepIcon type={step.type} /></span>
+              <span
+                className={`relative z-10 flex shrink-0 items-center justify-center rounded-full ${stepIconWrap} ${stepBaseBg}`}
+                aria-current={isCurrent ? 'step' : undefined}
+              >
+                {isCurrent ? (
+                  <span className="absolute inset-0 flex items-center justify-center" aria-hidden="true">
+                    <span className="h-2 w-2 rounded-full bg-canvas" />
+                  </span>
+                ) : null}
+                <StepIcon type={step.type} />
+                {isCurrent ? (
+                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[9px] font-black uppercase tracking-wider text-electric-blue bg-canvas px-1.5 rounded-full border border-electric-blue/30">
+                    Acá
+                  </span>
+                ) : null}
+              </span>
               <div className="min-w-0 pt-0.5">
-                <p className="font-bold leading-snug text-ink">{imperativeStepLabel(step, userHeading)}</p>
+                <p className={stepTitleClass}>{imperativeStepLabel(step, userHeading)}</p>
                 {step.type === "walk" && step.walkBearing != null ? (
                   <p className="mt-1 text-xs font-semibold text-electric-blue">
                     {walkDirectionLabel(step.walkBearing, userHeading)}
