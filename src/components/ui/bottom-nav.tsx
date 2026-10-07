@@ -189,7 +189,7 @@ function NavItem({ href, label, icon: Icon, active, className, 'aria-label': ari
     <Link
       href={href}
       className={cn(
-        'group flex flex-col items-center justify-center h-full mx-1 rounded-2xl transition-all duration-200 active:scale-95 touch-manipulation min-w-0',
+        'group flex flex-col items-center justify-center h-full rounded-2xl transition-all duration-200 active:scale-95 touch-manipulation min-w-0 px-0.5',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink',
         active ? 'text-ink' : 'text-text-muted hover:text-ink',
         className,
@@ -212,7 +212,7 @@ function NavItem({ href, label, icon: Icon, active, className, 'aria-label': ari
       </div>
       <span
         className={cn(
-          'text-[10px] leading-tight text-center break-words line-clamp-2 max-w-full px-1 mt-0.5',
+          'text-[10px] leading-tight text-center whitespace-normal line-clamp-2 max-w-full px-1 mt-0.5',
           active ? 'font-bold text-ink' : 'font-medium',
         )}
       >
