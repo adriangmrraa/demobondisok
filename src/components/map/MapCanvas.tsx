@@ -233,6 +233,9 @@ export interface MapCanvasProps {
   tripFocus?: boolean;
   /** Parada de abordaje para el modo 'follow-trip': la cámara encuadra bondi + parada juntos. */
   followTripStop?: { lat: number; lng: number } | null;
+  /** Notifies the wrapper when MapLibre cannot finish rendering. */
+  onMapReady?: () => void;
+  onMapUnavailable?: () => void;
   className?: string;
 }
 
@@ -437,6 +440,8 @@ export function MapCanvas({
   tripUsedStopIds = null,
   tripFocus = false,
   followTripStop = null,
+  onMapReady,
+  onMapUnavailable,
   className,
 }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -608,20 +613,27 @@ export function MapCanvas({
     const el = containerRef.current;
     if (!el) return;
 
-    const map = new maplibregl.Map({
-      container: el,
-      style: themeRef.current === 'dark' ? BASEMAP_DARK : BASEMAP_LIGHT,
-      center,
-      zoom: 10.8, // entrada cinematográfica: fitBounds hace zoom-in al AMBA
-      attributionControl: { compact: true },
-      // Cámara nativa en mobile: panning con inercia suave, pinch-zoom
-      // alrededor del centro del gesto (no del viewport) y sin snap
-      // sorpresa al norte cuando rotás poco.
-      maxPitch: 65,
-      bearingSnap: 0,
-      dragPan: { linearity: 0.3 },
-      touchZoomRotate: { around: 'center' },
-    });
+    let map: maplibregl.Map;
+    try {
+      map = new maplibregl.Map({
+        container: el,
+        style: themeRef.current === 'dark' ? BASEMAP_DARK : BASEMAP_LIGHT,
+        center,
+        zoom: 10.8, // entrada cinematográfica: fitBounds hace zoom-in al AMBA
+        attributionControl: { compact: true },
+        // Cámara nativa en mobile: panning con inercia suave, pinch-zoom
+        // alrededor del centro del gesto (no del viewport) y sin snap
+        // sorpresa al norte cuando rotás poco.
+        maxPitch: 65,
+        bearingSnap: 0,
+        dragPan: { linearity: 0.3 },
+        touchZoomRotate: { around: 'center' },
+      });
+    } catch (error) {
+      console.warn('[MapLibre] No se pudo crear el mapa', error);
+      onMapUnavailable?.();
+      return;
+    }
 
     map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-right');
     // El GeolocateControl stock quedó reemplazado por el control de dominio
@@ -677,8 +689,21 @@ export function MapCanvas({
     const onPageShow = () => refreshCanvasAfterStableLayout();
     window.addEventListener('pageshow', onPageShow);
 
+    let reportedUnavailable = false;
+    const reportUnavailable = () => {
+      if (reportedUnavailable) return;
+      reportedUnavailable = true;
+      onMapUnavailable?.();
+    };
+
+    let mapHasLoaded = false;
+    map.once('load', () => {
+      mapHasLoaded = true;
+      onMapReady?.();
+    });
     map.on('error', (e) => {
       console.warn('[MapLibre]', e);
+      if (!mapHasLoaded) reportUnavailable();
     });
 
     // Handle para consola del demo (mockup sin secretos en el mapa)

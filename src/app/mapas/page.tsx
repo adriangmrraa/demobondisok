@@ -20,7 +20,7 @@ import { Parada } from "@/types/transport";
 import { TripOption, LocationPoint, TransitLeg } from "@/types/trip-planner";
 import { Navigation, RotateCcw, Eye, X, Search } from "lucide-react";
 import { SIMULATED_USER_LOCATION, SIMULATED_LOCATION_LABEL, requestDeviceLocation, DeviceLocationError } from "@/lib/config/user-location";
-import { parseTripMapState, buildTripMapState, tripMapUrlFromState, etaToBoardingStop, hasPassedStop, hasCompletedRide, viajandoSubPhase, ARRIVAL_EPS_M, ARRIVAL_EPS_S, BOARDING_DWELL_MS, type TripMapNavigationState, type ArrivalPhase } from "@/lib/trip-map-navigation";
+import { parseTripMapState, buildTripMapState, tripMapUrlFromState, tripJourneyUrlFromState, etaToBoardingStop, hasPassedStop, hasCompletedRide, viajandoSubPhase, ARRIVAL_EPS_M, ARRIVAL_EPS_S, BOARDING_DWELL_MS, type TripMapNavigationState, type ArrivalPhase } from "@/lib/trip-map-navigation";
 import { buildBoardingOptions, boardingHeroLabel, boardingUnitKeyOf } from "@/lib/services/trip-boarding-options";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
@@ -1146,6 +1146,8 @@ export default function TransportesAppPage() {
   const hasActivePill = Boolean(selectedVehiculo || selectedRamal);
   // 3D activo: en Viaje lo controla `trip3D`; fuera, el modo navigation-vehicle.
   const is3DActive = isTripMode ? trip3D : cameraMode === "navigation-vehicle";
+  const mapUnavailableHref = tripSeed ? tripJourneyUrlFromState(tripSeed) : "/inicio";
+  const mapUnavailableLabel = tripSeed ? "Volver a la guía del viaje" : "Volver al inicio";
 
   return (
     <div className="relative w-full h-full min-h-dvh overflow-hidden bg-background text-foreground select-none">
@@ -1329,6 +1331,8 @@ export default function TransportesAppPage() {
               onMapPick={handleMapPick}
               userLocation={userLocation}
               className="w-full h-full"
+              unavailableHref={mapUnavailableHref}
+              unavailableLabel={mapUnavailableLabel}
             />
           </div>
 
