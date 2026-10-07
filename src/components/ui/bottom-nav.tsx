@@ -199,8 +199,8 @@ function NavItem({ href, label, icon: Icon, active, className, 'aria-label': ari
       </div>
       <span
         className={cn(
-          'text-[10px] leading-tight text-center whitespace-normal line-clamp-2 max-w-full px-1 mt-0.5',
-          active ? 'font-bold text-ink' : 'font-medium',
+          'text-[10px] leading-[1.15] text-center whitespace-normal line-clamp-2 max-w-full px-1 mt-1 min-h-[24px] flex items-center justify-center',
+          active ? 'font-bold text-ink' : 'font-medium text-text-muted',
         )}
       >
         {label}
