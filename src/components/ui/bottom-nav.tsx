@@ -16,12 +16,14 @@ import type { ArrivalPhase } from '@/lib/trip-map-navigation';
  *   │ [🏠 Inicio] [🗺️ Red Metro] [🔍 ¿Cómo?] [📊 Diagrama] [🌹 En vivo] │
  *   └────────────────────────────────────────────────────────────────────┘
  *
- * Layout: grid-cols-5 con cada item del mismo ancho. El item 5 (En vivo)
- * usa la Rosa como ícono distintivo, con un círculo de marca y label
- * "En vivo" abajo. La Rosa mantiene los 3 comportamientos legacy
- * (un toque, doble tap, color según arrivalPhase) vía onClick handler
- * con detección de doble tap. NO hay absolute positioning ni FAB
- * elevado (eso descuadraba el grid en mobile portrait 360dp).
+ * Layout: grid-cols-5 con cada item del mismo ancho. Los 5 items comparten
+ * el MISMO esqueleto vertical: justify-end + gap-1.5 + pb-1 (todo anclado al
+ * fondo de la celda) y el MISMO label (min-h-[24px], centrado) — así los
+ * textos quedan en una sola línea base. El slot de ícono normal mide 30px
+ * (px-2.5 py-1) y el círculo de la Rosa 44px (w-11 h-11): bases alineadas,
+ * y la Rosa sobresale 14px hacia arriba (centro 7px arriba) — el efecto FAB
+ * se logra por geometría, NO por absolute positioning ni transform (eso
+ * descuadraba el grid en mobile portrait 360dp).
  *
  * Cada item navega a su propia ruta:
  *   - Inicio → /inicio
@@ -72,14 +74,18 @@ function BottomNavSkeleton() {
       role="navigation"
     >
       <div className="max-w-[420px] sm:max-w-md mx-auto pointer-events-auto">
-        <div className="min-h-[64px] rounded-[28px] border border-hairline bg-canvas shadow-[0_10px_36px_rgba(16,29,61,0.16)] grid grid-cols-5 items-center px-1.5 py-1.5">
+        <div className="min-h-[76px] rounded-[28px] border border-hairline bg-canvas shadow-[0_10px_36px_rgba(16,29,61,0.16)] grid grid-cols-5 items-stretch px-1.5 pt-2 pb-3">
           {[Home, Map, Search, Layers, MapPin].map((Icon, i) => (
             <div
               key={i}
-              className="flex flex-col items-center justify-center h-full text-text-muted"
+              className="flex flex-col items-center justify-end h-full gap-1.5 pb-1 px-0.5 text-text-muted"
             >
-              <Icon className="w-5 h-5 mb-0.5 shrink-0" />
-              <span className="text-[10px] leading-none font-medium">...</span>
+              <div className="flex items-center justify-center px-2.5 py-1 rounded-full">
+                <Icon className="w-[22px] h-[22px] shrink-0" />
+              </div>
+              <span className="text-[10px] leading-[1.15] text-center line-clamp-2 max-w-full px-1 mt-1 min-h-[24px] flex items-center justify-center">
+                ...
+              </span>
             </div>
           ))}
         </div>
@@ -268,7 +274,7 @@ function RoseNavItem({
       data-active={active}
       onClick={handleClick}
       className={cn(
-        'flex flex-col items-center justify-center h-full rounded-2xl transition-all duration-200 active:scale-95 touch-manipulation min-w-0',
+        'group flex flex-col items-center justify-end h-full gap-1.5 pb-1 rounded-2xl transition-all duration-200 active:scale-95 touch-manipulation min-w-0 px-0.5',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink',
         active ? 'text-ink' : 'text-text-muted hover:text-ink',
       )}
@@ -292,8 +298,8 @@ function RoseNavItem({
       </div>
       <span
         className={cn(
-          'text-[10px] leading-none mt-0.5 truncate max-w-full px-0.5',
-          active ? 'font-bold' : 'font-medium',
+          'text-[10px] leading-[1.15] text-center whitespace-normal line-clamp-2 max-w-full px-1 mt-1 min-h-[24px] flex items-center justify-center',
+          active ? 'font-bold text-ink' : 'font-medium text-text-muted',
         )}
       >
         {label}
