@@ -697,9 +697,18 @@ export function MapCanvas({
     };
 
     let mapHasLoaded = false;
-    map.once('load', () => {
+    const markReady = () => {
+      if (mapHasLoaded) return;
       mapHasLoaded = true;
       onMapReady?.();
+    };
+    map.once('load', markReady);
+    // 'load' puede no disparar nunca: el tick de 1s re-carga fuentes
+    // geojson sin pausa, así que loaded() queda en false para siempre y el
+    // timeout de DynamicMap desmontaría un mapa sano a los 12s.
+    // Ready real = estilo parseado + primer frame renderizado.
+    map.once('style.load', () => {
+      map.once('render', markReady);
     });
     map.on('error', (e) => {
       console.warn('[MapLibre]', e);
