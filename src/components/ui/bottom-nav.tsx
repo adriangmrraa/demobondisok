@@ -287,7 +287,7 @@ function RoseNavItem({
     >
       <div
         className={cn(
-          'w-11 h-11 rounded-full flex items-center justify-center transition-colors duration-200',
+          'w-11 h-11 rounded-full flex items-center justify-center translate-y-[7px] transition-colors duration-200',
           active ? 'bg-canvas-soft' : 'bg-transparent group-hover:bg-canvas-soft/60',
         )}
       >
