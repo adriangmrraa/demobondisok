@@ -1,9 +1,10 @@
 import Link from 'next/link';
-import { ArrowLeft, Map, Navigation } from 'lucide-react';
+import { ArrowLeft, Map, Navigation, Route } from 'lucide-react';
 import { buildJourneyGuideModel } from '@/lib/journey-guide';
 import { tripMapUrlFromState, type TripMapNavigationState } from '@/lib/trip-map-navigation';
 import type { TripOption } from '@/types/trip-planner';
 import { JourneyTimeline } from './JourneyTimeline';
+import { TripDiagram } from './TripDiagram';
 import { LineDisplay } from '@/components/ui/line-display';
 
 interface JourneyGuideProps {
@@ -48,6 +49,10 @@ export function JourneyGuide({ option, state, etaMinutes, onBackToOptions, userH
       <div className="rounded-3xl border border-hairline bg-canvas p-5">
         <div className="mb-5 flex items-center gap-2"><Navigation className="size-5 text-electric-blue" /><h2 className="text-lg font-black text-ink">Paso a paso</h2></div>
         <JourneyTimeline steps={model.steps} userHeading={userHeading} />
+      </div>
+      <div className="rounded-3xl border border-hairline bg-canvas p-5">
+        <div className="mb-5 flex items-center gap-2"><Route className="size-5 text-electric-blue" /><h2 className="text-lg font-black text-ink">Recorrido</h2></div>
+        <TripDiagram option={option} />
       </div>
       <Link href={tripMapUrlFromState(mapState)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-hairline bg-canvas font-bold text-ink transition-colors hover:bg-canvas-soft">
         <Map className="size-4" /> Ver el recorrido en el mapa

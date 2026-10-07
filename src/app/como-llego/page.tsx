@@ -5,31 +5,21 @@ import { ArrowLeft, Navigation, MapPin, Search } from 'lucide-react';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { ComoLlegoFlow } from '@/components/viaje/ComoLlegoFlow';
 import { useAssistantSession } from '@/hooks/use-assistant-session';
-import { useEffect } from 'react';
+import { useState } from 'react';
 
 /**
  * Página dedicada del wizard "¿Cómo llego?".
  * Muestra un hero con CTA para iniciar el flujo. Al tocar "Empezar",
- * abre el LocationConsentModal (si no hay GPS) o el AssistantWizard
- * (si ya hay). Al confirmar el viaje, navega a /mapas.
+ * `startNonce` le avisa a ComoLlegoFlow que abra la fase inicial
+ * (consent → selector → wizard según la sesión). Al confirmar el viaje,
+ * navega a /viaje con las alternativas.
  */
 export default function ComoLlegoPage() {
-  const { session, setConsentido } = useAssistantSession();
-
-  useEffect(() => {
-    // Si ya tenemos sesión activa, salimos del estado 'idle' para
-    // que el ConsentModal no se reabra al volver a la página.
-    if (session.consentido) {
-      // El wizard se abrirá automáticamente via ComoLlegoFlow
-    }
-  }, [session.consentido]);
+  const { session } = useAssistantSession();
+  const [startNonce, setStartNonce] = useState(0);
 
   const handleStart = () => {
-    if (session.consentido) {
-      setConsentido(true);
-    } else {
-      setConsentido(false);
-    }
+    setStartNonce((n) => n + 1);
   };
 
   return (
@@ -121,7 +111,7 @@ export default function ComoLlegoPage() {
       </main>
 
       {/* Flujo de wizard embebido: consent + selector + assistant */}
-      <ComoLlegoFlow />
+      <ComoLlegoFlow startNonce={startNonce} />
 
       <div className="shrink-0 fixed bottom-0 left-0 right-0 z-40">
         <BottomNav />

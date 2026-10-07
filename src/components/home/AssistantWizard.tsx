@@ -308,6 +308,11 @@ export function AssistantWizard({
                 </span>
                 ?
               </p>
+              {submissionError && (
+                <p role="alert" className="rounded-xl bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
+                  {submissionError}
+                </p>
+              )}
               <div className="group relative">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-ink transition-colors pointer-events-none" />
                 <input
@@ -336,7 +341,7 @@ export function AssistantWizard({
                           type="button"
                           onClick={() => {
                             setDestino(place.name);
-                            if (selectedStopId) onComplete(selectedStopId, place.name);
+                            if (selectedStopId) onComplete(selectedStopId, place.name, place);
                           }}
                           className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-canvas-soft transition-colors flex items-center gap-2.5"
                         >
