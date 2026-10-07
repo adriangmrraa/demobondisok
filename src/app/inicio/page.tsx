@@ -229,6 +229,13 @@ export default function HomePage() {
     setPendingDestino(null);
   }, []);
 
+  // Fallback manual del consentimiento: el selector de lugar reanuda el wizard
+  // igual que un lugar confirmado (wizardResume ya viene true del gate).
+  const handleConsentUseManual = useCallback(() => {
+    setConsentido(true);
+    setPhase('selector');
+  }, [setConsentido]);
+
   // ─── Handler del selector de lugar ───
   const handlePlaceSelect = useCallback(
     (place: LocationPoint) => {
@@ -373,17 +380,24 @@ export default function HomePage() {
       setLineLookupOpen(true);
       return;
     }
-    if (action === 'nearby') {
-      setWizardResume(false);
-      setPhase('consent');
+    // "Paradas cerca" y "¿A dónde vas?" desembocan en el flujo completo de
+    // /como-llego (ubicación → parada → destino → alternativas → mapa); `auto`
+    // lo arranca directo, igual que el botón Empezar de esa página.
+    if (action === 'nearby' || action === 'destination') {
+      router.push('/como-llego?auto=1');
       return;
     }
-    if (action === 'destination') {
-      openTripWizard();
-      return;
-    }
-    router.push('/mapas');
-  }, [openTripWizard, router]);
+    router.push('/mapas?explorar=1');
+  }, [router]);
+
+  /** Resultado del buscador de líneas: cierra la hoja y abre su diagrama. */
+  const handleSelectLookupLine = useCallback(
+    (lineId: string) => {
+      setLineLookupOpen(false);
+      router.push(`/diagrama/${lineId}`);
+    },
+    [router],
+  );
 
   const closeAnswer = useCallback(() => {
     setActiveQuery(null);
@@ -604,13 +618,14 @@ export default function HomePage() {
         />
       )}
 
-      <LineLookupSheet open={lineLookupOpen} onClose={() => setLineLookupOpen(false)} />
+      <LineLookupSheet open={lineLookupOpen} onClose={() => setLineLookupOpen(false)} onSelectLine={handleSelectLookupLine} />
 
       {/* Flujo PBI-019: permiso decorativo → selector de lugar */}
       {phase === 'consent' && (
         <LocationConsentModal
           onUseReal={handleConsentUseReal}
           onUseDemo={handleConsentUseDemo}
+          onUseManual={handleConsentUseManual}
           onClose={handleConsentClose}
         />
       )}

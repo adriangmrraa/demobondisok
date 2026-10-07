@@ -16,22 +16,36 @@ test('Home offers the four accessible discovery flows', async ({ page }) => {
   await page.keyboard.press('Enter');
   await expect(page.getByRole('dialog', { name: /buscar por línea/i })).toBeVisible();
   await page.getByRole('textbox', { name: /número o nombre de línea/i }).fill('65');
-  await expect(page.getByText('Línea 65', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: /cerrar búsqueda de línea/i }).click();
+  const lineResult = page.getByRole('button', { name: /ver el diagrama de la línea 65/i });
+  await expect(lineResult).toBeVisible();
+  await lineResult.click();
+  await expect(page).toHaveURL(/\/diagrama\/line-65/);
+  await expect(page.getByRole('link', { name: /ver en el mapa/i })).toHaveAttribute('href', /\/mapas\?linea=line-65/);
 
+  await page.goto('/inicio');
   await page.getByRole('button', { name: /paradas cerca/i }).click();
-  await expect(page.getByRole('dialog', { name: /usamos tu ubicación/i })).toBeVisible();
-  await page.getByRole('button', { name: /usar ubicación real/i }).click();
-  await expect(page.getByText(/no autorizaste tu ubicación/i)).toBeVisible();
-  await expect(page.getByRole('button', { name: /usar ubicación demo/i })).toBeVisible();
+  await expect(page).toHaveURL(/\/como-llego/);
+  const consent = page.getByRole('dialog', { name: /usamos tu ubicación/i });
+  await expect(consent).toBeVisible();
+  await expect(consent.getByRole('button', { name: /usar ubicación real/i })).toBeVisible();
+  await expect(consent.getByRole('button', { name: /usar ubicación demo/i })).toBeVisible();
+  await expect(consent.getByRole('button', { name: /elegir ubicación manualmente/i })).toBeVisible();
+  await consent.getByRole('button', { name: /usar ubicación real/i }).click();
+  // GPS denegado en el entorno de test: el flujo cae al fallback manual.
+  await expect(page.getByRole('dialog', { name: /dónde estás esperando el colectivo/i })).toBeVisible();
 
-  await page.getByRole('button', { name: /cerrar ubicación/i }).click();
+  await page.goto('/inicio');
   await page.getByRole('button', { name: /a dónde vas/i }).click();
+  await expect(page).toHaveURL(/\/como-llego/);
   await expect(page.getByRole('dialog', { name: /usamos tu ubicación/i })).toBeVisible();
 
-  await page.getByRole('button', { name: /cerrar ubicación/i }).click();
+  await page.goto('/inicio');
   await page.getByRole('button', { name: /explorar mapa/i }).click();
-  await expect(page).toHaveURL(/\/mapas$/);
+  await expect(page).toHaveURL(/\/mapas/);
+  const exploreHint = page.getByText(/elegí una línea para ver su recorrido/i);
+  await expect(exploreHint).toBeVisible();
+  await page.getByRole('button', { name: /cerrar ayuda del selector de líneas/i }).click();
+  await expect(exploreHint).not.toBeVisible();
 });
 
 test('Cómo llego completes the trip from Empezar to the alternatives', async ({ page }) => {

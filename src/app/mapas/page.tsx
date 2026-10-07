@@ -18,7 +18,7 @@ import { segmentBearing, type CameraMode } from "@/lib/map/camera-controller";
 import type { MapFocusRequest, PlannerMapPoints, PlannerMapPulse, TripRouteShade } from "@/components/map/MapCanvas";
 import { Parada } from "@/types/transport";
 import { TripOption, LocationPoint, TransitLeg } from "@/types/trip-planner";
-import { Navigation, RotateCcw, Eye, X, Search } from "lucide-react";
+import { Navigation, RotateCcw, Eye, X, Search, Layers } from "lucide-react";
 import { SIMULATED_USER_LOCATION, SIMULATED_LOCATION_LABEL, requestDeviceLocation, DeviceLocationError } from "@/lib/config/user-location";
 import { parseTripMapState, buildTripMapState, tripMapUrlFromState, tripJourneyUrlFromState, etaToBoardingStop, hasPassedStop, hasCompletedRide, viajandoSubPhase, ARRIVAL_EPS_M, ARRIVAL_EPS_S, BOARDING_DWELL_MS, type TripMapNavigationState, type ArrivalPhase } from "@/lib/trip-map-navigation";
 import { buildBoardingOptions, boardingHeroLabel, boardingUnitKeyOf } from "@/lib/services/trip-boarding-options";
@@ -52,6 +52,9 @@ export default function TransportesAppPage() {
   const { resolvedTheme } = useTheme();
   const [mapUnavailable, setMapUnavailable] = useState(false);
   const [isLineMenuOpen, setIsLineMenuOpen] = useState<boolean>(false);
+  // Orientación breve de la entrada "Explorar mapa" (Home): coachmark
+  // descartable junto al rail de líneas. No persiste ni tapa controles.
+  const [showExploreHint, setShowExploreHint] = useState(false);
   const lineas = useMemo(() => TransportService.getLineas(), []);
   const paradas = useMemo(() => TransportService.getParadas(), []);
   const alertas = useMemo(() => TransportService.getAlertas(), []);
@@ -1032,6 +1035,19 @@ export default function TransportesAppPage() {
     return () => window.cancelAnimationFrame(raf);
   }, [handleSelectParada]);
 
+  // Entrada "Explorar mapa" desde Home (?explorar=1): muestra la orientación
+  // del selector y consume el parámetro para no repetirla en un refresh.
+  // rAF-deferred igual que el resto de los handoffs de esta página.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("explorar") !== "1") return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("explorar");
+    window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+    const raf = window.requestAnimationFrame(() => setShowExploreHint(true));
+    return () => window.cancelAnimationFrame(raf);
+  }, []);
+
   const handleSelectStopById = useCallback((stopId: string) => {
     if (!stopId) {
       setSelectedParada(null);
@@ -1302,6 +1318,30 @@ export default function TransportesAppPage() {
             hasTopPill={hasActivePill}
             tripMode={isTripMode}
           />
+
+          {/* Orientación "Explorar mapa": coachmark descartable anclado al rail
+              (mismo offset vertical que el botón de capas, sin taparlo). */}
+          {showExploreHint && !isTripViewActive && !hasActivePill && (
+            <div
+              role="note"
+              className="absolute left-14 z-30 w-[calc(100vw-152px)] max-w-[240px] animate-in fade-in slide-in-from-left-2 duration-300 top-[calc(max(14px,env(safe-area-inset-top))+62px)]"
+            >
+              <div className="flex items-start gap-1 rounded-2xl border border-hairline bg-canvas p-3 pr-1 shadow-lg">
+                <Layers className="mt-0.5 h-4 w-4 shrink-0 text-electric-blue" aria-hidden="true" />
+                <p className="flex-1 text-xs font-semibold leading-snug text-ink">
+                  Elegí una línea para ver su recorrido y sus unidades en vivo.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowExploreHint(false)}
+                  aria-label="Cerrar ayuda del selector de líneas"
+                  className="-m-1.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-canvas-soft hover:text-ink"
+                >
+                  <X className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Canvas de Mapa MapLibre WebGL — capa fija, sin reflow del header */}
           <div className={`absolute inset-0 overflow-hidden ${mapUnavailable ? "z-50" : "z-0"}`}>

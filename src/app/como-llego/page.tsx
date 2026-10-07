@@ -5,7 +5,7 @@ import { ArrowLeft, Navigation, MapPin, Search } from 'lucide-react';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { ComoLlegoFlow } from '@/components/viaje/ComoLlegoFlow';
 import { useAssistantSession } from '@/hooks/use-assistant-session';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 /**
  * Página dedicada del wizard "¿Cómo llego?".
@@ -21,6 +21,19 @@ export default function ComoLlegoPage() {
   const handleStart = () => {
     setStartNonce((n) => n + 1);
   };
+
+  // Entrada directa desde Home ("Paradas cerca" / "¿A dónde vas?"): auto-arranca
+  // el mismo flujo que "Empezar" y consume el parámetro para no re-dispararlo
+  // en un refresh. rAF-deferred igual que los handoffs de /mapas.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('auto') !== '1') return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete('auto');
+    window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+    const frame = window.requestAnimationFrame(() => setStartNonce((n) => n + 1));
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   return (
     <div className="h-dvh bg-canvas flex flex-col overflow-hidden">

@@ -97,6 +97,13 @@ export function ComoLlegoFlow({ startNonce }: ComoLlegoFlowProps) {
     setPhase('wizard');
   }, [setConsentido, setLugar, setParadaSelId]);
 
+  // Fallback manual del consentimiento: sin GPS ni punto demo, el pasajero
+  // elige su ubicación en el PlaceSelector y sigue el mismo flujo.
+  const handleConsentUseManual = useCallback(() => {
+    setConsentido(true);
+    setPhase('selector');
+  }, [setConsentido]);
+
   const handleConsentClose = useCallback(() => {
     setPhase('idle');
   }, []);
@@ -155,6 +162,7 @@ export function ComoLlegoFlow({ startNonce }: ComoLlegoFlowProps) {
         <LocationConsentModal
           onUseReal={handleConsentUseReal}
           onUseDemo={handleConsentUseDemo}
+          onUseManual={handleConsentUseManual}
           onClose={handleConsentClose}
         />
       ) : phase === 'selector' ? (
