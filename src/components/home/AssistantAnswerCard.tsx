@@ -199,12 +199,16 @@ export function AssistantAnswerCard({
 
       {answer.kind === 'trip-guide' && (
         <div className="flex flex-col gap-3">
-          {/* Origen → destino */}
-          <div className="flex items-center gap-2 text-xs text-text-muted min-w-0">
-            <span className="w-2 h-2 rounded-full bg-electric-blue shrink-0" aria-hidden />
-            <span className="font-semibold text-ink break-words line-clamp-1" title={answer.originStop.nombre}>{answer.originStop.nombre}</span>
-            <ArrowRight className="w-3 h-3 shrink-0" aria-hidden />
-            <span className="font-semibold text-ink break-words line-clamp-1" title={answer.destination.name}>{answer.destination.name}</span>
+          {/* Origen → destino (layout vertical para nombres largos) */}
+          <div className="flex flex-col gap-1.5 text-sm text-text-muted min-w-0">
+            <div className="flex items-start gap-2 min-w-0">
+              <span className="mt-1.5 w-2 h-2 rounded-full bg-electric-blue shrink-0" aria-hidden />
+              <span className="font-semibold text-ink break-words flex-1 min-w-0" title={answer.originStop.nombre}>{answer.originStop.nombre}</span>
+            </div>
+            <div className="flex items-start gap-2 min-w-0">
+              <span className="mt-1.5 w-2 h-2 rounded-full bg-red-500 shrink-0" aria-hidden />
+              <span className="font-semibold text-ink break-words flex-1 min-w-0" title={answer.destination.name}>{answer.destination.name}</span>
+            </div>
           </div>
 
           {answer.trip ? (

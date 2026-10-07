@@ -173,7 +173,7 @@ export default function ViajePanel({
       {/* Header: pinned selected-trip summary (outside the scroll container,
           opaque bg so scrolled content slides under it) + view toggle */}
       <div
-        className="px-4 pt-2 pb-2 flex items-center justify-between shrink-0 select-none bg-canvas dark:bg-canvas relative z-10"
+        className="px-4 pt-2 pb-2 flex items-center justify-between gap-3 shrink-0 select-none bg-canvas dark:bg-canvas relative z-10"
         {...handleProps}
         onClick={(e) => {
           if ((e.target as HTMLElement).closest("button")) return;
@@ -181,14 +181,14 @@ export default function ViajePanel({
         }}
         title={collapsed ? "Expandir panel" : "Contraer panel"}
       >
-        <div className="flex items-baseline gap-2 min-w-0">
+        <div className="flex items-baseline gap-1.5 min-w-0">
           {selectedTrip && (
-            <span aria-live="polite" className="text-lg font-black text-ink tracking-tight tabular-nums">
-              {liveHeroLabel ?? `${selectedTrip.totalDurationMinutes} min total`}
+            <span aria-live="polite" className="text-lg font-black text-ink leading-none tracking-tight tabular-nums whitespace-nowrap">
+              {liveHeroLabel ?? `${selectedTrip.totalDurationMinutes} min`}
             </span>
           )}
-          <span className="text-xs text-text-muted truncate">
-            {options.length} alternativa{options.length > 1 ? "s" : ""}
+          <span className="text-xs text-text-muted shrink-0 whitespace-nowrap">
+            · {options.length} alt.
           </span>
         </div>
 
