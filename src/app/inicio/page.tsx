@@ -69,7 +69,7 @@ function activeAlertLabelForLine(lineId: string): string | null {
  * B2 · "Historial de paradas": recorridos demo precargados que ya funcionan
  * sobre los datos existentes (líneas 65 y 194). Cada uno es un viaje
  * origen→destino independiente; un tap lo inicia en el mapa. `lineId` se fija
- * para no caer en el duplicado de la línea 60 (idéntica a la 65).
+ * de forma explícita sobre las líneas activas del dataset.
  */
 interface SeededRoute {
   id: string;

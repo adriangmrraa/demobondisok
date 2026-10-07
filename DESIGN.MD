@@ -103,7 +103,6 @@ Estos tokens viven en los DATOS, no en CSS. La razón: cada línea de colectivo 
 |---|---|---|---|
 | 65 | `#0284C7` (azul cielo) | `#EA580C` (naranja) | Línea piloto, color "oficial" según theme.ts es `#0EA5E9`/`#EF4444`. **Inconsistencia a resolver.** |
 | 194 | `#06B6D4` (cyan) | `#15803D` (verde oscuro) | Recorridos largos AMBA |
-| 60 | `#7C3AED` (violeta) | `#7C3AED` | Duplicado histórico de la 65, mismo color |
 | (otras en dataset) | `#10B981`, `#84CC16`, `#3B82F6`, `#14B8A6`, `#6366F1`, `#EF4444`, `#A855F7`, `#9333EA` | variantes claras | Ver `routes.json` línea 566+ |
 
 > **Convención ida/vuelta** (en `src/lib/theme.ts:18-21`):
