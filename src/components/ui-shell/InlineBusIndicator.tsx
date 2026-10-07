@@ -55,10 +55,10 @@ export function InlineBusIndicator({
             </span>
           </div>
 
-          <div className="flex items-center gap-1 text-[11px] text-text-muted truncate">
-            <span>Hacia</span>
+          <div className="flex items-center gap-1 text-[11px] text-text-muted min-w-0">
+            <span className="shrink-0">Hacia</span>
             <ArrowRight className="w-2.5 h-2.5 text-text-muted shrink-0" />
-            <span className="font-medium text-ink truncate" title={bus.toStop.nombre}>
+            <span className="font-medium text-ink line-clamp-2 break-words" title={bus.toStop.nombre}>
               {bus.toStop.nombre}
             </span>
           </div>

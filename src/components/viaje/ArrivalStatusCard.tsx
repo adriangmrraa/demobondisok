@@ -57,7 +57,7 @@ export default function ArrivalStatusCard({
           {isArriving ? (
             <p className="truncate text-sm font-black tracking-wide" title={`ARRIBANDO · Línea ${lineNumber}`}>ARRIBANDO · Línea {lineNumber}</p>
           ) : isRiding ? (
-            <p className="truncate text-sm font-bold" title={nextStopName ? `VIAJANDO · Línea ${lineNumber} · coche ${unitId} → ${nextStopName}` : `VIAJANDO · Línea ${lineNumber} · coche ${unitId}`}>VIAJANDO · Línea {lineNumber} · coche {unitId}{nextStopName ? ` → ${nextStopName}` : ""}</p>
+            <p className="line-clamp-2 break-words text-sm font-bold" title={nextStopName ? `VIAJANDO · Línea ${lineNumber} · coche ${unitId} → ${nextStopName}` : `VIAJANDO · Línea ${lineNumber} · coche ${unitId}`}>VIAJANDO · Línea {lineNumber} · coche {unitId}{nextStopName ? ` → ${nextStopName}` : ""}</p>
           ) : (
             <p className="truncate text-sm font-bold" title={`Línea ${lineNumber} · coche ${unitId}`}>Línea {lineNumber} · coche {unitId}</p>
           )}

@@ -337,7 +337,7 @@ export function AssistantAnswerCard({
               onClick={() => onSelectCandidate?.(c)}
               className="text-left bg-canvas-soft hover:bg-field border border-hairline-soft rounded-lg px-3 py-2 transition-colors"
             >
-              <p className="text-sm font-bold text-ink truncate" title={c.name}>{c.name}</p>
+                  <p className="text-sm font-bold text-ink line-clamp-2 break-words" title={c.name}>{c.name}</p>
               {c.address && <p className="text-xs text-text-muted truncate" title={c.address}>{c.address}</p>}
             </button>
           ))}

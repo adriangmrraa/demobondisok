@@ -104,9 +104,9 @@ export default function LiveTransportBubble({
             handleToggle();
           }}
         >
-        <div className="flex items-center gap-2.5 truncate">
+        <div className="flex items-center gap-2.5 min-w-0">
           {selectedLinea ? (
-            <div className="flex items-center gap-2 truncate">
+            <div className="flex items-center gap-2 min-w-0">
               <span
                 className="px-2.5 py-0.5 rounded-full text-xs font-black shrink-0 shadow-xs"
                 style={{
@@ -116,8 +116,8 @@ export default function LiveTransportBubble({
               >
                 Línea {selectedLinea.numero}
               </span>
-              <div className="truncate">
-                <p className="text-xs font-bold text-ink truncate leading-tight" title={selectedRamal ? selectedRamal.nombre : selectedLinea.nombre}>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-ink line-clamp-2 break-words leading-tight" title={selectedRamal ? selectedRamal.nombre : selectedLinea.nombre}>
                   {selectedRamal ? selectedRamal.nombre : selectedLinea.nombre}
                 </p>
                 <p className="text-[10px] text-text-muted flex items-center gap-1 mt-0.5">
@@ -250,11 +250,11 @@ export default function LiveTransportBubble({
           <div className="space-y-2">
             {selectedParada ? (
               <div className="p-2.5 rounded-xl bg-canvas-soft border border-hairline-soft space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-ink truncate" title={`📍 ${selectedParada.nombre}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-ink line-clamp-2 break-words" title={`📍 ${selectedParada.nombre}`}>
                     📍 {selectedParada.nombre}
                   </span>
-                  <span className="text-[10px] text-text-muted">Parada seleccionada</span>
+                  <span className="text-[10px] text-text-muted shrink-0">Parada seleccionada</span>
                 </div>
                 {llegadas.length > 0 ? (
                   <div className="space-y-1 pt-1">
@@ -307,11 +307,11 @@ export default function LiveTransportBubble({
                       : "bg-canvas-soft hover:bg-field text-ink border border-hairline-soft"
                   }`}
                 >
-                  <div className="flex items-center gap-2 truncate">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
                     <span className="text-[10px] font-bold text-text-muted w-4">
                       #{idx + 1}
                     </span>
-                    <span className="text-xs font-semibold truncate" title={p.nombre}>{p.nombre}</span>
+                    <span className="text-xs font-semibold line-clamp-2 break-words" title={p.nombre}>{p.nombre}</span>
                   </div>
                   <span className="text-[10px] text-text-muted shrink-0 ml-1">Ver</span>
                 </button>

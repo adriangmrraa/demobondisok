@@ -166,7 +166,7 @@ export default function RedMetroPage() {
                       />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-ink leading-tight">Línea {line.shortName}</p>
-                        <p className="text-xs text-text-muted truncate">{line.name}</p>
+                        <p className="text-xs text-text-muted line-clamp-2 break-words">{line.name}</p>
                       </div>
                       <ChevronRight className="w-4 h-4 text-text-muted shrink-0" aria-hidden="true" />
                     </Link>

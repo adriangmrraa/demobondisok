@@ -501,10 +501,10 @@ export default function HomePage() {
                 >
                   <LineBadge shortName={line.shortName} color={line.color} size="sm" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-semibold text-text-muted break-words line-clamp-1" title={origin.name}>
+                    <p className="text-[11px] font-semibold text-text-muted break-words line-clamp-2" title={origin.name}>
                       {origin.name}
                     </p>
-                    <p className="text-sm font-bold text-ink break-words line-clamp-1" title={destination.name}>
+                    <p className="text-sm font-bold text-ink break-words line-clamp-2" title={destination.name}>
                       → {destination.name}
                     </p>
                   </div>

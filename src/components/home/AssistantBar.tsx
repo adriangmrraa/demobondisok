@@ -149,7 +149,7 @@ export function AssistantBar({ onSubmit, className }: AssistantBarProps) {
                 >
                   <MapPin className="w-4 h-4 shrink-0 text-electric-blue" />
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold text-ink" title={place.name}>{place.name}</span>
+                    <span className="block line-clamp-2 break-words text-sm font-semibold text-ink" title={place.name}>{place.name}</span>
                     {place.address && <span className="block truncate text-[11px] text-text-muted" title={place.address}>{place.address}</span>}
                   </span>
                 </button>

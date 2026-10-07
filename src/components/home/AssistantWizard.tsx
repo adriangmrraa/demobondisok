@@ -197,7 +197,7 @@ export function AssistantWizard({
                   <MapPin className="w-4 h-4 text-electric-blue" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-bold text-ink truncate" title={locationName}>
+                  <span className="block text-sm font-bold text-ink line-clamp-2 break-words" title={locationName}>
                     {locationName}
                   </span>
                   <span className="block text-[11px] text-text-faint">Punto de referencia</span>
@@ -342,7 +342,7 @@ export function AssistantWizard({
                         >
                           <MapPin className="w-4 h-4 text-text-muted shrink-0" />
                           <span className="min-w-0">
-                            <span className="block text-sm font-semibold text-ink truncate" title={place.name}>
+                            <span className="block text-sm font-semibold text-ink line-clamp-2 break-words" title={place.name}>
                               {place.name}
                             </span>
                             {place.address && (

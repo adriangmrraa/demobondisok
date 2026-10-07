@@ -102,7 +102,7 @@ export function RouteTimeline({
               />
               <span
                 className={cn(
-                  'min-w-0 flex-1 truncate text-sm transition-opacity',
+                  'min-w-0 flex-1 line-clamp-2 break-words text-sm transition-opacity',
                   passed
                     ? 'text-zinc-400 dark:text-zinc-500 opacity-60'
                     : stop === nextStop
