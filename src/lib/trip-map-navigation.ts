@@ -41,7 +41,7 @@ export function buildTripMapState(
   };
 }
 
-export function tripMapUrlFromState(state: TripMapNavigationState): string {
+export function tripUrlFromState(state: TripMapNavigationState, pathname: '/mapas' | '/viaje' = '/mapas'): string {
   const params = new URLSearchParams({
     trip: '1',
     origen: state.origin.name,
@@ -58,7 +58,16 @@ export function tripMapUrlFromState(state: TripMapNavigationState): string {
   if (state.vehicleUnitId) params.set('interno', state.vehicleUnitId);
   if (state.etaReferenceMs) params.set('etaRef', String(state.etaReferenceMs));
   if (state.etaMinutes !== undefined) params.set('etaMin', String(state.etaMinutes));
-  return `/mapas?${params.toString()}`;
+  return `${pathname}?${params.toString()}`;
+}
+
+export function tripMapUrlFromState(state: TripMapNavigationState): string {
+  return tripUrlFromState(state, '/mapas');
+}
+
+/** Share-safe text-first route URL. It uses the same state contract as the map. */
+export function tripJourneyUrlFromState(state: TripMapNavigationState): string {
+  return tripUrlFromState(state, '/viaje');
 }
 
 export function buildTripMapUrl(
@@ -67,6 +76,15 @@ export function buildTripMapUrl(
   options: Pick<TripMapNavigationState, 'boardingStopId'> & { arrival?: EstimacionLlegada },
 ): string {
   return tripMapUrlFromState(buildTripMapState(trip, origin, options));
+}
+
+/** Builds a text-first journey URL while keeping map links backward-compatible. */
+export function buildTripJourneyUrl(
+  trip: TripOption,
+  origin: LocationPoint,
+  options: Pick<TripMapNavigationState, 'boardingStopId'> & { arrival?: EstimacionLlegada },
+): string {
+  return tripJourneyUrlFromState(buildTripMapState(trip, origin, options));
 }
 
 function finiteNumber(value: string | null): number | null {

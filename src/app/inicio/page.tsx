@@ -19,7 +19,9 @@ import { BottomNav } from '@/components/ui/bottom-nav';
 import { LineBadge } from '@/components/ui/line-badge';
 import { AssistantBar } from '@/components/home/AssistantBar';
 import { AssistantAnswerSheet } from '@/components/home/AssistantAnswerSheet';
-import { tripMapUrl } from '@/components/home/AssistantAnswerCard';
+import { ClassicTripActions, type ClassicTripAction } from '@/components/home/ClassicTripActions';
+import { LineLookupSheet } from '@/components/home/LineLookupSheet';
+import { buildTripJourneyUrl } from '@/lib/trip-map-navigation';
 import { requestDeviceLocation, SIMULATED_USER_LOCATION } from '@/lib/config/user-location';
 import { nearbyStopsFor as findNearbyStops } from '@/lib/services/assistant-intent-service';
 import { LocationConsentModal } from '@/components/home/LocationConsentModal';
@@ -118,6 +120,7 @@ export default function HomePage() {
   const [phase, setPhase] = useState<'idle' | 'consent' | 'selector' | 'answer'>('idle');
   // Wizard de viaje en 3 pasos (PBI-020): overlay propio del chip "¿Cómo llego a…?".
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [lineLookupOpen, setLineLookupOpen] = useState(false);
   // true = al terminar el selector de lugar, reabrir el wizard (paso 1 "Cambiar").
   const [wizardResume, setWizardResume] = useState(false);
   // Destino elegido explícitamente en Home. Se conserva a través del gate de
@@ -297,7 +300,7 @@ export default function HomePage() {
         setPendingDestino(null);
         setParadaSelId(paradaId);
         setPhase('idle');
-        router.push(tripMapUrl(trip, trip.origin, { boardingStopId: paradaId }));
+        router.push(buildTripJourneyUrl(trip, trip.origin, { boardingStopId: paradaId }));
         return true;
       }
       setWizardOpen(false);
@@ -332,7 +335,7 @@ export default function HomePage() {
   const handleOpenTripOnMap = useCallback(
     (trip: TripOption, origin: LocationPoint, boardingStopId?: string, arrival?: import('@/types/transport').EstimacionLlegada) => {
       setPhase('idle');
-      router.push(tripMapUrl(trip, origin, { boardingStopId: boardingStopId ?? origin.stopId, arrival }));
+      router.push(buildTripJourneyUrl(trip, origin, { boardingStopId: boardingStopId ?? origin.stopId, arrival }));
     },
     [router],
   );
@@ -364,6 +367,23 @@ export default function HomePage() {
     },
     [openTripWizard],
   );
+
+  const handleClassicTripAction = useCallback((action: ClassicTripAction) => {
+    if (action === 'line') {
+      setLineLookupOpen(true);
+      return;
+    }
+    if (action === 'nearby') {
+      setWizardResume(false);
+      setPhase('consent');
+      return;
+    }
+    if (action === 'destination') {
+      openTripWizard();
+      return;
+    }
+    router.push('/mapas');
+  }, [openTripWizard, router]);
 
   const closeAnswer = useCallback(() => {
     setActiveQuery(null);
@@ -422,7 +442,7 @@ export default function HomePage() {
           ),
       );
       if (!trip) return;
-      router.push(tripMapUrl(trip, trip.origin, { boardingStopId: seed.originStopId }));
+      router.push(buildTripJourneyUrl(trip, trip.origin, { boardingStopId: seed.originStopId }));
     },
     [router],
   );
@@ -450,10 +470,14 @@ export default function HomePage() {
       </header>
 
       <main className="px-4 flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto overscroll-contain pb-[104px]">
-        {/* Buscador único de destino */}
-        <div className="mt-2">
-          <AssistantBar onSubmit={handleDestinationSearch} />
-        </div>
+        <section className="mt-2">
+          <p className="text-sm font-semibold text-text-muted">Planificá tu viaje</p>
+          <div className="mt-2">
+            <AssistantBar onSubmit={handleDestinationSearch} />
+          </div>
+        </section>
+
+        <ClassicTripActions onSelect={handleClassicTripAction} />
 
         <section>
           <div className="flex items-center justify-between mb-2">
@@ -579,6 +603,8 @@ export default function HomePage() {
           onRepickDestination={handleRepickDestination}
         />
       )}
+
+      <LineLookupSheet open={lineLookupOpen} onClose={() => setLineLookupOpen(false)} />
 
       {/* Flujo PBI-019: permiso decorativo → selector de lugar */}
       {phase === 'consent' && (
