@@ -50,6 +50,7 @@ function buildTripKey(
 
 export default function TransportesAppPage() {
   const { resolvedTheme } = useTheme();
+  const [mapUnavailable, setMapUnavailable] = useState(false);
   const [isLineMenuOpen, setIsLineMenuOpen] = useState<boolean>(false);
   const lineas = useMemo(() => TransportService.getLineas(), []);
   const paradas = useMemo(() => TransportService.getParadas(), []);
@@ -1303,7 +1304,7 @@ export default function TransportesAppPage() {
           />
 
           {/* Canvas de Mapa MapLibre WebGL — capa fija, sin reflow del header */}
-          <div className="absolute inset-0 z-0 overflow-hidden">
+          <div className={`absolute inset-0 overflow-hidden ${mapUnavailable ? "z-50" : "z-0"}`}>
             <DynamicMap
               positions={filteredPositions}
               highlightLines={effectiveHighlightLines}
@@ -1330,6 +1331,8 @@ export default function TransportesAppPage() {
               pickMode={Boolean(mapPickTarget)}
               onMapPick={handleMapPick}
               userLocation={userLocation}
+              onMapReady={() => setMapUnavailable(false)}
+              onMapUnavailable={() => setMapUnavailable(true)}
               className="w-full h-full"
               unavailableHref={mapUnavailableHref}
               unavailableLabel={mapUnavailableLabel}
