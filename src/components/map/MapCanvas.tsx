@@ -2510,7 +2510,7 @@ export function MapCanvas({
         layout: {
           'text-field': ['get', 'name'],
           'text-size': 11,
-          'text-font': ['Noto Sans Bold'],
+          'text-font': ['Open Sans Bold'],
           'text-offset': [0, -1.6],
           'text-anchor': 'bottom',
           'text-max-width': 12,
