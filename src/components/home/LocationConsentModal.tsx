@@ -8,10 +8,12 @@ interface LocationConsentModalProps {
   onUseReal: () => Promise<void>;
   /** Uses the fixed Parque Centenario demo reference. */
   onUseDemo: () => void;
+  /** Manual fallback: opens the place selector, no GPS or demo point. */
+  onUseManual?: () => void;
   onClose: () => void;
 }
 
-export function LocationConsentModal({ onUseReal, onUseDemo, onClose }: LocationConsentModalProps) {
+export function LocationConsentModal({ onUseReal, onUseDemo, onUseManual, onClose }: LocationConsentModalProps) {
   const primaryRef = useRef<HTMLButtonElement>(null);
   const [isRequesting, setIsRequesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -114,6 +116,16 @@ export function LocationConsentModal({ onUseReal, onUseDemo, onClose }: Location
           >
             Usar ubicación demo
           </button>
+          {onUseManual ? (
+            <button
+              type="button"
+              onClick={onUseManual}
+              disabled={isRequesting}
+              className="min-h-[44px] w-full rounded-xl text-sm font-semibold text-text-muted transition-colors hover:text-ink active:scale-[0.98] disabled:opacity-60"
+            >
+              Elegir ubicación manualmente
+            </button>
+          ) : null}
         </div>
       </div>
     </div>
