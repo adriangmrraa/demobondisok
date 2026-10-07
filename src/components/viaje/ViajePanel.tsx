@@ -390,10 +390,20 @@ export default function ViajePanel({
                 )}
 
                 {/* Ícono de tipo de paso + número (lenguaje único, neutro) */}
-                <div className="flex flex-col items-center shrink-0 z-10">
+                <div className="flex flex-col items-center shrink-0 z-10 relative">
+                  {isStepSelected ? (
+                    <span
+                      className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[9px] font-black uppercase tracking-wider text-electric-blue bg-canvas px-1.5 rounded-full border border-electric-blue/30 z-10"
+                      aria-hidden="true"
+                    >
+                      Acá
+                    </span>
+                  ) : null}
                   <div
-                    className={`w-7 h-7 rounded-full flex items-center justify-center border border-hairline bg-canvas-soft text-ink ${
-                      isStepSelected ? "ring-2 ring-electric-blue ring-offset-1" : ""
+                    className={`rounded-full flex items-center justify-center border ${
+                      isStepSelected
+                        ? "size-9 border-2 border-electric-blue bg-canvas-soft text-ink shadow-[0_0_0_4px_rgba(59,130,246,0.18)] animate-pulse"
+                        : "size-7 border-hairline bg-canvas-soft text-ink"
                     }`}
                   >
                     {step.type === "walk" && <Footprints className="w-3.5 h-3.5" />}
