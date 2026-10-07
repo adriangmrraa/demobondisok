@@ -6,6 +6,7 @@ import { TripOption, LocationPoint } from "@/types/trip-planner";
 import { TripPlannerService } from "@/lib/services/trip-planner-service";
 import { useDragCollapse } from "@/lib/hooks/use-drag-collapse";
 import type { BoardingOptionRow } from "@/lib/services/trip-boarding-options";
+import { walkDirectionLabel } from "@/lib/walk-direction";
 
 interface ViajePanelProps {
   options: TripOption[];
@@ -28,6 +29,9 @@ interface ViajePanelProps {
   onCollapsedChange?: (collapsed: boolean) => void;
   /** sdd/trip-options-upgrade 2.5: re-pick de destino sin perder el origen. */
   onRepickDestination?: () => void;
+  /** Heading del usuario en grados (0=Norte). Se pasa al JourneyTimeline
+   *  para mostrar la dirección del paso a pie (a tu izquierda / al frente / etc.). */
+  userHeading?: number | null;
 }
 
 export default function ViajePanel({
@@ -47,6 +51,7 @@ export default function ViajePanel({
   liveFooterLabel = null,
   onCollapsedChange,
   onRepickDestination,
+  userHeading = null,
 }: ViajePanelProps) {
   // Diagnóstico de cobertura cuando no hay rutas: ¿qué lado falla?
   const coverageInfo = useMemo(() => {
@@ -95,7 +100,7 @@ export default function ViajePanel({
     return (
       <aside
         aria-label="Panel de opciones de viaje"
-        className="fixed bottom-[84px] left-1/2 -translate-x-1/2 z-40 w-[calc(100vw-24px)] max-w-[420px] bg-canvas dark:bg-canvas border border-hairline rounded-[28px] p-5 shadow-[0_16px_45px_-4px_rgba(0,0,0,0.22)] dark:shadow-[0_20px_50px_-4px_rgba(0,0,0,0.7)] flex flex-col items-center text-center pointer-events-auto animate-in fade-in slide-in-from-bottom-3 duration-200"
+        className="fixed bottom-[110px] left-1/2 -translate-x-1/2 z-40 w-[calc(100vw-24px)] max-w-[420px] bg-canvas dark:bg-canvas border border-hairline rounded-[28px] p-5 shadow-[0_16px_45px_-4px_rgba(0,0,0,0.22)] dark:shadow-[0_20px_50px_-4px_rgba(0,0,0,0.7)] flex flex-col items-center text-center pointer-events-auto animate-in fade-in slide-in-from-bottom-3 duration-200"
       >
         <div className="w-10 h-10 rounded-full bg-canvas-soft border border-hairline flex items-center justify-center mb-2 text-text-muted">
           <Info className="w-5 h-5 text-electric-blue" />
@@ -147,7 +152,7 @@ export default function ViajePanel({
     return (
       <aside
         aria-label="Panel de opciones de viaje"
-        className="fixed bottom-[84px] left-1/2 -translate-x-1/2 z-40 w-[calc(100vw-24px)] max-w-[420px] bg-canvas dark:bg-canvas border border-hairline rounded-[28px] p-5 shadow-[0_16px_45px_-4px_rgba(0,0,0,0.22)] dark:shadow-[0_20px_50px_-4px_rgba(0,0,0,0.7)] flex flex-col items-center text-center pointer-events-auto animate-in fade-in slide-in-from-bottom-3 duration-200"
+        className="fixed bottom-[110px] left-1/2 -translate-x-1/2 z-40 w-[calc(100vw-24px)] max-w-[420px] bg-canvas dark:bg-canvas border border-hairline rounded-[28px] p-5 shadow-[0_16px_45px_-4px_rgba(0,0,0,0.22)] dark:shadow-[0_20px_50px_-4px_rgba(0,0,0,0.7)] flex flex-col items-center text-center pointer-events-auto animate-in fade-in slide-in-from-bottom-3 duration-200"
       >
         <p className="text-sm font-bold text-ink">Elegí tu destino para calcular el viaje</p>
         <p className="text-xs text-text-muted mt-1">
@@ -163,7 +168,7 @@ export default function ViajePanel({
   return (
     <aside
       aria-label="Panel de opciones de viaje"
-      className="fixed bottom-[84px] left-1/2 -translate-x-1/2 z-40 w-[calc(100vw-24px)] max-w-[420px] bg-canvas dark:bg-canvas border border-hairline rounded-[28px] shadow-[0_16px_45px_-4px_rgba(0,0,0,0.22)] dark:shadow-[0_20px_50px_-4px_rgba(0,0,0,0.7)] flex flex-col pointer-events-auto animate-in fade-in slide-in-from-bottom-3 duration-200 overflow-hidden transition-[max-height] duration-300"
+      className="fixed bottom-[110px] left-1/2 -translate-x-1/2 z-40 w-[calc(100vw-24px)] max-w-[420px] bg-canvas dark:bg-canvas border border-hairline rounded-[28px] shadow-[0_16px_45px_-4px_rgba(0,0,0,0.22)] dark:shadow-[0_20px_50px_-4px_rgba(0,0,0,0.7)] flex flex-col pointer-events-auto animate-in fade-in slide-in-from-bottom-3 duration-200 overflow-hidden transition-[max-height] duration-300"
       style={{ height: collapsed ? 76 : "min(46dvh, 430px)", maxHeight: collapsed ? "76px" : "min(46dvh, 430px)" }}
     >
       {/* Grip de arrastre */}
@@ -173,7 +178,7 @@ export default function ViajePanel({
       {/* Header: pinned selected-trip summary (outside the scroll container,
           opaque bg so scrolled content slides under it) + view toggle */}
       <div
-        className="px-4 pt-2 pb-2 flex items-center justify-between shrink-0 select-none bg-canvas dark:bg-canvas relative z-10"
+        className="px-4 pt-2 pb-2 flex items-center justify-between gap-3 shrink-0 select-none bg-canvas dark:bg-canvas relative z-10"
         {...handleProps}
         onClick={(e) => {
           if ((e.target as HTMLElement).closest("button")) return;
@@ -181,14 +186,14 @@ export default function ViajePanel({
         }}
         title={collapsed ? "Expandir panel" : "Contraer panel"}
       >
-        <div className="flex items-baseline gap-2 min-w-0">
+        <div className="flex items-baseline gap-1.5 min-w-0">
           {selectedTrip && (
-            <span aria-live="polite" className="text-lg font-black text-ink tracking-tight tabular-nums">
-              {liveHeroLabel ?? `${selectedTrip.totalDurationMinutes} min total`}
+            <span aria-live="polite" className="text-lg font-black text-ink leading-none tracking-tight tabular-nums whitespace-nowrap">
+              {liveHeroLabel ?? `${selectedTrip.totalDurationMinutes} min`}
             </span>
           )}
-          <span className="text-xs text-text-muted truncate">
-            {options.length} alternativa{options.length > 1 ? "s" : ""}
+          <span className="text-xs text-text-muted shrink-0 whitespace-nowrap">
+            · {options.length} alt.
           </span>
         </div>
 
@@ -269,7 +274,10 @@ export default function ViajePanel({
                         >
                           {row.lineaNumero}
                         </span>
-                        <span className="text-xs font-bold text-ink truncate">
+                        <span
+                          className="text-xs font-bold text-ink truncate"
+                          title={`Coche ${row.interno} ${row.kind === "same-nearest" ? "· más próximo" : row.kind === "same-late" ? "· siguiente" : "· otra línea"}`}
+                        >
                           Coche {row.interno}
                           <span className="ml-1.5 text-[10px] font-semibold text-text-muted">
                             {row.kind === "same-nearest" ? "· más próximo" : row.kind === "same-late" ? "· siguiente" : "· otra línea"}
@@ -334,7 +342,7 @@ export default function ViajePanel({
                     </div>
                   </div>
 
-                  <p className="text-xs text-text-muted font-medium truncate">
+                  <p className="text-xs text-text-muted font-medium break-words line-clamp-1" title={opt.title}>
                     {opt.title}
                   </p>
 
@@ -385,10 +393,20 @@ export default function ViajePanel({
                 )}
 
                 {/* Ícono de tipo de paso + número (lenguaje único, neutro) */}
-                <div className="flex flex-col items-center shrink-0 z-10">
+                <div className="flex flex-col items-center shrink-0 z-10 relative">
+                  {isStepSelected ? (
+                    <span
+                      className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[9px] font-black uppercase tracking-wider text-electric-blue bg-canvas px-1.5 rounded-full border border-electric-blue/30 z-10"
+                      aria-hidden="true"
+                    >
+                      Acá
+                    </span>
+                  ) : null}
                   <div
-                    className={`w-7 h-7 rounded-full flex items-center justify-center border border-hairline bg-canvas-soft text-ink ${
-                      isStepSelected ? "ring-2 ring-electric-blue ring-offset-1" : ""
+                    className={`rounded-full flex items-center justify-center border ${
+                      isStepSelected
+                        ? "size-9 border-2 border-electric-blue bg-canvas-soft text-ink shadow-[0_0_0_4px_rgba(59,130,246,0.18)] animate-pulse"
+                        : "size-7 border-hairline bg-canvas-soft text-ink"
                     }`}
                   >
                     {step.type === "walk" && <Footprints className="w-3.5 h-3.5" />}
@@ -400,30 +418,41 @@ export default function ViajePanel({
 
                 {/* Detalle del paso */}
                 <div className="flex-1 min-w-0 pt-0.5">
-                  <div className="flex items-center justify-between gap-1">
-                    <p className="text-xs font-bold text-ink truncate leading-tight">
-                      {step.description}
+                  <p
+                    className="text-sm font-bold text-ink break-words leading-snug"
+                    title={step.description}
+                  >
+                    {step.description}
+                  </p>
+                  {step.type === "walk" && step.walkBearing != null ? (
+                    <p className="mt-1 text-xs font-semibold text-electric-blue">
+                      {walkDirectionLabel(step.walkBearing, userHeading)}
                     </p>
-                    <span className="text-[10px] font-semibold text-text-muted shrink-0">
-                      ~{step.durationMinutes} min
-                    </span>
-                  </div>
+                  ) : null}
+                  <p className="mt-1 text-[11px] font-semibold text-text-muted tabular-nums">
+                    ~{step.durationMinutes} min
+                  </p>
 
                   {step.type === "ride" && (
-                    <div className="mt-1 flex items-center gap-2 flex-wrap">
+                    <div className="mt-2 flex items-center gap-2 flex-wrap">
                       <span
-                        className="px-2 py-0.5 rounded-full text-[10px] font-black text-white"
-                        style={{ backgroundColor: step.lineaColor || "#1D4ED8" }}
+                        className="px-2.5 py-1 rounded-full text-xs font-black text-white shadow-sm"
+                        style={{ backgroundColor: step.lineaColor || "var(--ink)" }}
                       >
                         Línea {step.lineaNumero}
                       </span>
                       {step.ramalCodigo && (
-                        <span className="text-[10px] text-text-muted font-medium truncate">
-                          Ramal {step.ramalCodigo}{step.ramalNombre ? ` · ${step.ramalNombre}` : ""}
+                        <span
+                          className="text-xs text-text-muted font-medium break-words"
+                          title={step.ramalNombre ? `Ramal ${step.ramalCodigo} · ${step.ramalNombre}` : `Ramal ${step.ramalCodigo}`}
+                        >
+                          {step.ramalNombre
+                            ? `Ramal ${step.ramalCodigo} · ${step.ramalNombre}`
+                            : `Ramal ${step.ramalCodigo}`}
                         </span>
                       )}
                       {step.stopCount !== undefined && step.stopCount > 0 && (
-                        <span className="text-[10px] text-text-muted font-medium">
+                        <span className="text-xs text-text-muted font-medium">
                           · {step.stopCount} parada{step.stopCount !== 1 ? "s" : ""}
                         </span>
                       )}

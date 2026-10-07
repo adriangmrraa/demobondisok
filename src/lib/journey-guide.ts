@@ -1,9 +1,14 @@
 import type { TripOption, TripStep } from '@/types/trip-planner';
+import { walkDirectionLabel } from './walk-direction';
 
 export interface JourneyHero {
   lineNumber: string;
   direction: string;
   etaLabel: string;
+  /** Color de la línea (para LineDisplay en el hero). */
+  color: string;
+  /** Color del texto sobre la línea. */
+  textColor: string;
 }
 
 export interface JourneyGuideModel {
@@ -31,16 +36,24 @@ export function buildJourneyGuideModel(
           lineNumber: firstRide.lineaNumero,
           direction: firstRide.ramalNombre || firstRide.toStopName,
           etaLabel: journeyEtaLabel(etaMinutes),
+          color: firstRide.lineaColor || '#1D4ED8',
+          textColor: firstRide.lineaTextColor || '#FFFFFF',
         }
       : null,
     steps: option.steps,
   };
 }
 
-export function imperativeStepLabel(step: TripStep): string {
+/**
+ * Etiqueta imperativa de un paso. Si se conoce el heading del usuario
+ * y el step es walk con bearing, la descripción incluye la dirección
+ * relativa ("a tu izquierda", "al frente", "a tu derecha", "detrás tuyo").
+ */
+export function imperativeStepLabel(step: TripStep, userHeading?: number | null): string {
   if (step.type === 'walk') {
     const distance = step.distanceMeters ? ` ${step.distanceMeters} metros` : '';
-    return `Caminá${distance} hasta ${step.toStopName}`;
+    const direction = step.walkBearing != null ? ` (${walkDirectionLabel(step.walkBearing, userHeading)})` : '';
+    return `Caminá${distance} hasta ${step.toStopName}${direction}`;
   }
   if (step.type === 'transfer') {
     return `Combiná en ${step.toStopName} y seguí las indicaciones de la parada`;

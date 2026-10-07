@@ -8,6 +8,7 @@ import { JourneyGuide } from '@/components/viaje/JourneyGuide';
 import { JourneyOptionList } from '@/components/viaje/JourneyOptionList';
 import { TripPlannerService } from '@/lib/services/trip-planner-service';
 import { parseTripMapState } from '@/lib/trip-map-navigation';
+import { SIMULATED_USER_LOCATION } from '@/lib/config/user-location';
 
 function remainingEta(etaMinutes: number | undefined, referenceMs: number | undefined): number | null {
   if (etaMinutes === undefined) return null;
@@ -43,7 +44,13 @@ function JourneyContent() {
           <h1 className="mt-1 text-2xl font-black leading-tight text-ink">{state.origin.name} <span className="text-text-faint">→</span> <span className="break-words">{state.destinationName}</span></h1>
         </header>
         {selectedOption ? (
-          <JourneyGuide option={selectedOption} state={state} etaMinutes={etaMinutes} onBackToOptions={() => setSelectedOptionId(null)} />
+          <JourneyGuide
+            option={selectedOption}
+            state={state}
+            etaMinutes={etaMinutes}
+            onBackToOptions={() => setSelectedOptionId(null)}
+            userHeading={SIMULATED_USER_LOCATION.heading ?? null}
+          />
         ) : (
           <JourneyOptionList options={options} selectedOptionId={selectedOptionId} onSelect={setSelectedOptionId} />
         )}

@@ -172,7 +172,10 @@ export default function BottomSheetPanel({
                 >
                   Línea {selectedLinea.numero}
                 </span>
-                <span className="text-xs font-semibold text-ink truncate">
+                <span
+                  className="text-xs font-semibold text-ink truncate"
+                  title={selectedRamal ? `Ramal ${selectedRamal.codigo} · ${selectedRamal.nombre}` : selectedLinea.nombre}
+                >
                   {selectedRamal
                     ? `Ramal ${selectedRamal.codigo} · ${selectedRamal.nombre}`
                     : selectedLinea.nombre}
@@ -183,7 +186,7 @@ export default function BottomSheetPanel({
                 <div className="w-6 h-6 rounded-full bg-canvas-soft text-text-muted flex items-center justify-center shrink-0">
                   <MapPin className="w-3.5 h-3.5" />
                 </div>
-                <span className="truncate">{selectedParada.nombre}</span>
+                <span className="truncate" title={selectedParada.nombre}>{selectedParada.nombre}</span>
               </div>
             ) : (
               <div className="flex items-center gap-2 text-xs font-semibold text-ink">
@@ -520,10 +523,10 @@ export default function BottomSheetPanel({
                         </div>
 
                         <div className="flex-1 truncate">
-                          <p className="text-xs font-semibold text-ink truncate">
+                          <p className="text-xs font-semibold text-ink truncate" title={parada.nombre}>
                             {parada.nombre}
                           </p>
-                          <p className="text-[11px] text-text-muted truncate">{parada.direccion}</p>
+                          <p className="text-[11px] text-text-muted truncate" title={parada.direccion}>{parada.direccion}</p>
                         </div>
 
                         <div className="flex items-center gap-1 shrink-0">

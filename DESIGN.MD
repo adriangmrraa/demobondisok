@@ -1,321 +1,617 @@
+# DESIGN.MD — La Nueva Metropol (AMBA)
+
+> Design system oficial del proyecto. Refleja el estado real del código en `src/`.
+> **Reemplaza la versión Mobbin.com que estaba antes (octubre 2026).**
+
+---
+
 ## Overview
 
-Mobbin is a reference library of real product interfaces, and its own interface is engineered to get out of the way. The system is strictly monochrome: near-black ink (`{colors.ink}` — #141414) on a pure white canvas (`{colors.canvas}`), with structure carried by a ladder of barely-perceptible neutral tints rather than by shadows or color. The thousands of app screenshots, icon tiles, and brand logos the site exists to show are the only saturated elements on any page — the chrome frames them the way a gallery wall frames paintings.
+La Nueva Metropol es una app de transporte de colectivos del AMBA, mobile-first, con mapa en vivo, planificación de viaje y combinaciones con tren/subte. El sistema visual tiene una **regla central**:
 
-The geometry does the brand work that color refuses to do. Every interactive element is a stadium pill (`{rounded.full}`): the floating navigation bar, every button, the segmented billing toggle, the overlay badges. Containers sit at a calm `{rounded.md}` (24px), media tiles at `{rounded.sm}` (16px), and app icons render as iOS-style squircles at 30% corner radius. Type is set in Saans at deliberately non-standard variable weights — a chunky 652 for every heading, a bookish 456 for text, an airy 300 for hero subtitles — which gives the monochrome pages a strong typographic voice without a single decorative flourish.
+- **Chrome de la UI = monocromático** (casi todo blanco, negro, hairlines). El marco de la app es neutro para que la data del transporte (colectivos, líneas, paradas) sea lo que destaque.
+- **Datos del transporte = cromáticos**. Los colores de línea, los estados de viaje, las alertas y el logo son la ÚNICA fuente de saturación en la pantalla.
 
-One color is allowed to interrupt: an electric blue accent (`{colors.accent}` — #0066ff), used exclusively for commercial signals — the "Popular" plan badge and the yearly-savings callout on pricing. Its scarcity is the point; when blue appears, it is asking for a decision.
+Esa disciplina es la que hace que el "65" rojo, el "194" verde, o el badge "CABECERA" ámbar salten a la vista sin que el chrome compita.
 
-**Key Characteristics:**
+> **Convención de paleta del cliente** (en llamada del 2026-10-07): el número de línea debe ser **gigante y del color de la línea**, no del color de marca. El "ETA" debe ser **la pieza visual más grande del modo viaje**.
 
-- Gallery-white monochrome palette — `{colors.ink}` on `{colors.canvas}`, zero brand chroma outside the single `{colors.accent}` blue
-- Stadium-pill interaction language: nav bar, buttons, toggles, and badges all at `{rounded.full}`
-- Shadow-free elevation — hierarchy built from a neutral tint ladder (`{colors.canvas-soft}`, `{colors.field}`, `{colors.hairline}`) and 1px hairlines
-- Saans at signature variable weights: 652 headings with tight 1.0–1.13 line-height, 456 body, 300 light subtitles
-- iOS-style squircle icon tiles (30% radius) as a recurring visual motif across library counters and brand marquees
-- Content supplies the color: app screenshots, brand icons, and grayscale curator portraits carry all visual richness
-- Full-bleed near-black `{colors.ink}` footer with rounded top corners closes every page in polarity inversion
+---
 
-## Colors
+## Brand
 
-Source pages: home, pricing, awards, signup.
+### Identidad oficial (logo Metropol)
 
-### Brand & Accent
+Tres colores de marca definidos en `src/components/brand/metropol-logo.tsx:34-38`:
 
-- **Ink Black** (`{colors.primary}` — #141414): The brand color. Fills every primary CTA pill, the footer band, and all display typography. Mobbin's identity is this near-black, softened just off pure black to sit comfortably next to photography.
-- **Electric Blue** (`{colors.accent}` — #0066ff): The only chromatic accent in the system. Reserved for commercial emphasis — the "Popular" pricing badge and savings callouts. Never used decoratively, never used for CTAs.
+| Token | Hex | Uso |
+|---|---|---|
+| `METROPOL_COLORS.navy` | `#1D2B4F` | Wordmark del logo en variante `full` |
+| `METROPOL_COLORS.red` | `#E30613` | Pétalos rojos de la rosa |
+| `METROPOL_COLORS.green` | `#228135` | Hojas verdes de la rosa |
 
-### Surface
+> El logo es un SVG oficial extraído de `metropol.com.ar`. Variantes: `full` (colores) y `mono` (currentColor).
 
-- **Canvas** (`{colors.canvas}` — #ffffff): Default page and card background across all pages.
-- **Soft Canvas** (`{colors.canvas-soft}` — #f3f3f3): The workhorse tint — a 6% ink wash over white. Fills the floating nav pill, the featured pricing card, FAQ accordion rows, soft utility pills, segmented-control tracks, and the highlighted comparison-table column.
-- **Field** (`{colors.field}` — #f0f0f0): An 8% ink wash used as the fill for form inputs, giving fields presence without borders.
-- **Soft Hairline** (`{colors.hairline-soft}` — #f0f0f0): 1px card outlines — the faintest possible edge, used on white-on-white cards (pricing, testimonials).
-- **Hairline** (`{colors.hairline}` — #e0e0e0): The stronger 16% control border, used on outlined pill buttons and interactive chrome.
+### Tono
 
-### Text
+- **Profesional pero cercano**. La app es la herramienta del pasajero común, no del operador.
+- **Castellano rioplatense** en microcopy (voseo cuando aplica, labels de UI estándar sin voseo para mantener la convención de Google Maps / Moovit).
+- **Sin emojis decorativos** salvo el saludo inicial ("Hola 👋" en home).
 
-- **Ink** (`{colors.ink}` — #141414): Headings, body copy, and nav links.
-- **Soft Ink** (`{colors.ink-soft}` — #262626): Slightly lifted dark used for secondary lockups and the awards wordmark.
-- **Muted** (`{colors.text-muted}` — #707070): Secondary copy — supporting paragraphs, plan descriptions, vote counts, underlined inline links.
-- **Faint** (`{colors.text-faint}` — #adadad): Tertiary text — placeholders, de-emphasized footer links, fine print.
+---
 
-### Semantic
+## Tokens del chrome (monocromático)
 
-- The system ships no dedicated success/warning/error palette on its marketing surfaces; state communication stays within the monochrome ladder, with `{colors.accent}` as the sole positive-emphasis signal.
+Definidos en `src/app/globals.css:44-89` (light) y `:91-123` (dark). Mapeados a Tailwind v4 vía `@theme inline` (líneas 6-42) como `--color-*`.
+
+### Light theme (`:root`)
+
+| Token CSS | Hex | Tailwind class | Uso |
+|---|---|---|---|
+| `--canvas` | `#ffffff` | `bg-canvas`, `text-canvas` | Fondo de página y cards |
+| `--canvas-soft` | `#f3f3f3` | `bg-canvas-soft` | Tinta de cards destacadas, nav pill, FAQ |
+| `--field` | `#f0f0f0` | `bg-field` | Fill de inputs en estado de reposo |
+| `--hairline-soft` | `#f0f0f0` | `border-hairline-soft` | Outline 1px en cards blancas sobre blanco |
+| `--hairline` | `#e0e0e0` | `border-hairline` | Border de inputs, separadores |
+| `--ink` | `#141414` | `text-ink`, `bg-ink` | Texto crítico, CTAs primary, números de display |
+| `--ink-soft` | `#262626` | `text-ink-soft` | Texto secundario elevado |
+| `--text-muted` | `#707070` | `text-text-muted` | Texto secundario (sublabels, captions) |
+| `--text-faint` | `#adadad` | `text-text-faint` | Texto terciario (placeholders, fine print) |
+| `--electric-blue` | `#0066ff` | `text-electric-blue`, `bg-electric-blue` | Acento único: highlights de selección, ring focus |
+| `--viajando-green` | `#2f5d4b` | `bg-[var(--viajando-green)]` | Estado "viajando" en rosa FAB |
+| `--viajando-yellow` | `#a98b4e` | `bg-[var(--viajando-yellow)]` | Estado "llegando" en rosa FAB |
+| `--destructive` | `#dc2626` | `bg-destructive` | Estados destructivos / críticos |
+
+### Dark theme (`.dark`)
+
+Invierte el modelo:
+
+| Token CSS | Hex |
+|---|---|
+| `--canvas` | `#121212` |
+| `--canvas-soft` | `#1a1a1a` |
+| `--field` | `#222222` |
+| `--hairline-soft` | `#262626` |
+| `--hairline` | `#333333` |
+| `--ink` | `#f5f5f5` (texto claro sobre fondo oscuro) |
+| `--ink-soft` | `#e5e5e5` |
+| `--text-muted` | `#a0a0a0` |
+| `--text-faint` | `#666666` |
+| `--electric-blue` | `#3385ff` (más claro para contraste en dark) |
+| `--destructive` | `#ef4444` |
+
+### Reglas de uso del chrome
+
+- **CTAs primary** siempre son `bg-ink` con `text-canvas`. Nunca `bg-electric-blue`.
+- **Electric blue** es exclusivo para: ring de focus, highlights de selección activa, badges contextuales. Escasez es la regla: 1 o 2 elementos por pantalla.
+- **Sin sombras**. La elevación se construye con `bg-canvas-soft` (tinta 3-4%) y hairlines 1px. Más rápido, más limpio, mejor en OLED.
+- **Sin gradientes** en chrome (salvo el logo y animaciones de pulso de arrival spectrum).
+
+---
+
+## Tokens de datos del transporte (cromáticos)
+
+Estos tokens viven en los DATOS, no en CSS. La razón: cada línea de colectivo tiene su color de marca propio, y el color **viaja con la línea** a través de la base (`routes.json`, `metropol.json`).
+
+### Colores por línea (de `src/data/routes.json`)
+
+| Línea | Ida (hex) | Vuelta (hex) | Notas |
+|---|---|---|---|
+| 65 | `#0284C7` (azul cielo) | `#EA580C` (naranja) | Línea piloto, color "oficial" según theme.ts es `#0EA5E9`/`#EF4444`. **Inconsistencia a resolver.** |
+| 194 | `#06B6D4` (cyan) | `#15803D` (verde oscuro) | Recorridos largos AMBA |
+| 60 | `#7C3AED` (violeta) | `#7C3AED` | Duplicado histórico de la 65, mismo color |
+| (otras en dataset) | `#10B981`, `#84CC16`, `#3B82F6`, `#14B8A6`, `#6366F1`, `#EF4444`, `#A855F7`, `#9333EA` | variantes claras | Ver `routes.json` línea 566+ |
+
+> **Convención ida/vuelta** (en `src/lib/theme.ts:18-21`):
+> - Ida = celeste/cyan (más frío, "vamos")
+> - Vuelta = rojo/naranja (más cálido, "volvemos")
+>
+> Esta convención está aplicada en el código de buses (línea 2119-2121 de `MapCanvas.tsx`) pero NO en las rutas del mapa (línea 1776-1778 de `MapCanvas.tsx`), que usan los colores de `routes.json`. **Esto causa que un mismo colectivo se vea azul/naranja en la ruta y celeste/rojo en el badge del colectivo**. Es un bug visual conocido.
+
+### Estados del servicio (en `src/lib/theme.ts:30-46`)
+
+| Estado | Color | Background (10% opacity) | Uso |
+|---|---|---|---|
+| `normal` | `#10b981` (verde) | `rgba(16, 185, 129, 0.1)` | Badge "Normal" |
+| `demoras` | `#f59e0b` (ámbar) | `rgba(245, 158, 11, 0.1)` | Badge "Demoras" |
+| `interrumpido` | `#ef4444` (rojo) | `rgba(239, 68, 68, 0.1)` | Badge "Interrumpido" |
+
+### Ocupación (en `src/lib/theme.ts:49-61`)
+
+| Nivel | Color | Uso |
+|---|---|---|
+| `baja` | `#10b981` (verde) | "Baja ocupación" |
+| `media` | `#f59e0b` (ámbar) | "Media ocupación" |
+| `alta` | `#ef4444` (rojo) | "Alta ocupación" |
+
+### Estados de viaje (en `src/components/trip-map-navigation.ts` → `arrivalPhase`)
+
+| Phase | Color | Uso |
+|---|---|---|
+| `VIAJANDO_GREEN` | `--viajando-green` (`#2f5d4b`) | Rosa FAB + indicador de viaje normal |
+| `VIAJANDO_YELLOW` | `--viajando-yellow` (`#a98b4e`) | Rosa FAB + indicador "llegando pronto" |
+| `ARRIBANDO` | `red-600` | Rosa FAB + indicador crítico |
+| `IDLE` (default) | `bg-canvas` | Rosa FAB en estado de reposo |
+
+---
 
 ## Typography
 
-### Font Family
+**Familia única:** Inter (vía `next/font/google`, declarada en `src/app/layout.tsx:9-13` con subsets latin y CSS variable `--font-inter`).
 
-**Saans** — a contemporary neo-grotesque used exclusively, across every page and every role. It is loaded as a variable font, and the brand's voice comes from where it sits on the weight axis: headings render at an unusual 652 (heavier than semibold, lighter than bold), running text at 456 (a hair over regular), and hero subtitles at a genuinely light 300. Fallback stack: system sans (`-apple-system, "Helvetica Neue", Arial, sans-serif`).
+```css
+font-family: var(--font-inter, Inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+```
 
-### Hierarchy
+### Escala tipográfica (basada en uso real del código)
 
-| Token                    | Size | Weight | Line Height | Letter Spacing | Use                                                                         |
-| ------------------------ | ---- | ------ | ----------- | -------------- | --------------------------------------------------------------------------- |
-| `{typography.display}`   | 80px | 652    | 1.0         | 0              | Homepage hero statements and library counters                               |
-| `{typography.heading-1}` | 56px | 652    | 1.0         | 0              | Page heroes ("Design like a Pro.", "The votes are in.")                     |
-| `{typography.heading-2}` | 44px | 652    | 1.13        | 0              | Section headings on content pages                                           |
-| `{typography.heading-3}` | 32px | 652    | 1.13        | 0              | Card-level headlines, award winner names, auth headings                     |
-| `{typography.heading-4}` | 24px | 652    | 1.25        | 0              | Sub-section headings, plan names                                            |
-| `{typography.title}`     | 20px | 600    | 1.3         | 0              | Feature titles, emphasized rows                                             |
-| `{typography.body-lg}`   | 20px | 300    | 1.38        | 0              | Hero subtitles and lead paragraphs — the light counterpoint to 652 headings |
-| `{typography.body}`      | 16px | 456    | 1.38        | 0              | Default body copy, testimonial quotes                                       |
-| `{typography.body-sm}`   | 14px | 456    | 1.43        | 0              | Supporting copy, plan feature lists, legal text                             |
-| `{typography.link}`      | 16px | 600    | 1.38        | 0              | Nav links and button labels                                                 |
-| `{typography.label}`     | 12px | 600    | 1.33        | 0              | Badge and pill labels                                                       |
-| `{typography.caption}`   | 12px | 456    | 1.33        | 0              | Captions, metadata, form fine print                                         |
+| Rol | Tamaño aprox. | Peso | Uso en el código |
+|---|---|---|---|
+| Display XL | `text-6xl` (60px) | `font-black` | Número de línea en hero de `JourneyGuide` |
+| Display L | `text-2xl` (24px) | `font-black` | Títulos de pantalla de viaje |
+| Heading | `text-xl` (20px) | `font-bold` | Headers de sección (h2), sheet de viaje |
+| Body L | `text-lg` (18px) | `font-bold` | Labels de cards destacadas |
+| Body | `text-base` (16px) | `font-medium` | Texto estándar |
+| Body SM | `text-sm` (14px) | `font-medium` | Sublabels, captions |
+| Body XS | `text-xs` (12px) | `font-bold` | Captions, badges |
+| Mono | `tabular-nums` | varios | Números que cambian dinámicamente (ETA, minutos) |
 
-### Principles
+### Reglas
 
-- **Weight contrast is the drama.** Pairing 652 headings against 300 light subtitles at the same scale step (e.g. 80px display over 20px light lead) creates hierarchy without color or ornament.
-- **Tight leading up top.** Display and heading-1 sit at line-height 1.0; headings never breathe more than 1.25. Body text opens up to 1.38–1.43.
-- **Zero letter-spacing everywhere.** The grotesque is trusted at its natural fit; no tracking adjustments at any size.
-- **Sentence case with terminal periods.** Headlines read as declarative sentences: "Discover real-world design inspiration." — the period is part of the voice.
+- **Letter-spacing 0** (sin tracking adjustments). El grotesque está en su fit natural.
+- **Tabular numerals** (`tabular-nums`) en todo número que se actualiza con el tiempo (ETA, minutos, count). Evita que el texto "salte" al cambiar de 1 a 2 dígitos.
+- **Line height 1.0-1.4** según jerarquía.
+- **Sentence case** en headlines. Sin all-caps, salvo en eyebrows (`tracking-[0.14em] uppercase` en JourneyGuide y ViajePanel para microcopy de etiqueta).
 
-### Note on Font Substitutes
-
-Saans is a commercial typeface. The closest widely-available substitutes are **Inter** (variable, supports the 300/450/650 weight positions via its variable axis) or **Hanken Grotesk**. When substituting, map weight 652 → 650 (or 700 at static weights), 456 → 450 (or 500), and keep line-heights as specified — Saans has a compact x-height, so substitutes may need line-height reduced by ~0.05.
+---
 
 ## Layout
 
-### Spacing System
+### Spacing (escala de 4dp, Material)
 
-- **Base unit**: 8px, with 4px half-steps for fine rhythm
-- **Tokens**: `{spacing.xxs}` 4px · `{spacing.xs}` 8px · `{spacing.sm}` 12px · `{spacing.md}` 16px · `{spacing.lg}` 24px · `{spacing.xl}` 32px · `{spacing.xxl}` 48px · `{spacing.section}` 80px · `{spacing.section-lg}` 120px
-- Buttons are fixed-height pills padded horizontally at `{spacing.md}`; inputs pad `{spacing.sm} {spacing.md}`
-- Universal rhythm constants: 28px and 80px vertical steps recur on every page; 120px separates major homepage acts
+Definido en `src/app/globals.css:37-41` (radius) y usado vía clases Tailwind arbitrarias:
 
-### Grid & Container
+| Token | Valor | Uso |
+|---|---|---|
+| `p-1` / `gap-1` | 4dp | Átomos, espacio entre icono y label |
+| `p-2` / `gap-2` | 8dp | Padding interno de chips |
+| `p-3` / `gap-3` | 12dp | Padding de cards chicas |
+| `p-4` / `gap-4` | 16dp | Padding estándar de cards, gap entre botones |
+| `p-5` / `gap-5` | 20dp | Padding de cards grandes, header de pantalla |
+| `p-6` / `gap-6` | 24dp | Padding de sheets |
+| `m-12` | 48dp | Safe area de FABs |
 
-- Content rides a centered column: single-column centered lockups for heroes and award winners, a 2-up card grid for pricing plans, 3-up for portrait tiles, and a 4-column masonry for testimonials.
-- The floating nav pill is detached from the viewport edge and horizontally centered, rather than a full-width bar — the page canvas visibly wraps around it.
-- Marquee strips (brand logos, app screenshots) run full-bleed beyond the content column.
+### Border radius
 
-### Whitespace Philosophy
+| Token | Valor | Tailwind | Uso |
+|---|---|---|---|
+| `radius-sm` | 16px | `rounded-2xl` (16-20px) | Inputs, cards chicas |
+| `radius-md` | 24px | `rounded-3xl` (24px) | Cards estándar, sheets |
+| `radius-lg` | 24px | `rounded-3xl` | Idem (alias) |
+| `radius-xl` | 32px | `rounded-[28px]` (28px) | Bottom nav pill |
+| `radius-full` | 9999px | `rounded-full` | Botones pill, badges, dots |
+
+Definidos en `src/app/globals.css:37-41`. **El nav pill del bottom usa 28px** (`src/components/ui/bottom-nav.tsx:103` con `rounded-[28px]`), no 32 ni 24.
+
+### Safe areas
+
+Variables CSS para safe areas nativas (notch, home bar) en `src/app/globals.css:46-49`:
+
+```css
+--sat: env(safe-area-inset-top, 0px);
+--sab: env(safe-area-inset-bottom, 0px);
+--sal: env(safe-area-inset-left, 0px);
+--sar: env(safe-area-inset-right, 0px);
+```
 
-Whitespace is the primary grouping device. Sections are separated by `{spacing.section}` to `{spacing.section-lg}` of empty canvas with no divider rules; within cards, generous `{spacing.lg}` padding keeps content off the hairline edges. The homepage alternates dense collage moments (icon clouds, screenshot grids) with near-empty typographic interludes — compression and release.
+Aplicadas en componentes clave:
 
-### Responsive Strategy
+- `BottomNav`: `pb-[max(env(safe-area-inset-bottom),12px)]`
+- `MapCanvas`: `top-[calc(max(14px,env(safe-area-inset-top))+...)]` (en LineSelectorBar)
+- `HomePage`: `pb-[104px]` (reserva para el bottom nav)
+- `mapas/page.tsx`: `pt-[calc(20px+env(safe-area-inset-top))]`
 
-#### Breakpoints
+### Touch targets
 
-| Name | Width         | Key Changes                                                                  |
-| ---- | ------------- | ---------------------------------------------------------------------------- |
-| 2xl  | 1536px        | Max content width engaged; marquees widen                                    |
-| xl   | 1280px        | Default desktop grid                                                         |
-| lg   | 1024px        | Comparison table condenses; testimonial masonry drops to 3 columns           |
-| md   | 840px / 768px | Pricing cards stack to 1-up; portrait grid drops to 2-up; nav links collapse |
-| sm   | 719px / 640px | Single-column layouts; display type scales down from 80px                    |
-| xs   | 600px         | Minimum layout; auth split-panel drops its screenshot marquee                |
+- **Mínimo 44×44dp** (Apple HIG) — cumplido en `ThemeToggle` y la mayoría de botones.
+- **Mínimo 48dp** recomendado (Material) — en CTAs primarios y bottom nav.
+- **Spacing 8dp mínimo** entre targets adyacentes.
 
-#### Touch Targets
+### Shadows
 
-- Pill buttons and nav CTAs are fixed-height stadium shapes comfortably above the 44px minimum; form inputs pad to a similar height via `{spacing.sm} {spacing.md}`.
-- The segmented billing toggle presents each option as a full pill target, not a small radio dot.
+- **No usar `shadow-sm`/`shadow-md` en chrome.** La elevación se construye con tints.
+- **Excepción única:** sheets modales con `shadow-[0_16px_45px_-4px_rgba(0,0,0,0.22)]` (ver `ViajePanel.tsx:98,150,166`). En dark mode es más opaco: `shadow-[0_20px_50px_-4px_rgba(0,0,0,0.7)]`.
 
-#### Collapsing Strategy
+---
 
-- The floating `nav-pill` persists on scroll and across breakpoints, tightening to logomark + CTA on narrow screens.
-- Multi-column grids (pricing 2-up, portraits 3-up, testimonials 4-up) collapse column-by-column rather than reflowing horizontally.
-- The signup page's two-panel split (form left, angled screenshot marquee right) drops the marquee panel entirely on narrow viewports, keeping the centered form column.
+## Iconography
 
-#### Image Behavior
+**Librería:** `lucide-react` (consistente, open source, 1.5px stroke).
 
-- App screenshots and device mockups keep fixed aspect ratios and `{rounded.md}` corners at all sizes.
-- Marquee strips overflow the viewport intentionally and animate horizontally; they crop rather than scale.
-- Curator portraits stay square-ish tiles, lazily loaded, always grayscale.
+```ts
+import { Map, MapPin, Navigation, Route, Search, Bus, Home } from 'lucide-react';
+```
 
-## Elevation & Depth
+### Tamaños
 
-| Level   | Treatment                                       | Use                                                   |
-| ------- | ----------------------------------------------- | ----------------------------------------------------- |
-| 0       | Flat on `{colors.canvas}`                       | Default — most of every page                          |
-| 1       | `{colors.canvas-soft}` fill, no border          | Nav pill, featured pricing card, FAQ rows, soft pills |
-| 2       | 1px `{colors.hairline-soft}` outline on white   | Pricing and testimonial cards                         |
-| 3       | 1px inset ring                                  | Comparison-table highlight column edge                |
-| Inverse | `{colors.ink}` fill, `{colors.on-primary}` text | Footer band, primary CTAs                             |
+| Tamaño | Uso |
+|---|---|
+| `size-3.5` (14px) | Inline en body |
+| `size-4` (16px) | Default en CTAs, inputs |
+| `size-5` (20px) | Headers de sección, BottomNav items |
+| `size-7` (28px) | Hero, Brand mark |
+| `size-12` (48px) | Loading states |
 
-The system is essentially shadow-free: no drop shadows appear on any card, button, or nav element. Elevation is communicated by _fill difference_ (white vs. 6–8% ink tints) and by hairlines, which keeps every surface print-flat and lets the screenshot content supply all depth cues. The one soft-shadow exception is the active segment of the segmented control, which lifts off its `{colors.canvas-soft}` track as a white pill.
+### Reglas
 
-### Decorative Depth
+- **Nunca íconos decorativos** — cada ícono tiene función.
+- **CTAs con ícono + texto** — nunca ícono solo (calles, prisa, sol).
+- **Color:** heredan del texto (`text-ink`, `text-text-muted`, `text-electric-blue`). Excepción: íconos dentro de badges de línea usan `text-white` (sobre el color de la línea).
 
-- **Glass monoliths** — the awards hero renders tall trophy pillars in a white-to-gray vertical gradient, reading as frosted glass against the `{colors.canvas-soft}` band; the page's only atmospheric gradient.
-- **Photography as depth** — floating app-icon squircles, angled screenshot collages (signup's rotated marquee panel), and device mockups create parallax-like layering on a flat canvas.
-- **Polarity inversion** — the `{colors.ink}` footer with `{rounded.md}` top corners acts as a heavy baseboard, giving each page a physical end-stop.
+---
 
-## Shapes
+## Component catalog (alto nivel)
 
-### Border Radius Scale
+Componentes que YA EXISTEN en el repo. El dev nuevo debe familiarizarse con estos antes de crear nuevos.
 
-| Token            | Value  | Use                                                               |
-| ---------------- | ------ | ----------------------------------------------------------------- |
-| `{rounded.none}` | 0px    | Full-bleed media strips and marquee images                        |
-| `{rounded.sm}`   | 16px   | Inputs, video tiles, testimonial cards, FAQ rows                  |
-| `{rounded.md}`   | 24px   | Content cards, device mockups, portrait tiles, footer top corners |
-| `{rounded.full}` | 9999px | Every pill: nav, buttons, badges, toggles                         |
+### Brand
+- `MetropolLogo` (`src/components/brand/metropol-logo.tsx`) — logo SVG oficial, variantes `full` y `mono`.
+- `MetropolRose` (mismo archivo) — solo la rosa, sin wordmark. Usada en el FAB del bottom nav.
 
-### Photography Geometry
+### UI primitives (`src/components/ui/`)
+- `LineBadge` (`line-badge.tsx`) — chip de línea con color de marca. Variantes `sm` (24px) y `md` (32px). Usado en `HomePage` y en el badge de vehículo seleccionado.
+- `Badge` (`badge.tsx`) — badge genérico shadcn-style.
+- `Button` (`button.tsx`) — botón base.
+- `Card` (`card.tsx`) — card base shadcn-style.
+- `Dialog` (`dialog.tsx`) — diálogo modal.
+- `Input` (`input.tsx`) — input de formulario.
+- `BottomNav` (`bottom-nav.tsx`) — **navegación principal** (ver sección dedicada).
 
-- App screenshots render inside device-shaped frames at `{rounded.md}`.
-- App icons use the signature 30% squircle radius (`app-icon-squircle`) — the iOS icon silhouette — at every size from 32px chips to 96px hero tiles.
-- Curator portraits are near-square tiles at `{rounded.md}`, always black-and-white, with name captions overlaid in `{colors.on-primary}` on a `badge-overlay` scrim near the lower edge.
-- Avatars in testimonial cards are small circles (`{rounded.full}`) with a tiny company logo badge overlapping the bottom-right corner.
+### Shell (`src/components/ui-shell/`)
+- `BottomSheetPanel` — sheet inferior con drag para colapsar/expandir.
+- `FloatingSearch` — barra de búsqueda flotante.
+- `InlineBusIndicator` — indicador inline de colectivo (badge inline).
+- `LineSelectorBar` — **rail vertical de líneas y ramales** (sidebar a la izquierda del mapa, optimizado para thumb zone).
+- `LiveTransportBubble` — bubble animada de colectivo en vivo.
+- `StopDetailCard` / `StopDetailDialog` — detalle de parada.
 
-## Components
+### Home (`src/components/home/`)
+- `ClassicTripActions` — **las 4 acciones de home** (Buscar línea / Paradas cerca / ¿A dónde vas? / Explorar mapa) en grid 2x2.
+- `AssistantBar` — barra principal con "¿A dónde vas?".
+- `AssistantAnswerSheet` — sheet con respuesta del asistente.
+- `AssistantWizard` — wizard de 3 pasos (consentimiento → parada → destino).
+- `LineLookupSheet` — sheet de lookup de línea específica.
+- `LocationConsentModal` — modal de consentimiento de GPS.
+- `PlaceSelector` — selector de lugar (origen/destino).
 
-### Buttons
+### Viaje (`src/components/viaje/`)
+- `JourneyGuide` — **hero con ETA gigante + paso a paso** (`text-6xl` para número de línea, fondo `bg-ink` invertido).
+- `JourneyOptionList` — lista de opciones de viaje.
+- `JourneyTimeline` — timeline de pasos (walk/transfer/ride con íconos).
+- `ViajeHeader` — header flotante del modo viaje.
+- `ViajePanel` — **panel inferior con tabs Opciones/Pasos** (`src/components/viaje/ViajePanel.tsx:468`). El lugar donde se concentran la mayoría de las decisiones de UX del modo viaje.
+- `ArrivalStatusCard` — card de status de arrival.
 
-**`button-primary`** — "Join for free", "Get started", "Continue", "View winners"
+### Map (`src/components/map/`)
+- `DynamicMap` — wrapper con timeout de 12s, marca mapa como `unavailable` si no carga.
+- `MapCanvas` — **el mapa principal** (2700+ líneas, la pieza más grande del repo).
 
-- Fill `{colors.primary}`, label `{colors.on-primary}` in `{typography.link}`, shape `{rounded.full}`, padding `0px {spacing.md}` on a fixed-height pill
-- The single CTA style everywhere: nav, pricing cards, auth form, awards hero
+### Theme (`src/components/theme/`)
+- `ThemeProvider` — Context con `light | dark | system`, persistencia en localStorage.
+- `ThemeToggle` — botón flotante de tema.
 
-**`button-outline`** — "Continue with Google", secondary "Get started"
+---
 
-- Fill `{colors.canvas}`, label `{colors.ink}`, 1px `{colors.hairline}` border, shape `{rounded.full}`
-- The de-emphasized twin of the primary pill; used when two actions sit side by side or for third-party auth
+## Bottom nav y la rosa FAB
 
-**`button-pill-soft`** — "Explore ↗", "Mobbin ↗", "Read more"
+El bottom nav (`src/components/ui/bottom-nav.tsx`) es **la pieza de navegación más distintiva**. Tiene 3 items: **Líneas (izq) · Rosa FAB (centro, elevada) · Inicio (der)**.
 
-- Fill `{colors.canvas-soft}`, label `{colors.ink}`, shape `{rounded.full}`
-- Tertiary utility pill for outbound and in-page links; no border, relies on its tint fill
+### Estructura visual
 
-### Cards & Containers
+```
+┌────────────────────────────────────────────┐
+│  [🚌 Líneas]      🌹      [🏠 Inicio]      │  ← 64dp, rounded-[28px], border-hairline
+└────────────────────────────────────────────┘
+                  ↑
+                  └─ FAB elevada -top-3.5, w-[56px] h-[56px], rounded-full
+```
 
-**`pricing-card`** — default plan tier (Team)
+### Semántica de la rosa (3 comportamientos)
 
-- `{colors.canvas}` fill, 1px `{colors.hairline-soft}` outline, `{rounded.md}` corners
-- Plan name in `{typography.heading-4}`, price figure large with stacked `{typography.caption}` qualifiers, feature list rows in `{typography.body-sm}` with `{colors.text-muted}` icons
+| Acción | Resultado | Line |
+|---|---|---|
+| **Un toque** (sin viaje activo) | Navega a `/mapas` | `bottom-nav.tsx:71-74` |
+| **Un toque** (con viaje activo en `/mapas`) | Toggle de la vista del viaje (mantiene estado) | `bottom-nav.tsx:72-74` |
+| **Doble tap** (en 320ms) | Abre el **Modo Viaje** (idempotente, query `?trip=1`) | `bottom-nav.tsx:64-93` |
 
-**`pricing-card-featured`** — highlighted plan tier (Pro)
+### Estados de color de la rosa
 
-- `{colors.canvas-soft}` fill, borderless, `{rounded.md}` corners — emphasis by tint, not by outline or polarity flip
-- Carries the `badge-popular` chip beside the plan name and a full-width `button-primary` CTA, while the default tier gets `button-outline`
+| Estado | Background | Ring | Cuándo |
+|---|---|---|---|
+| IDLE (default) | `bg-canvas` (light) / `bg-[#1D2B4F]` (dark) | `ring-white` 4px | Sin viaje activo |
+| `VIAJANDO_GREEN` | `bg-[var(--viajando-green)]` | `ring-[var(--viajando-green)]` 5px | Viaje en curso normal |
+| `VIAJANDO_YELLOW` | `bg-[var(--viajando-yellow)]` | `ring-[var(--viajando-yellow)]` 5px | Llegando pronto |
+| `ARRIBANDO` | `bg-red-600` | `ring-red-600` 5px | Crítico, por llegar |
 
-**`testimonial-card`** — user quote tile
+---
 
-- `{colors.canvas}` fill, 1px `{colors.hairline-soft}` outline, `{rounded.sm}` corners
-- Circular avatar with overlapping company mini-badge, name in `{typography.link}`, company in `{colors.text-muted}` `{typography.body-sm}`, quote in `{typography.body}`
-- Laid out as a 4-column masonry of varying heights
+## Modo Viaje (Sistema)
 
-**`faq-row`** — accordion item
+El modo viaje es el flujo crítico del producto. Está compuesto por:
 
-- Full-width `{colors.canvas-soft}` bar, `{rounded.sm}` corners, question in `{typography.body}` with a trailing chevron; rows stack with `{spacing.sm}` gaps
+### Vista de mapa con viaje activo (`/mapas?trip=...`)
 
-**`portrait-tile`** — curator/juror grid cell
+- Header flotante (`ViajeHeader`) con origen/destino, swap, clear.
+- Botón de colectivo seleccionado pill (mostrando línea, ramal, coche, próxima parada con ETA).
+- Mapa con `tripSegments` y `tripRouteShade` superpuestos al recorrido base.
+- Camera mode `follow-trip` o `follow-vehicle` (configurable).
 
-- Grayscale photograph at `{rounded.md}`, name + role caption overlaid at bottom center in `{colors.on-primary}`
-- The strict black-and-white treatment keeps the people grid inside the monochrome system
+### Vista de guía de viaje (`/viaje`)
 
-### Inputs & Forms
+Página dedicada, no-modal. Layout:
 
-**`text-input`**
+1. Header con origen → destino.
+2. Si hay opción seleccionada: `JourneyGuide` (hero + paso a paso).
+3. Si no hay opción seleccionada: `JourneyOptionList` (resumen de todas las opciones).
 
-- `{colors.field}` fill, no border, `{colors.ink}` text with `{colors.text-faint}` placeholder, `{rounded.sm}` corners, padding `{spacing.sm} {spacing.md}`
+### Sheet inferior (`ViajePanel`)
 
-**`text-input-focused`**
+Solo se monta cuando hay un viaje activo en `/mapas`. Tiene:
 
-- Same chrome plus a 2px `{colors.ink}` ring — focus is signaled in ink, consistent with the monochrome system
+- Drag handle (grip 36×4dp).
+- Header pinned con duración total + alternativas + tabs.
+- Tabs **Opciones** / **Pasos**:
+  - **Opciones**: cards con duración + línea(s) + transbordos + walk distance.
+  - **Pasos**: timeline con íconos walk/transfer/ride.
+- Botón de cerrar.
 
-### Navigation
+### Tipos de paso (`step.type` en `src/types/trip-planner.ts`)
 
-**`nav-pill`** — Top Nav (Desktop)
+| Tipo | Ícono | Color | Significado |
+|---|---|---|---|
+| `walk` | `Footprints` (lucide) | default | Caminar |
+| `transfer` | `Layers` (lucide) | amber-700/400 | Transbordo entre líneas |
+| `ride` | `Bus` (lucide) | color de la línea | Viaje en colectivo |
 
-- A floating, horizontally-centered stadium bar in `{colors.canvas-soft}`: logomark + wordmark left, text links ("Pricing", "Awards", "Log in") in `{typography.link}` right, capped by a `button-primary` CTA
-- Detaches from the page edge with visible canvas above it; persists as a sticky element on scroll
+---
 
-**Top Nav (Mobile)**
+## Sistema de mapa (`MapCanvas`)
 
-- The pill tightens to logomark + CTA; links collapse behind the pill
+`src/components/map/MapCanvas.tsx` es la pieza más grande del proyecto (~2700 líneas). La documentación completa de su arquitectura está en los comentarios JSDoc del archivo (líneas 1-19).
 
-**Sub-nav (Awards)**
+### Stack
 
-- Minimal corner marks instead of a bar: logomark + section name top-left, a `button-pill-soft` "Mobbin ↗" return link top-right
+- **MapLibre GL JS v6** (WebGL, 60fps).
+- **CARTO Voyager / Dark Matter** como basemap (gratis, sin API key).
+- **Worker de MapLibre** servido desde `/maplibre/` (script `scripts/copy-maplibre-worker.mjs` que copia el worker en `predev` y `prebuild`).
+- **Símbolos SVG rasterizados** vía `addImage` para buses, paradas, POIs. Ver `src/lib/map/vehicle-sprites.ts` (216 líneas de SVG).
 
-### Signature Components
+### Representaciones de colectivo según zoom
 
-**`app-icon-squircle`** — the recurring 30%-radius icon tile; floats in loose clouds around library counters, lines up in "Other nominees" rows, and anchors `brand-chip` entries
+| Zoom | Representación | Spec |
+|---|---|---|
+| z < 13.5 | Badge upright con número + heading | `buses-badge` + `buses-heading` |
+| 13.4–15.6 | Colectivo cenital rotado por heading | `buses` (top-down) |
+| z ≥ 14.4 | Colectivo isométrico 3/4 (Tipo D) | `buses-iso` con billboard relativo a cámara |
 
-**`brand-chip`** — marquee lockup of squircle icon + brand name in `{typography.heading-3}` ink; scrolls horizontally in full-bleed strips of recognizable products
+Crossfade por zoom (interpolate top-level, sin writes por frame).
 
-**`badge-popular`** — compact `{colors.accent}` chip with `{colors.on-primary}` label marking the featured pricing tier; the only blue element on the page
+### Capas de POIs y mobiliario urbano
 
-**`badge-overlay`** — translucent gray pill (rgba(115, 115, 115, 0.56)) with `{colors.on-primary}` `{typography.label}` text, laid over photography and screenshots (category tags, portrait captions)
+`snapshots` de OSM (semáforos, PARE, cruces, iglesias, supermercados, estaciones) servidos desde `/data/pois.json`. Ícono discreto: circulito blanco con borde navy. Ver `src/lib/map/urban-features.ts`.
 
-**`segmented-control`** + **`segmented-control-active`** — billing-period toggle: a `{colors.canvas-soft}` stadium track holding two pill options; the active option is a `{colors.canvas}` white pill, the inactive label sits in `{colors.text-muted}`
+### Capas de viaje activo
 
-**`award-lockup`** — centered winner presentation: laurel-flanked category eyebrow in `{colors.text-muted}`, winner name in `{typography.heading-3}`, description in `{colors.text-muted}` `{typography.body}`, vote share in `{typography.body-sm}`, closed by a `button-pill-soft` "Explore ↗"
+- `trip-active-segments` — casing + línea para los segmentos del viaje (walk dashed, ride sólido).
+- `trip-route-shade` — sombreado del recorrido cortado en una parada de referencia.
+- `trip-used-stops` — paradas del viaje con roles (board verde, transfer ámbar, alight rojo).
 
-**`compare-table`** — the pricing comparison grid: feature rows divided by 1px `{colors.canvas-soft}` rules, the recommended plan's column washed in `{colors.canvas-soft}` with an inset ring edge
+### Pulso de ruta (spec #861)
 
-**`footer`** — full-width `{colors.ink}` band with `{rounded.md}` top corners: white wordmark at display scale, tagline in `{colors.text-faint}`, two columns of `{colors.text-faint}` links that read in `{colors.on-primary}` for emphasis rows
+Período **1800ms module-level** (origen en `performance.now()`). Dos halos contrafase (`route-halo-a` y `route-halo-b`) con `line-blur` para el efecto de "respiración". Solo anima `line-opacity` y `line-blur` (uniforms GPU baratos).
 
-### Examples (illustrative)
+### ⚠️ Pitfall conocido: iOS Safari mapa en blanco
 
-> Kit-mirror demonstration surfaces. Each `ex-*` entry references brand-native primitives via token syntax so downstream consumers re-skin the same 10 surfaces consistently; none carries invented literal values.
+**Causa:** `transform: translateZ(0)` en un ancestro del `<canvas>` WebGL crea un bug de compositing en WebKit que deja el canvas en negro.
 
-**`ex-pricing-tier`** — Default Pricing tier card. Re-uses feature-card chrome with brand canvas-soft surface.
+**Culpable actual:** `src/app/mapas/page.tsx:1165` (header flotante con `style={{ transform: "translateZ(0)" }}`).
 
-- Properties: `backgroundColor`, `textColor`, `borderColor`, `rounded`, `padding`
+**Fix propuesta:** una línea. Ver `docs/DIAGNOSTICO-IPHONE-SAFARI.md` para el análisis completo y el plan de verificación.
 
-**`ex-pricing-tier-featured`** — Featured/highlighted tier — polarity-flipped surface (dark fill + light text in light mode, light fill + dark text in dark mode).
+**Regla de oro:** **NUNCA** promover a capa compuesta un ancestro del contenedor de MapCanvas. Ver el comentario en `MapCanvas.tsx:2696-2706` que documenta este patrón.
 
-- Properties: `backgroundColor`, `textColor`, `rounded`, `padding`
+---
 
-**`ex-product-selector`** — What's Included summary card — re-purposed for SaaS / B2B verticals (NOT a literal product gallery).
+## Alertas
 
-- Properties: `backgroundColor`, `rounded`, `padding`
+`src/lib/data-service.ts` define el tipo `Alert` con tipos: `delay`, `suspension`, `route_change`. Mapeo a labels (en `src/app/inicio/page.tsx:56-60`):
 
-**`ex-cart-drawer`** — Subscription summary — re-purposed for SaaS / B2B (line items per add-on, not literal cart).
+| Tipo | Label | Color |
+|---|---|---|
+| `delay` | RETRASO | `#d97706` (ámbar) |
+| `suspension` | CORTE | `#d97706` |
+| `route_change` | DESVÍO | `#d97706` |
 
-- Properties: `backgroundColor`, `rounded`, `padding`, `item-divider`
+Las alertas se muestran en el home con badge titilando (`animate-pulse` Tailwind) en cada viaje del historial de paradas. Ver `inicio/page.tsx:508-512`.
 
-**`ex-app-shell-row`** — Sidebar nav row inside the App Shell example. Active state uses brand primary as the indicator.
+---
 
-- Properties: `backgroundColor`, `activeIndicator`, `rounded`, `padding`
+## Motion
 
-**`ex-data-table-cell`** — Default data-table th + td chrome. Header uses mono-caps eyebrow typography; body uses body-sm.
+### Principios
 
-- Properties: `headerBackground`, `headerTypography`, `bodyTypography`, `cellPadding`, `rowBorder`
+- **Movimiento al servicio de la comprensión.** Nunca decoración.
+- **Duración máxima 300ms** para transiciones de UI. Más largo se percibe como lentitud.
+- **Curvas:** `ease-out` para entradas, `ease-in` para salidas.
 
-**`ex-auth-form-card`** — Sign-in / sign-up card. Re-uses feature-card chrome with text-input primitives inside.
+### Animaciones predefinidas (en `globals.css`)
 
-- Properties: `backgroundColor`, `rounded`, `padding`
+| Animación | Spec | Uso |
+|---|---|---|
+| `bus-pulse` (línea 149-159) | 2s infinite, `cubic-bezier(0.4, 0, 0.6, 1)` | Pulse de colectivo en vivo (radar) |
+| `arrival-blink` (línea 169-178) | 1.2s ease-in-out infinite | Blink de arrival (alerta de viaje por llegar) |
+| `transfer-pop` (línea 180-190) | 0.6s ease-out | Pop de transbordo |
+| `transfer-rise` (línea 203-215) | 1.1s ease-out forwards | Orb que sube al transferir |
+| `ride-pulse` (línea 217-224) | 1.2s ease-in-out infinite | Pulse de ride |
+| `rutaba-live-pulse` (línea 247+) | período del pulse vivo | Sincronizado mapa + timeline |
+| `energy-aura-rise`, `energy-ribbon-rise`, etc. (línea 460+) | 1.2-1.3s | Arrival energy spectrum (decoración visual) |
 
-**`ex-modal-card`** — Modal dialog surface — same chrome as feature-card with elevated shadow.
+### Framer Motion
 
-- Properties: `backgroundColor`, `rounded`, `padding`
+Se usa `motion/react` (`useReducedMotion`, `motion.div`, `AnimatePresence`). Accesibilidad: el `useReducedMotion` se respeta en el pulse de ruta y en la animación del planner pulse.
 
-**`ex-empty-state-card`** — Empty-state illustration frame.
+### No animar
 
-- Properties: `backgroundColor`, `rounded`, `padding`, `captionTypography`
+- Números que cambian de valor (el cambio es claro, la animación distrae).
+- Carga inicial (usar skeleton, no spinner — pero hoy hay un spinner `Loader2` en `DynamicMap`).
+- Cambios de tema (transición de color 200ms en `body`, `globals.css:93`).
 
-**`ex-toast`** — Toast notification surface — feature-card shape + medium shadow.
+---
 
-- Properties: `backgroundColor`, `rounded`, `padding`, `typography`
+## Accessibility
+
+### Contraste
+
+- Texto crítico sobre `bg-canvas` (blanco) usa `text-ink` (#141414) → contraste **17.4:1** (AAA).
+- Texto secundario `text-text-muted` (#707070) sobre blanco → contraste **4.7:1** (AA).
+- Texto terciario `text-text-faint` (#adadad) sobre blanco → contraste **2.8:1** (NO apto para texto crítico, solo decorative).
+- En dark mode, los contrastes se mantienen porque los hex se invierten preservando la relación.
+
+### Color no es el único canal
+
+- Estado de viaje: combina color (verde/amarillo/rojo) + ring (5px) + ícono.
+- Badges de línea: combinan color + número + (opcional) texto.
+- Ocupación: combina color + texto ("Baja / Media / Alta").
+
+### Touch targets
+
+- `min-h-[44px]` o `min-w-[44px]` en todos los botones touch.
+- 8dp de spacing entre targets adyacentes.
+
+### Sensores y permisos
+
+- GPS: `LocationConsentModal` antes de activar (no se activa sin consentimiento explícito).
+- Ambient light: NO soportado (PBI-012 post-MVP).
+
+### Screen readers
+
+- `aria-label` en todos los botones de ícono (bottom nav, line selector, theme toggle).
+- `aria-live="polite"` en cambios de ETA y arrival card.
+- `aria-current="page"` en ítems activos del bottom nav.
+- `aria-pressed` en el toggle de líneas.
+
+### Reduced motion
+
+`useReducedMotion` se respeta en:
+- Pulse de ruta en mapa (línea 450 de `MapCanvas.tsx`).
+- Planner pulse (líneas 1120-1128).
+
+---
+
+## Performance
+
+### Build
+
+- **Next.js 16** con Turbopack. Importante: `AGENTS.md` del proyecto avisa "This is NOT the Next.js you know" — leer `node_modules/next/dist/docs/` antes de tocar código de Next.
+- **`predev` y `prebuild`** ejecutan `scripts/copy-maplibre-worker.mjs` que copia el worker de MapLibre a `public/maplibre/`.
+
+### MapLibre
+
+- Vector tiles CARTO (132KB por tile z13 BA), cacheables.
+- Símbolos SVG pre-rasterizados en `addImage` (carga única, no se repinta cada frame).
+- Render 60fps con interpolación LERP en cliente sobre feed a 1Hz.
+- Worker de MapLibre para off-main-thread tile parsing.
+
+### Imágenes y assets
+
+- Logos y assets de líneas en `/public/images/metropol/lineas/`.
+- POIs OSM en `/public/data/pois.json` (snapshot).
+- Bundle de icons via `lucide-react` (tree-shakeable).
+
+### Fuentes
+
+- `next/font/google` para Inter (subset latin, display: swap).
+- `display: swap` evita FOUT pero acepta FOUT menor a cambio de mejor LCP.
+
+---
 
 ## Do's and Don'ts
 
 ### Do
 
-- Keep the canvas `{colors.canvas}` white and let imported content (screenshots, icons, logos) supply all saturation.
-- Use `{rounded.full}` for every interactive element — a rectangular button does not exist in this system.
-- Build emphasis with the tint ladder: `{colors.canvas-soft}` fill for featured surfaces, `{colors.hairline-soft}` outlines for resting cards.
-- Reserve `{colors.accent}` for commercial signals (featured badges, savings callouts) — one or two blue elements per page at most.
-- Set every heading in Saans 652 with line-height 1.0–1.13 and end headline sentences with a period.
-- Pair heavy 652 headings with 300-weight `{typography.body-lg}` subtitles for hierarchy without color.
-- Render app icons as 30% squircles and portraits in grayscale to keep third-party imagery inside the system.
-- Close pages with the inverse `{colors.ink}` footer, rounded at the top.
+- **Usar `text-ink` para texto crítico, `text-text-muted` para secundario, `text-text-faint` para terciario.** Jerarquía visual clara.
+- **Usar `bg-ink` para CTAs primary.** El azul eléctrico es solo highlight, nunca CTA.
+- **Usar tokens semánticos** (`bg-canvas`, `border-hairline`, `text-ink`) en vez de hexes hardcoded. El dark mode se rompe si usás hex.
+- **Respetar safe areas** con `env(safe-area-inset-*)` en cualquier elemento anclado a un borde de pantalla.
+- **Usar `tabular-nums`** en números dinámicos (ETA, minutos).
+- **Touch targets >= 44dp.** Tappable con prisa, dedos mojados, sol de frente.
+- **Dark mode:** verificar TODO cambio en dark también. El `ThemeProvider` + script anti-FOUC ya está implementado.
+- **Testear con `useReducedMotion` activo.** El pulse de ruta y el planner pulse lo respetan.
 
 ### Don't
 
-- Don't add drop shadows — elevation is fills and hairlines only.
-- Don't use `{colors.accent}` for CTAs; primary actions are always `{colors.primary}` ink pills.
-- Don't introduce additional accent hues, gradients on UI chrome, or colored section bands.
-- Don't outline the featured pricing tier — feature it with the `{colors.canvas-soft}` fill and `badge-popular` instead.
-- Don't apply letter-spacing or all-caps styling; the type system runs at natural tracking in sentence case.
-- Don't put borders on form fields at rest — inputs are `{colors.field}` tint fills; the border appears only as the 2px ink focus ring.
-- Don't let full-color photography of people into the curator/juror grids; portraits are strictly black-and-white.
-- Don't square off pill geometry at small sizes — badges, chips, and toggles stay stadium-shaped.
+- **No usar hex hardcoded** en componentes. Pedir al cliente del color (`linea.color`, `linea.colorHex`).
+- **No usar `transform: translateZ(0)` o `will-change: transform` en ancestros del `<canvas>` de MapCanvas.** Rompe WebKit (ver sección "Pitfall conocido").
+- **No usar `shadow-sm` o `shadow-md` en chrome.** Solo tints (`bg-canvas-soft`) y hairlines. Excepción: sheets modales con shadow específica.
+- **No usar `bg-electric-blue` para CTAs.** Solo highlights de selección.
+- **No agregar colores de marca adicionales.** El sistema es monocromático + cromático-de-datos. Cualquier color nuevo en chrome rompe la disciplina.
+- **No usar `backdrop-blur` en header sobre el mapa.** El filtro re-composita cada frame y titilea (ver `mapas/page.tsx:1160-1162`).
+- **No truncar nombres de paradas con `text-ellipsis`.** Hacer wrap a 2 líneas o usar chip expandible.
+- **No mostrar el número de coche al pasajero** (PBI-006, feedback del cliente). El interno es solo del operador.
+- **No usar `text-text-faint` para texto accionable.** Es solo decorativo.
+
+---
+
+## Migration notes (lo que cambió desde el Mobbin DESIGN.MD)
+
+| Antes (Mobbin) | Ahora (Metropol real) | Razón |
+|---|---|---|
+| Sistema estrictamente monocromático | Chrome monocromático + datos cromáticos | Los colores de línea son la identidad visual del producto |
+| Un solo accent azul (#0066ff) para commercial signals | `electric-blue` para highlights de selección + múltiples colores de estado (verde/ámbar/rojo) | El producto tiene 3 estados críticos (normal/demoras/interrumpido) |
+| Sin sombras nunca | Sin sombras en chrome + sombras solo en sheets modales | Las sheets necesitan profundidad sobre el mapa |
+| `text-electric-blue` para CTAs | `bg-ink` para CTAs, `text-electric-blue` solo para highlights | Contraste y jerarquía más fuerte |
+| Saans 652/456/300 como pesos custom | Inter (un solo peso variable, weights 400-800) | Inter está disponible vía next/font, más estándar |
+| `{rounded.full}` (9999px) para TODO | Mix: pills para CTAs y badges, 16-24px para cards, 28px para nav | El nav pill grande es distintivo de la app |
+
+---
+
+## Verificación de coherencia
+
+Para auditar que el código cumple este DESIGN.MD:
+
+1. **Tokens correctos:** `grep -r "#[0-9a-fA-F]\{6\}" src/components src/app` y verificar que los hexes hardcoded sean solo de colores de línea (datos) o de iconos SVG.
+2. **CTAs primary:** `grep -r "bg-electric-blue.*text" src/components` no debería tener resultados para CTAs.
+3. **Safe areas:** buscar en componentes anclados a bordes (top, bottom) que usen `env(safe-area-inset-*)`.
+4. **Touch targets:** `grep -r "min-h-\[\?\([4-9]\|1[0-2]\)" src/components` debería mostrar >= 44dp en CTAs.
+5. **Sin translateZ(0) en ancestros de mapa:** `grep -r "translateZ" src/app src/components` no debería tener resultados en el árbol de `/mapas`.
+6. **LineBadge usage:** todos los lugares donde se muestra un número de línea deberían usar `LineBadge` con `color={linea.color}` y `shortName={linea.shortName}`.
+
+---
+
+## Referencias
+
+- `src/app/globals.css` — design tokens base (CSS variables + Tailwind v4 mapping)
+- `src/lib/theme.ts` — theme tokens oficiales (brand, fleet, status, occupancy)
+- `src/components/brand/metropol-logo.tsx` — logo y rosa SVG
+- `src/components/ui/line-badge.tsx` — badge de línea
+- `src/components/ui/bottom-nav.tsx` — bottom nav con rosa FAB
+- `src/components/viaje/JourneyGuide.tsx` — hero con ETA gigante
+- `src/components/viaje/ViajePanel.tsx` — sheet inferior de viaje
+- `src/components/home/ClassicTripActions.tsx` — 4 acciones de home
+- `src/components/map/MapCanvas.tsx` — mapa (2700+ líneas)
+- `src/components/map/DynamicMap.tsx` — wrapper con timeout
+- `src/data/metropol.json` — datos scrapeados del sitio de Metropol
+- `src/data/routes.json` — geometría OSRM y colores por línea
+- `docs/DIAGNOSTICO-IPHONE-SAFARI.md` — bug del mapa en iOS + fix propuesta
+- `docs/INCIDENTE-MAPA-iOS-SAFARI.md` — documento original del incidente
+- `docs/BRECHAS-vs-REPO.md` — análisis de brechas plan vs código real
+- `docs/backlog.json` — backlog Scrum (19 PBIs, pivoteado al repo real)
+- `docs/BRAINSTORMING.md` — exploración de ideas
+- `docs/COMPARATIVA.md` — comparativa cliente vs Replit
+- `docs/DESIGN.md` — brief de diseño original (versión 1, abstracta)
+
+---
+
+**Última actualización:** 2026-10-07
+**Mantenedor:** equipo Fusa Labs / pre-mvp-transportes
+**Próxima revisión:** post-fix del bug iOS Safari (PBI-014)

@@ -3,14 +3,24 @@ export interface UserLocation {
   lat: number;
   lng: number;
   name: string;
+  address?: string;
+  stopId?: string;
   isSimulated: boolean;
+  /** Heading del usuario en grados (0=Norte, 90=Este). Solo disponible si el dispositivo lo provee. */
+  heading?: number | null;
+  /** Velocidad del usuario en m/s. Solo disponible si el dispositivo lo provee. */
+  speed?: number | null;
 }
 
 export const SIMULATED_USER_LOCATION: UserLocation = {
   lat: -34.604463,
   lng: -58.434711,
   name: 'Parque Centenario',
+  address: 'Av. Díaz Vélez y Leopoldo Marechal, CABA',
   isSimulated: true,
+  // Heading simulado hacia el sur (camina desde Parque Centenario hacia el centro)
+  heading: 180,
+  speed: 1.2,
 };
 
 export const SIMULATED_LOCATION_LABEL = 'Parque Centenario';
@@ -36,6 +46,8 @@ export function requestDeviceLocation(): Promise<UserLocation> {
         lng: coords.longitude,
         name: 'Ubicación actual',
         isSimulated: false,
+        heading: coords.heading ?? null,
+        speed: coords.speed ?? null,
       }),
       (error) => {
         const code: DeviceLocationErrorCode =

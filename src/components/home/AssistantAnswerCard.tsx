@@ -105,7 +105,7 @@ export function AssistantAnswerCard({
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <LineBadge shortName={a.lineaNumero} color={a.colorHex} size="sm" />
-                  <span className="text-sm text-ink font-semibold truncate">{a.ramal}</span>
+                      <span className="text-sm text-ink font-semibold truncate" title={a.ramal}>{a.ramal}</span>
                 </div>
                 <span className="text-sm font-bold text-[#16a34a] shrink-0">
                   {a.displayLabel ?? (a.minutos === 0 ? 'Llega' : `${a.minutos} min`)}
@@ -133,7 +133,7 @@ export function AssistantAnswerCard({
               className="flex items-center justify-between gap-2 bg-canvas-soft border border-hairline-soft rounded-lg px-3 py-2"
             >
               <div className="min-w-0">
-                <p className="text-sm font-bold text-ink truncate">{parada.nombre}</p>
+                <p className="text-sm font-bold text-ink break-words line-clamp-2" title={parada.nombre}>{parada.nombre}</p>
                 <p className="text-xs text-text-muted">
                   {formatDistance(distanceMeters)} · caminando ~{walkMinutes} min
                 </p>
@@ -199,12 +199,16 @@ export function AssistantAnswerCard({
 
       {answer.kind === 'trip-guide' && (
         <div className="flex flex-col gap-3">
-          {/* Origen → destino */}
-          <div className="flex items-center gap-2 text-xs text-text-muted min-w-0">
-            <span className="w-2 h-2 rounded-full bg-electric-blue shrink-0" aria-hidden />
-            <span className="font-semibold text-ink truncate">{answer.originStop.nombre}</span>
-            <ArrowRight className="w-3 h-3 shrink-0" aria-hidden />
-            <span className="font-semibold text-ink truncate">{answer.destination.name}</span>
+          {/* Origen → destino (layout vertical para nombres largos) */}
+          <div className="flex flex-col gap-1.5 text-sm text-text-muted min-w-0">
+            <div className="flex items-start gap-2 min-w-0">
+              <span className="mt-1.5 w-2 h-2 rounded-full bg-electric-blue shrink-0" aria-hidden />
+              <span className="font-semibold text-ink break-words flex-1 min-w-0" title={answer.originStop.nombre}>{answer.originStop.nombre}</span>
+            </div>
+            <div className="flex items-start gap-2 min-w-0">
+              <span className="mt-1.5 w-2 h-2 rounded-full bg-red-500 shrink-0" aria-hidden />
+              <span className="font-semibold text-ink break-words flex-1 min-w-0" title={answer.destination.name}>{answer.destination.name}</span>
+            </div>
           </div>
 
           {answer.trip ? (
@@ -275,7 +279,7 @@ export function AssistantAnswerCard({
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <LineBadge shortName={a.lineaNumero} color={a.colorHex} size="sm" />
-                      <span className="text-sm text-ink font-semibold truncate">{a.ramal}</span>
+                  <span className="text-sm text-ink font-semibold truncate" title={a.ramal}>{a.ramal}</span>
                     </div>
                     <span className="text-sm font-bold text-[#16a34a] shrink-0">
                       {a.displayLabel ?? (a.minutos === 0 ? 'Llega' : `${a.minutos} min`)}
@@ -333,8 +337,8 @@ export function AssistantAnswerCard({
               onClick={() => onSelectCandidate?.(c)}
               className="text-left bg-canvas-soft hover:bg-field border border-hairline-soft rounded-lg px-3 py-2 transition-colors"
             >
-              <p className="text-sm font-bold text-ink truncate">{c.name}</p>
-              {c.address && <p className="text-xs text-text-muted truncate">{c.address}</p>}
+              <p className="text-sm font-bold text-ink truncate" title={c.name}>{c.name}</p>
+              {c.address && <p className="text-xs text-text-muted truncate" title={c.address}>{c.address}</p>}
             </button>
           ))}
         </div>
