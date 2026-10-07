@@ -72,7 +72,7 @@ function BottomNavSkeleton() {
       role="navigation"
     >
       <div className="max-w-[420px] sm:max-w-md mx-auto pointer-events-auto">
-        <div className="h-[64px] rounded-[28px] border border-hairline bg-canvas shadow-[0_10px_36px_rgba(16,29,61,0.16)] grid grid-cols-5 items-center px-1.5">
+        <div className="min-h-[64px] rounded-[28px] border border-hairline bg-canvas shadow-[0_10px_36px_rgba(16,29,61,0.16)] grid grid-cols-5 items-center px-1.5 py-1.5">
           {[Home, Map, Search, Layers, MapPin].map((Icon, i) => (
             <div
               key={i}
@@ -128,17 +128,17 @@ function BottomNavInner({
       role="navigation"
     >
       <div className="max-w-[420px] sm:max-w-md mx-auto pointer-events-auto">
-        <div className="h-[68px] rounded-[28px] border border-hairline bg-canvas shadow-[0_10px_36px_rgba(16,29,61,0.16)] grid grid-cols-5 items-stretch px-1.5">
+        <div className="min-h-[76px] rounded-[28px] border border-hairline bg-canvas shadow-[0_10px_36px_rgba(16,29,61,0.16)] grid grid-cols-5 items-stretch px-1.5 py-1.5">
           <NavItem
             href="/red-metro"
-            label="Red Metro"
+            label="Red Metropol"
             icon={Map}
             active={isRedMetro}
             aria-label="Ver la red metropolitana"
           />
           <NavItem
             href="/como-llego"
-            label="¿Cómo?"
+            label="¿Cómo llego?"
             icon={Search}
             active={isComoLlego}
             aria-label="Planificar un viaje"
@@ -212,7 +212,7 @@ function NavItem({ href, label, icon: Icon, active, className, 'aria-label': ari
       </div>
       <span
         className={cn(
-          'text-[10px] leading-none truncate max-w-full px-1 mt-0.5',
+          'text-[10px] leading-tight text-center break-words line-clamp-2 max-w-full px-1 mt-0.5',
           active ? 'font-bold text-ink' : 'font-medium',
         )}
       >
