@@ -97,6 +97,16 @@ test('Cómo llego links the available lines to their diagrams', async ({ page })
   await expect(page).toHaveURL(/\/diagrama\/line-194/);
 });
 
+test('Cómo llego uses the canonical colors for lines 65 and 194', async ({ page }) => {
+  await page.goto('/como-llego');
+
+  const line65Badge = page.getByRole('button', { name: /ver diagrama de la línea 65/i }).locator('span').first();
+  const line194Badge = page.getByRole('button', { name: /ver diagrama de la línea 194/i }).locator('span').first();
+
+  await expect(line65Badge).toHaveCSS('background-color', 'rgb(2, 132, 199)');
+  await expect(line194Badge).toHaveCSS('background-color', 'rgb(21, 128, 61)');
+});
+
 test('A passenger selects a text-first alternative before opening the map', async ({ page }) => {
   await page.goto(journeyUrl);
 

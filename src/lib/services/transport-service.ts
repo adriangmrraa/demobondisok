@@ -2,6 +2,7 @@ import { ALERTAS_MOCK, LINEAS_MOCK, PARADAS_MOCK, RECORRIDOS_MOCK, VEHICULOS_INI
 import { MOCK_ROUTES } from "@/mock/data";
 import { getRamalForUnit } from "@/mock/live";
 import { getRouteTrack } from "@/lib/map/route-progress";
+import { getLineColor } from "@/lib/line-theme";
 import type { VehiclePosition } from "@/lib/data-service";
 import {
   AlertaServicio,
@@ -326,12 +327,12 @@ export class TransportService implements IDataService {
             if (!directionRamal) {
               directionRamal = isVuelta ? 'Barrancas → Constitución' : 'Constitución → Barrancas';
             }
-            const directionColor = isVuelta ? '#EF4444' : '#0EA5E9';
+            const lineColor = getLineColor(linea.id, linea.colorHex);
 
             liveLlegadas.push({
               lineaId: linea.id,
               lineaNumero: linea.numero,
-              colorHex: directionColor,
+              colorHex: lineColor,
               ramal: directionRamal,
               minutos: isAtStop ? 0 : etaMin,
               distanciaMetros: Math.round(veh.distAhead),
@@ -365,7 +366,7 @@ export class TransportService implements IDataService {
         .flatMap((r) => r.recorridos)
         .find((r) => r.paradas.includes(paradaId));
       const isVuelta = recFb?.sentido === "vuelta";
-      const directionColor = isVuelta ? '#EF4444' : '#0EA5E9';
+      const lineColor = getLineColor(linea.id, linea.colorHex);
       const directionRamal = recFb
         ? `${recFb.origen} → ${recFb.destino}`
         : (isVuelta ? 'Barrancas → Constitución' : 'Constitución → Barrancas');
@@ -373,7 +374,7 @@ export class TransportService implements IDataService {
       llegadas.push(
         ...buildSimulatedArrivals(linea, 0, 2, blockedFb, {
           ramal: directionRamal,
-          colorHex: directionColor,
+          colorHex: lineColor,
         }),
       );
     });

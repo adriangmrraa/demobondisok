@@ -178,7 +178,7 @@ export default function ViajePanel({
       {/* Header: pinned selected-trip summary (outside the scroll container,
           opaque bg so scrolled content slides under it) + view toggle */}
       <div
-        className="px-4 pt-2 pb-2 flex items-center justify-between gap-3 shrink-0 select-none bg-canvas dark:bg-canvas relative z-10"
+        className="px-4 pt-2 pb-2 shrink-0 select-none bg-canvas dark:bg-canvas relative z-10"
         {...handleProps}
         onClick={(e) => {
           if ((e.target as HTMLElement).closest("button")) return;
@@ -186,18 +186,40 @@ export default function ViajePanel({
         }}
         title={collapsed ? "Expandir panel" : "Contraer panel"}
       >
-        <div className="flex items-baseline gap-1.5 min-w-0">
-          {selectedTrip && (
-            <span aria-live="polite" className="text-2xl font-black text-ink leading-none tracking-tight tabular-nums whitespace-nowrap">
-              {liveHeroLabel ?? `${selectedTrip.totalDurationMinutes} min`}
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            {selectedTrip && (
+              <span aria-live="polite" className="block truncate text-2xl font-black text-ink leading-none tracking-tight tabular-nums">
+                {liveHeroLabel ?? `${selectedTrip.totalDurationMinutes} min`}
+              </span>
+            )}
+            <span className="mt-1 block text-[11px] text-text-muted">
+              {options.length} alternativa{options.length === 1 ? '' : 's'}
             </span>
-          )}
-          <span className="text-xs text-text-muted shrink-0 whitespace-nowrap">
-            · {options.length} alt.
-          </span>
+          </div>
+          <div className="flex items-center gap-0.5 shrink-0">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); toggle(); }}
+              className="p-1.5 text-text-muted hover:text-ink transition-colors"
+              title={collapsed ? "Expandir" : "Contraer"}
+              aria-label={collapsed ? "Expandir panel" : "Contraer panel"}
+              aria-expanded={!collapsed}
+            >
+              <ChevronDown className={`w-4 h-4 transition-transform ${collapsed ? "rotate-180" : ""}`} />
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 text-text-muted hover:text-ink transition-colors"
+              title="Cerrar panel de opciones"
+              aria-label="Cerrar panel de opciones"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
-
-        <div className="flex items-center gap-0.5 shrink-0">
+        {!collapsed && <div className="mt-1.5 flex items-center gap-1 border-t border-hairline-soft pt-1.5">
           <button
             type="button"
             onClick={() => setActiveTab("opciones")}
@@ -216,26 +238,7 @@ export default function ViajePanel({
           >
             Pasos
           </button>
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); toggle(); }}
-            className="p-1.5 text-text-muted hover:text-ink transition-colors"
-            title={collapsed ? "Expandir" : "Contraer"}
-            aria-label={collapsed ? "Expandir panel" : "Contraer panel"}
-            aria-expanded={!collapsed}
-          >
-            <ChevronDown className={`w-4 h-4 transition-transform ${collapsed ? "rotate-180" : ""}`} />
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 text-text-muted hover:text-ink transition-colors"
-            title="Cerrar panel de opciones"
-            aria-label="Cerrar panel de opciones"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+        </div>}
       </div>
 
       {/* Contenido según la pestaña activa (oculto al contraer) */}

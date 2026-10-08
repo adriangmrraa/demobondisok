@@ -9,6 +9,7 @@ import { LocationConsentModal } from '@/components/home/LocationConsentModal';
 import { requestDeviceLocation, SIMULATED_USER_LOCATION } from '@/lib/config/user-location';
 import { TripPlannerService } from '@/lib/services/trip-planner-service';
 import { buildTripJourneyUrl } from '@/lib/trip-map-navigation';
+import { getLineColor } from '@/lib/line-theme';
 import { useAssistantSession } from '@/hooks/use-assistant-session';
 import type { LocationPoint } from '@/types/trip-planner';
 
@@ -22,8 +23,8 @@ const FEATURED_DESTINATIONS = [
 ] as const;
 
 const ACTIVE_LINES = [
-  { id: 'line-65', number: '65', color: '#159EE6', route: 'Plaza Constitución → Barrancas de Belgrano', operator: 'La Nueva Metropol' },
-  { id: 'line-194', number: '194', color: '#E11D48', route: 'Plaza Miserere → Zárate', operator: 'La Nueva Metropol' },
+  { id: 'line-65', number: '65', route: 'Plaza Constitución → Barrancas de Belgrano', operator: 'La Nueva Metropol' },
+  { id: 'line-194', number: '194', route: 'Plaza Miserere → Zárate', operator: 'La Nueva Metropol' },
 ] as const;
 
 function locationLabel(place: LocationPoint | null, fallback: string) {
@@ -156,7 +157,7 @@ export default function ComoLlegoPage() {
           <div className="mt-3 flex flex-col gap-2">
             {ACTIVE_LINES.map((line) => (
               <button key={line.id} type="button" onClick={() => router.push(`/diagrama/${line.id}`)} aria-label={`Ver diagrama de la línea ${line.number}`} className="flex min-h-[70px] w-full items-center gap-3 rounded-2xl border border-hairline bg-canvas px-3 text-left shadow-sm transition-colors hover:bg-canvas-soft active:scale-[0.98]">
-                <span className="flex h-10 min-w-10 items-center justify-center rounded-xl px-2 text-sm font-black text-white" style={{ backgroundColor: line.color }}>{line.number}</span>
+                <span className="flex h-10 min-w-10 items-center justify-center rounded-xl px-2 text-sm font-black text-white" style={{ backgroundColor: getLineColor(line.id) }}>{line.number}</span>
                 <span className="min-w-0 flex-1"><span className="block text-sm font-bold leading-tight text-ink">{line.route}</span><span className="mt-1 block text-[11px] text-text-muted">{line.operator}</span></span>
               </button>
             ))}
