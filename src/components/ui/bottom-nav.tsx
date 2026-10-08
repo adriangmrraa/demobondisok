@@ -6,7 +6,6 @@ import { Suspense, useRef } from 'react';
 import { Home, Map, MapPin, Search, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MetropolRose } from '@/components/brand/metropol-logo';
-import { useTheme } from '@/components/theme/ThemeProvider';
 import type { ArrivalPhase } from '@/lib/trip-map-navigation';
 
 /**
@@ -103,12 +102,6 @@ function BottomNavInner({
   onActivateTripMode,
 }: BottomNavProps) {
   const pathname = usePathname();
-  const { resolvedTheme } = useTheme();
-  const dark = resolvedTheme === 'dark';
-
-  const isGreenRide = arrivalPhase === 'VIAJANDO_GREEN';
-  const isYellowRide = arrivalPhase === 'VIAJANDO_YELLOW';
-  const isCritical = arrivalPhase === 'ARRIBANDO';
 
   const isInicio = pathname === '/inicio';
   const isRedMetro = pathname === '/red-metro';

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, X, MapPin, Bus, Radio } from "lucide-react";
+import { Search, X, MapPin, Bus } from "lucide-react";
 import { Linea, Parada } from "@/types/transport";
 
 interface FloatingSearchProps {

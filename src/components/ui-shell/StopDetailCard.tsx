@@ -71,9 +71,6 @@ export function StopDetailCard({
     : isVuelta
     ? `Vuelta${destino ? ` hacia ${destino}` : ""}`
     : `Ida${destino ? ` hacia ${destino}` : ""}`;
-  const sentidoBadgeClass = isVuelta
-    ? "text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/40"
-    : "text-sky-600 dark:text-sky-400 border-sky-200 dark:border-sky-900/50 bg-sky-50 dark:bg-sky-950/40";
 
   const hasConexiones = Boolean(
     parada.conexiones &&

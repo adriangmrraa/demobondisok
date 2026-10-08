@@ -32,23 +32,26 @@ export function ThemeProvider({
   // themeInitScript ya aplicó la clase real en <html> antes de hydratar;
   // el primer useEffect solo alinea el estado React con ese DOM.
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("dark");
-  const [mounted, setMounted] = useState(false);
 
   // Inicializar estado desde localStorage si existe + sync resolved con el
   // DOM que ya dejó themeInitScript (sin re-escribir la clase en este tick).
+  // Diferido un frame: alinear React con el DOM aplicado no es urgente, y un
+  // setState directo en el cuerpo del effect cascadearía el render.
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(THEME_STORAGE_KEY) as Theme | null;
-      if (stored === "light" || stored === "dark" || stored === "system") {
-        setThemeState(stored);
+    const frame = window.requestAnimationFrame(() => {
+      try {
+        const stored = localStorage.getItem(THEME_STORAGE_KEY) as Theme | null;
+        if (stored === "light" || stored === "dark" || stored === "system") {
+          setThemeState(stored);
+        }
+      } catch {
+        // Ignorar restricciones en iframes o modo incógnito
       }
-    } catch {
-      // Ignorar restricciones en iframes o modo incógnito
-    }
-    setResolvedTheme(
-      document.documentElement.classList.contains("dark") ? "dark" : "light",
-    );
-    setMounted(true);
+      setResolvedTheme(
+        document.documentElement.classList.contains("dark") ? "dark" : "light",
+      );
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   // Sincronizar clase .dark en <html> y resolver tema dinámicamente

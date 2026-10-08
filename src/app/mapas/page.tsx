@@ -572,25 +572,41 @@ export default function TransportesAppPage() {
   /** Encuadre al elegir origen/destino (geocoder) cuando aún no hay trip. */
   const selectionFocusNonce = useRef(0);
   const lastFocusKeyRef = useRef<string | null>(null);
+  const [selectionFocus, setSelectionFocus] = useState<{ bounds: [[number, number], [number, number]]; nonce: number } | null>(null);
+
+  // La deduplicación del foco y el nonce NO pueden vivir en el memo de
+  // focusRequest (los refs durante render violan react-hooks/refs: React puede
+  // repetir o descartar renders). El encuadre se deriva acá por estado: cada
+  // punto nuevo emite un request con nonce creciente; un punto repetido no
+  // re-dispara (misma clave) y el rAF difiere el setState para no cascadear.
+  useEffect(() => {
+    if (!isTripMode || selectedTrip) return;
+    const target = destinationLocation ?? originLocation;
+    if (!target) return;
+    const key = `${target.name}|${target.lat.toFixed(5)}|${target.lng.toFixed(5)}`;
+    if (lastFocusKeyRef.current === key) return;
+    lastFocusKeyRef.current = key;
+    const bounds =
+      target.focusBounds ??
+      ([
+        [target.lng - 0.004, target.lat - 0.004],
+        [target.lng + 0.004, target.lat + 0.004],
+      ] as [[number, number], [number, number]]);
+    const frame = window.requestAnimationFrame(() => {
+      selectionFocusNonce.current += 1;
+      setSelectionFocus({ bounds, nonce: selectionFocusNonce.current });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [isTripMode, selectedTrip, destinationLocation, originLocation]);
 
   const focusRequest: MapFocusRequest | null = useMemo(() => {
     if (!isTripMode) return null;
 
     if (!selectedTrip) {
-      // Sin trip aún: volar al punto más reciente elegido (origen/destino)
+      // Sin trip aún: encuadre del punto elegido (emitido por el efecto de arriba).
       const target = destinationLocation ?? originLocation;
-      if (!target) return null;
-      const key = `${target.name}|${target.lat.toFixed(5)}|${target.lng.toFixed(5)}`;
-      if (lastFocusKeyRef.current === key) return null;
-      lastFocusKeyRef.current = key;
-      selectionFocusNonce.current += 1;
-      const bounds =
-        target.focusBounds ??
-        ([
-          [target.lng - 0.004, target.lat - 0.004],
-          [target.lng + 0.004, target.lat + 0.004],
-        ] as [[number, number], [number, number]]);
-      return { bounds, nonce: selectionFocusNonce.current, bottomPadding: tripBottomPadding };
+      if (!target || !selectionFocus) return null;
+      return { ...selectionFocus, bottomPadding: tripBottomPadding };
     }
 
     // Si hay un paso seleccionado, enfocar su geometría en vez del trip entero.
@@ -656,7 +672,7 @@ export default function TransportesAppPage() {
       nonce,
       bottomPadding: tripBottomPadding,
     };
-  }, [isTripMode, selectedTrip, activeStepId, originLocation, destinationLocation, tripReframeNonce, tripBottomPadding, stepFocusNonce, trip3D, selectedVehiculo]);
+  }, [isTripMode, selectedTrip, activeStepId, originLocation, destinationLocation, selectionFocus, tripReframeNonce, tripBottomPadding, stepFocusNonce, trip3D, selectedVehiculo]);
 
   /** Selección explícita del usuario → limpia la clave de focus para que
    *  el geocoder pueda re-encuadrar (el seed de apertura no). */

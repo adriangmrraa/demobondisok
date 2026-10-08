@@ -53,6 +53,7 @@ export default function ViajeHeader({
   // cada keystroke re-renderiza el dropdown y contiende el main thread
   // con el mapa WebGL de fondo (parpadeo / jank).
   const [debouncedQuery, setDebouncedQuery] = useState("");
+  const trimmedQuery = searchQuery.trim();
   const inputRef = useRef<HTMLInputElement>(null);
   const { collapsed, setCollapsed, toggle, handleProps } = useDragCollapse(initialCollapsed);
 
@@ -66,19 +67,19 @@ export default function ViajeHeader({
     onCollapsedChange?.(collapsed);
   }, [collapsed, onCollapsedChange]);
 
+  // Debounce solo para búsquedas con texto. Al vaciar el input, la query
+  // efectiva se deriva a "" (sin setState síncrono en el effect): no quedan
+  // resultados viejos y el dropdown vuelve a mostrar los POIs sugeridos.
   useEffect(() => {
-    const q = searchQuery.trim();
-    if (!q) {
-      setDebouncedQuery("");
-      return;
-    }
-    const t = window.setTimeout(() => setDebouncedQuery(q), 300);
+    if (!trimmedQuery) return;
+    const t = window.setTimeout(() => setDebouncedQuery(trimmedQuery), 300);
     return () => window.clearTimeout(t);
-  }, [searchQuery]);
+  }, [trimmedQuery]);
 
+  const effectiveQuery = trimmedQuery ? debouncedQuery : "";
   const filteredLocations = useMemo(
-    () => TripPlannerService.searchLocations(debouncedQuery),
-    [debouncedQuery],
+    () => TripPlannerService.searchLocations(effectiveQuery),
+    [effectiveQuery],
   );
 
   useEffect(() => {

@@ -33,9 +33,7 @@ interface BottomSheetPanelProps {
   paradas: Parada[];
   llegadas: EstimacionLlegada[];
   alertas: AlertaServicio[];
-  totalVehiculosActivos?: number;
   onSelectParada: (parada: Parada) => void;
-  onClearSelection: () => void;
   selectedVehiculo?: VehiclePosition | null;
   cameraMode?: CameraMode;
   onToggle3D?: () => void;
@@ -59,9 +57,7 @@ export default function BottomSheetPanel({
   paradas,
   llegadas,
   alertas,
-  totalVehiculosActivos = 0,
   onSelectParada,
-  onClearSelection,
   selectedVehiculo = null,
   cameraMode = "overview",
   onToggle3D,
@@ -75,13 +71,16 @@ export default function BottomSheetPanel({
   const [activeTab, setActiveTab] = useState<"llegadas" | "paradas" | "alertas">("llegadas");
   const [selectedDetailParada, setSelectedDetailParada] = useState<Parada | null>(null);
 
-  // Al seleccionar una parada (ej: click en el mapa), abrir el sheet en la pestaña 'paradas' con vista de secuencia
+  // Al seleccionar una parada (ej: click en el mapa), abrir el sheet en la pestaña 'paradas' con vista de secuencia.
+  // Diferido un frame con cleanup: el setState síncrono en el effect cascadearía renders.
   useEffect(() => {
-    if (selectedParada) {
+    if (!selectedParada) return;
+    const frame = window.requestAnimationFrame(() => {
       setActiveTab("paradas");
       setSheetState((current) => (current === "collapsed" ? "peek" : current));
       setSelectedDetailParada(null); // No mostrar la ficha embebida hasta que el usuario toque la parada en la secuencia
-    }
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [selectedParada]);
 
   const detailLlegada = useMemo(() => {

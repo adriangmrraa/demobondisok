@@ -552,7 +552,6 @@ export function MapCanvas({
         stopSelectHandlerRef.current?.('');
       };
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStopId, stopFocusNonce, cameraBottomPadding]);
 
   // Cursor crosshair + refs del handler mientras el planificador espera

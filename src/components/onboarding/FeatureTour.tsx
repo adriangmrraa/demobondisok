@@ -59,11 +59,15 @@ export function FeatureTour({ show, onClose }: FeatureTourProps) {
   const [step, setStep] = useState(0);
   const [visible, setVisible] = useState(false);
 
+  // Abrir diferido un frame: el setState directo en el cuerpo del effect
+  // cascadearía renders (react-hooks/set-state-in-effect).
   useEffect(() => {
-    if (show) {
+    if (!show) return;
+    const frame = window.requestAnimationFrame(() => {
       setVisible(true);
       setStep(0);
-    }
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [show]);
 
   if (!visible) return null;
