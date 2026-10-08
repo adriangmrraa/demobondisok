@@ -11,9 +11,10 @@
  * 'subte-A' | ...) sería más preciso.
  */
 
-import { Train, TramFront } from 'lucide-react';
+import { DATASET } from '@/lib/mock/amba-data';
+import type { ParadaDefinition } from '@/types/transport';
 
-export type CombinacionMode = 'tren' | 'subte';
+export type CombinacionMode = 'tren' | 'subte' | 'metrobus';
 
 export interface Combinacion {
   id: string;
@@ -63,4 +64,54 @@ export function combinacionesDeParada(nombre: string): Combinacion[] {
     }
   }
   return out;
+}
+
+// ─── Lookup estructurado por id de parada (dataset routes.json) ────────
+
+const METROBUS_DEF: Combinacion = {
+  id: 'metrobus',
+  label: 'Metrobus',
+  color: '#DC2626',
+  mode: 'metrobus',
+  sentidoDefault: '',
+};
+
+const normalize = (s: string) =>
+  s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+const TREN_BY_LABEL = new Map(TREN_LINES.map((d) => [normalize(d.label), d]));
+const SUBTE_BY_ID = new Map(SUBTE_LINES.map((d) => [d.id, d]));
+
+const toCombinacion = (def: CombinacionDef): Combinacion => ({
+  id: def.id,
+  label: def.label,
+  color: def.color,
+  mode: def.mode,
+  sentidoDefault: def.sentidoDefault,
+});
+
+function combinacionesDesdeConexiones(conexiones: ParadaDefinition['conexiones']): Combinacion[] {
+  const out: Combinacion[] = [];
+  for (const subte of conexiones?.subte ?? []) {
+    const def = SUBTE_BY_ID.get(subte.toUpperCase());
+    if (def) out.push(toCombinacion(def));
+  }
+  for (const tren of conexiones?.tren ?? []) {
+    const def = TREN_BY_LABEL.get(normalize(tren));
+    if (def) out.push(toCombinacion(def));
+  }
+  if (conexiones?.metrobus) out.push({ ...METROBUS_DEF });
+  return out;
+}
+
+/**
+ * Combinaciones de una parada del dataset por su `stopId` (stop-65-01, ...).
+ * Usa el campo estructurado `conexiones` (subte/tren/metrobus) y cae al
+ * matcheo por nombre si el dataset no declara nada.
+ */
+export function combinacionesDeParadaId(stopId: string): Combinacion[] {
+  const def = DATASET.paradas[stopId];
+  if (!def) return [];
+  const estructuradas = combinacionesDesdeConexiones(def.conexiones);
+  return estructuradas.length > 0 ? estructuradas : combinacionesDeParada(def.nombre);
 }
