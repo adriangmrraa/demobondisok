@@ -13,6 +13,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://la-nueva-metropol-amba.vercel.app"),
   title: "La Nueva Metropol • Colectivos en Vivo",
   description:
     "La Nueva Metropol: monitoreo de colectivos del AMBA en tiempo real, paradas y alertas de servicio.",
