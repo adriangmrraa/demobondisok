@@ -17,6 +17,8 @@ import type { VehiclePosition } from "@/lib/data-service";
 import { segmentBearing, type CameraMode } from "@/lib/map/camera-controller";
 import type { MapFocusRequest, PlannerMapPoints, PlannerMapPulse, TripRouteShade } from "@/components/map/MapCanvas";
 import { Parada } from "@/types/transport";
+import { DATASET } from "@/lib/mock/amba-data";
+import type { LineaDefinition, TransportNetworkDataset } from "@/types/transport";
 import { TripOption, LocationPoint, TransitLeg } from "@/types/trip-planner";
 import { Navigation, RotateCcw, Eye, X, Search, Layers } from "lucide-react";
 import { SIMULATED_USER_LOCATION, SIMULATED_LOCATION_LABEL, requestDeviceLocation, DeviceLocationError } from "@/lib/config/user-location";
@@ -36,6 +38,59 @@ const TRIP_PAD_EXPANDED = 514;
 
 /** Techo de zoom del foco por paso: un segmento corto no sobre-zoomea. */
 const STEP_FOCUS_MAX_ZOOM = 16.5;
+
+/** Techo de zoom del foco por líneas filtradas: una línea corta (CABA) no sobre-zoomea,
+ *  pero tampoco queda muy lejos (cubre hasta 2-3 barrios). */
+const LINE_FILTER_MAX_ZOOM = 14;
+
+/** Padding relativo al extent: 25% a cada lado para que las líneas no queden
+ *  pegadas al borde del canvas ni a la barra del bottom nav. */
+const LINE_FILTER_PADDING_RATIO = 0.25;
+
+/**
+ * Calcula los bounds [[minLng,minLat],[maxLng,maxLat]] que abarcan todas las
+ * coordenadas (recorridos) de las líneas pedidas. Si una línea no existe o no
+ * tiene recorridos, se ignora silenciosamente.
+ *
+ * El padding mínimo garantiza que un solo punto (cabecera) no se renderice
+ * con zoom infinito.
+ */
+function computeLineasBounds(
+  lineaIds: string[],
+  dataset: TransportNetworkDataset,
+): [[number, number], [number, number]] | null {
+  if (lineaIds.length === 0) return null;
+  const lineasById = new Map<string, LineaDefinition>(
+    dataset.lineas.map((l) => [l.id, l]),
+  );
+  let minLng = Infinity;
+  let maxLng = -Infinity;
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  let any = false;
+  for (const id of lineaIds) {
+    const linea = lineasById.get(id);
+    if (!linea) continue;
+    for (const ramal of linea.ramales) {
+      for (const rec of ramal.recorridos) {
+        for (const [lng, lat] of rec.coordenadas) {
+          if (lng < minLng) minLng = lng;
+          if (lng > maxLng) maxLng = lng;
+          if (lat < minLat) minLat = lat;
+          if (lat > maxLat) maxLat = lat;
+          any = true;
+        }
+      }
+    }
+  }
+  if (!any) return null;
+  const padLng = Math.max((maxLng - minLng) * LINE_FILTER_PADDING_RATIO, 0.002);
+  const padLat = Math.max((maxLat - minLat) * LINE_FILTER_PADDING_RATIO, 0.002);
+  return [
+    [minLng - padLng, minLat - padLat],
+    [maxLng + padLng, maxLat + padLat],
+  ];
+}
 
 /** Clave del trip vivo: cualquier cambio invalida los pins de otro viaje. */
 function buildTripKey(
@@ -540,6 +595,34 @@ export default function TransportesAppPage() {
     return regularHighlightLines;
   }, [isTripMode, tripViewVisible, selectedTrip, regularHighlightLines]);
 
+  // PBI-034: cuando hay líneas filtradas (multi-filtro de Red Metropol o
+  // single-line legacy), encuadrar la cámara al extent de sus recorridos.
+  // Si no hay líneas o estamos en modo viaje, no forzamos focus. Es un useMemo
+  // puro (no useEffect+setState) para evitar cascading renders; el nonce se
+  // deriva de la concat ordenada de los ids (suma charCode) para que un cambio
+  // del set (incluso manteniendo la misma cantidad) re-dispare el fitBounds
+  // sin necesidad de mutar refs durante render.
+  const effectiveLineaIds = useMemo(
+    () => (lineaFilter.length > 0 ? lineaFilter : selectedLineaId ? [selectedLineaId] : []),
+    [lineaFilter, selectedLineaId],
+  );
+  const lineaFilterFocus: MapFocusRequest | null = useMemo(() => {
+    if (isTripMode || effectiveLineaIds.length === 0) return null;
+    const bounds = computeLineasBounds(effectiveLineaIds, DATASET);
+    if (!bounds) return null;
+    // Nonce determinístico basado en los ids ordenados: cambios en el set (o en
+    // el orden) re-disparan el fitBounds; ids repetidos lo mantienen estable.
+    const nonce = effectiveLineaIds
+      .slice()
+      .sort()
+      .reduce((acc, id) => acc + id.split("").reduce((a, c) => a + c.charCodeAt(0), 0), 1);
+    return {
+      bounds,
+      nonce,
+      maxZoom: LINE_FILTER_MAX_ZOOM,
+    };
+  }, [isTripMode, effectiveLineaIds]);
+
   const plannerPoints: PlannerMapPoints | null = useMemo(() => {
     if (!isTripViewActive) return null;
     return {
@@ -610,7 +693,8 @@ export default function TransportesAppPage() {
   }, [isTripMode, selectedTrip, destinationLocation, originLocation]);
 
   const focusRequest: MapFocusRequest | null = useMemo(() => {
-    if (!isTripMode) return null;
+    // PBI-034: fuera de modo viaje, si hay líneas filtradas, encuadrar al extent.
+    if (!isTripMode) return lineaFilterFocus;
 
     if (!selectedTrip) {
       // Sin trip aún: encuadre del punto elegido (emitido por el efecto de arriba).
@@ -682,7 +766,7 @@ export default function TransportesAppPage() {
       nonce,
       bottomPadding: tripBottomPadding,
     };
-  }, [isTripMode, selectedTrip, activeStepId, originLocation, destinationLocation, selectionFocus, tripReframeNonce, tripBottomPadding, stepFocusNonce, trip3D, selectedVehiculo]);
+  }, [isTripMode, lineaFilterFocus, selectedTrip, activeStepId, originLocation, destinationLocation, selectionFocus, tripReframeNonce, tripBottomPadding, stepFocusNonce, trip3D, selectedVehiculo]);
 
   /** Selección explícita del usuario → limpia la clave de focus para que
    *  el geocoder pueda re-encuadrar (el seed de apertura no). */
