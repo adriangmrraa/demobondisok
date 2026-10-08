@@ -194,12 +194,20 @@ export default function RedMetroPage() {
 
             <div className="px-5 pb-5 pt-3 border-t border-hairline-soft">
               <Link
-                href="/mapas"
+                href={
+                  lineas.length > 0
+                    ? `/mapas?lineas=${lineas.map((l) => l.id).join(",")}`
+                    : "/mapas"
+                }
                 onClick={() => setSelectedZona(null)}
                 className="inline-flex items-center justify-center gap-2 min-h-11 w-full rounded-2xl bg-ink text-canvas text-sm font-bold transition-colors active:scale-95"
               >
                 <MapIcon className="w-4 h-4" aria-hidden="true" />
-                Ver mapa en vivo
+                {lineas.length > 1
+                  ? `Ver ${lineas.length} líneas en el mapa`
+                  : lineas.length === 1
+                    ? "Ver en el mapa"
+                    : "Ver mapa en vivo"}
               </Link>
             </div>
           </div>
