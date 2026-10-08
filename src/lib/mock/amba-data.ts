@@ -85,44 +85,93 @@ const UNIDADES_194 = [
   "601", "603"
 ];
 
-const paradas65 = PARADAS_MOCK.filter((p) => p.lineasIds.includes("line-65"));
-const paradas194 = PARADAS_MOCK.filter((p) => p.lineasIds.includes("line-194"));
+// Flota de las 9 líneas nuevas del catálogo (PBI-033).
+// Internos numéricos realistas que no chocan con los internos históricos de la 65 y 194.
+const FLOTA_POR_LINEA: Record<string, { internos: string[]; bearing: number; velocidad: number }> = {
+  "line-109": {
+    internos: ["1101", "1103", "1105", "1107", "1110", "1112", "1115", "1117", "1120", "1122", "1125", "1128"],
+    bearing: 290,
+    velocidad: 24,
+  },
+  "line-136": {
+    internos: ["1301", "1303", "1305", "1307", "1310", "1312", "1315", "1318"],
+    bearing: 270,
+    velocidad: 32,
+  },
+  "line-151": {
+    internos: ["1501", "1503", "1505", "1507", "1510", "1512", "1515", "1517", "1520", "1523"],
+    bearing: 350,
+    velocidad: 22,
+  },
+  "line-163": {
+    internos: ["1601", "1603", "1605", "1607", "1610", "1612"],
+    bearing: 270,
+    velocidad: 35,
+  },
+  "line-176": {
+    internos: ["1701", "1703", "1705", "1707", "1710", "1712", "1715", "1717", "1720"],
+    bearing: 310,
+    velocidad: 38,
+  },
+  "line-181": {
+    internos: ["1801", "1803", "1805", "1807", "1810", "1812", "1815", "1818"],
+    bearing: 270,
+    velocidad: 24,
+  },
+  "line-182": {
+    internos: ["1821", "1823", "1825", "1827", "1830", "1832"],
+    bearing: 300,
+    velocidad: 30,
+  },
+  "line-195": {
+    internos: ["1951", "1953", "1955", "1957", "1960", "1962", "1965", "1967"],
+    bearing: 180,
+    velocidad: 42,
+  },
+  "line-365": {
+    internos: ["3651", "3653", "3655", "3657", "3660", "3662", "3665"],
+    bearing: 310,
+    velocidad: 48,
+  },
+};
 
-const vehiculos65: VehiculoEnVivo[] = UNIDADES_65.map((interno, idx) => {
-  const stopTarget = paradas65[idx % paradas65.length]!;
-  return {
-    id: `veh-65-${interno}`,
-    lineaId: "line-65",
-    interno,
-    lat: stopTarget.lat,
-    lng: stopTarget.lng,
-    bearing: 160,
-    velocidadKmH: 19,
-    sentido: idx < 12 ? "ida" : "vuelta",
-    proximaParadaId: stopTarget.id,
-    retrasoMinutos: 0,
-    ocupacion: idx % 3 === 0 ? "alta" : idx % 2 === 0 ? "media" : "baja",
-  };
-});
+function sembrarVehiculos(
+  lineaId: string,
+  internos: string[],
+  bearing: number,
+  velocidadKmH: number,
+): VehiculoEnVivo[] {
+  const paradas = PARADAS_MOCK.filter((p) => p.lineasIds.includes(lineaId));
+  return internos.map((interno, idx) => {
+    const stopTarget = paradas[idx % paradas.length]!;
+    return {
+      id: `veh-${lineaId.replace("line-", "")}-${interno}`,
+      lineaId,
+      interno,
+      lat: stopTarget.lat,
+      lng: stopTarget.lng,
+      bearing,
+      velocidadKmH,
+      sentido: idx % 2 === 0 ? "ida" : "vuelta",
+      proximaParadaId: stopTarget.id,
+      retrasoMinutos: 0,
+      ocupacion: idx % 3 === 0 ? "alta" : idx % 2 === 0 ? "media" : "baja",
+    };
+  });
+}
 
-const vehiculos194: VehiculoEnVivo[] = UNIDADES_194.map((interno, idx) => {
-  const stopTarget = paradas194[idx % paradas194.length]!;
-  return {
-    id: `veh-194-${interno}`,
-    lineaId: "line-194",
-    interno,
-    lat: stopTarget.lat,
-    lng: stopTarget.lng,
-    bearing: 330,
-    velocidadKmH: 45,
-    sentido: idx % 2 === 0 ? "ida" : "vuelta",
-    proximaParadaId: stopTarget.id,
-    retrasoMinutos: 0,
-    ocupacion: idx % 3 === 0 ? "alta" : idx % 2 === 0 ? "media" : "baja",
-  };
-});
+const vehiculos65 = sembrarVehiculos("line-65", UNIDADES_65, 160, 19);
+const vehiculos194 = sembrarVehiculos("line-194", UNIDADES_194, 330, 45);
 
-export const VEHICULOS_INICIALES_MOCK: VehiculoEnVivo[] = [...vehiculos65, ...vehiculos194];
+const vehiculosNuevos: VehiculoEnVivo[] = Object.entries(FLOTA_POR_LINEA).flatMap(
+  ([lineaId, cfg]) => sembrarVehiculos(lineaId, cfg.internos, cfg.bearing, cfg.velocidad),
+);
+
+export const VEHICULOS_INICIALES_MOCK: VehiculoEnVivo[] = [
+  ...vehiculos65,
+  ...vehiculos194,
+  ...vehiculosNuevos,
+];
 
 // ─── Alertas de Servicio ──────────────────────────────────────────────
 export const ALERTAS_MOCK: AlertaServicio[] = [

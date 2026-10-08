@@ -2928,6 +2928,47 @@
           "mapUrl": "https://www.google.com/maps/d/embed?mid=1Wuf-M0GolIc9d3RjAmsSH46btJCqy8mI"
         }
       ]
+    },
+    {
+      "number": "109",
+      "name": "Línea 109",
+      "image": null,
+      "imageCredit": null,
+      "recorridos": [
+        {
+          "label": "Troncal",
+          "summary": "Puerto Madero – Liniers por Av. Corrientes y Av. San Martín.",
+          "paradas": [
+            "Puerto Madero (Dársena)",
+            "Correo Central / Microcentro",
+            "Facultad de Medicina",
+            "Villa Crespo",
+            "Villa del Parque",
+            "Estación Devoto",
+            "Liniers"
+          ]
+        }
+      ]
+    },
+    {
+      "number": "181",
+      "name": "Línea 181",
+      "image": null,
+      "imageCredit": null,
+      "recorridos": [
+        {
+          "label": "Troncal",
+          "summary": "Boedo – Hospital Güemes (Haedo) por Av. Rivadavia.",
+          "paradas": [
+            "Boedo",
+            "Caballito",
+            "Beiró y Gral. Paz",
+            "Estación Caseros",
+            "Estación Ramos Mejía",
+            "Hospital Güemes"
+          ]
+        }
+      ]
     }
   ],
   "flota": [
