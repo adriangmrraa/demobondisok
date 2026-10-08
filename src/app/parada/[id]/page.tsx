@@ -129,7 +129,7 @@ export default function ParadaPage() {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex-1 min-w-0 px-2">
-          <h1 className="text-[20px] font-semibold text-ink truncate">{stop.name}</h1>
+          <h1 className="text-[20px] font-semibold text-ink break-words line-clamp-2" title={stop.name}>{stop.name}</h1>
           <p className="text-xs text-text-muted">
             {arrivals.length} llegadas disponibles
           </p>

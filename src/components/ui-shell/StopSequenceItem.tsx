@@ -93,12 +93,12 @@ export function StopSequenceItem({
             {/* Nombre y dirección */}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <h4 className="text-xs font-semibold text-ink truncate leading-tight">
+                <h4 className="text-xs font-semibold text-ink break-words line-clamp-2 leading-tight" title={stop.nombre}>
                   {stop.nombre}
                 </h4>
               </div>
 
-              <p className="text-[11px] text-text-muted truncate mt-0.5">
+              <p className="text-[11px] text-text-muted break-words line-clamp-2 mt-0.5" title={stop.direccion}>
                 {stop.direccion}
               </p>
 

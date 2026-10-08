@@ -159,10 +159,10 @@ export default function ViajeHeader({
               <Crosshair className="w-4 h-4" />
             </div>
             <div className="truncate">
-              <span className="text-xs font-black text-ink block leading-tight truncate">
+              <span className="text-xs font-black text-ink block leading-tight truncate" title={`Fijar ${isOrigin ? "Origen" : "Destino"} en el mapa`}>
                 Fijar {isOrigin ? "Origen" : "Destino"} en el mapa
               </span>
-              <span className="text-[11px] text-text-muted font-medium block truncate mt-0.5">
+              <span className="text-[11px] text-text-muted font-medium block truncate mt-0.5" title="Tocá cualquier punto del mapa para obtener sus coordenadas">
                 Tocá cualquier punto del mapa para obtener sus coordenadas
               </span>
             </div>
@@ -195,7 +195,7 @@ export default function ViajeHeader({
           title="Expandir"
         >
           <span aria-hidden="true" className="w-2 h-2 rounded-full bg-electric-blue shrink-0 animate-arrival-blink" />
-          <span className="text-xs font-bold text-ink truncate flex-1">
+          <span className="text-xs font-bold text-ink truncate flex-1" title={`${originLocation?.name ?? ""} → ${destinationLocation?.name ?? ""}`}>
             {originLocation?.name} → {destinationLocation?.name}
           </span>
           <button
@@ -313,11 +313,11 @@ export default function ViajeHeader({
                     }}
                     className="flex-1 flex items-center justify-between text-left bg-field/70 hover:bg-field rounded-[16px] px-3 py-1.5 transition-colors group min-w-0"
                   >
-                    <div className="truncate pr-2">
+                    <div className="min-w-0 pr-2">
                       <span className="text-[10px] text-text-muted font-medium block leading-none">
                         ¿Desde dónde?
                       </span>
-                      <span className="text-xs font-bold text-ink truncate block mt-0.5">
+                      <span className="text-xs font-bold text-ink line-clamp-2 break-words block mt-0.5" title={originLocation?.name || userSimulatedLocationName || "Seleccionar punto de partida"}>
                         {originLocation?.name || userSimulatedLocationName || "Seleccionar punto de partida"}
                       </span>
                     </div>
@@ -401,14 +401,15 @@ export default function ViajeHeader({
                         : "bg-electric-blue/10 border border-electric-blue/30 hover:bg-electric-blue/15"
                     }`}
                   >
-                    <div className="truncate pr-2">
+                    <div className="min-w-0 pr-2">
                       <span className="text-[10px] text-text-muted font-medium block leading-none">
                         ¿A dónde vas?
                       </span>
                       <span
-                        className={`text-xs font-bold truncate block mt-0.5 ${
+                        className={`text-xs font-bold line-clamp-2 break-words block mt-0.5 ${
                           destinationLocation ? "text-ink" : "text-electric-blue font-semibold"
                         }`}
+                        title={destinationLocation?.name}
                       >
                         {destinationLocation?.name || "Elegí tu destino"}
                       </span>
@@ -503,8 +504,8 @@ export default function ViajeHeader({
               <div className="w-7 h-7 rounded-full bg-electric-blue text-white flex items-center justify-center shrink-0">
                 <Navigation className="w-3.5 h-3.5" />
               </div>
-              <div className="truncate flex-1">
-                <p className="text-xs font-bold text-electric-blue truncate leading-tight">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-electric-blue line-clamp-2 break-words leading-tight" title={`Usar "${searchQuery.trim()}"`}>
                   Usar &quot;{searchQuery.trim()}&quot;
                 </p>
                 <p className="text-[10px] text-text-muted truncate mt-0.5">
@@ -524,11 +525,11 @@ export default function ViajeHeader({
               <div className="w-7 h-7 rounded-full bg-canvas-soft border border-hairline flex items-center justify-center shrink-0 text-text-muted">
                 <Navigation className="w-3.5 h-3.5 text-ink" />
               </div>
-              <div className="truncate flex-1">
-                <p className="text-xs font-bold text-ink truncate leading-tight">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-ink line-clamp-2 break-words leading-tight" title={loc.name}>
                   {loc.name}
                 </p>
-                <p className="text-[10px] text-text-muted truncate mt-0.5">
+                <p className="text-[10px] text-text-muted truncate mt-0.5" title={loc.address || "Punto de ubicación en AMBA"}>
                   {loc.address || "Punto de ubicación en AMBA"}
                 </p>
               </div>

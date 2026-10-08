@@ -60,7 +60,7 @@ export default function TransportesAppPage() {
   const alertas = useMemo(() => TransportService.getAlertas(), []);
 
   const [positions, setPositions] = useState<VehiclePosition[]>([]);
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number; heading?: number | null; accuracy?: number } | null>(null);
   const [selectedLineaId, setSelectedLineaId] = useState<string | null>(null);
   const [selectedRamalId, setSelectedRamalId] = useState<string | null>(null);
   const [selectedParada, setSelectedParada] = useState<Parada | null>(null);
@@ -1225,10 +1225,12 @@ export default function TransportesAppPage() {
         >
           {/* Header Flotante Superior: Búsqueda regular o Modo Viaje.
               SIN backdrop-blur: el filtro sobre el canvas WebGL re-composita
-              cada frame y titilea al expandir el modal. */}
+              cada frame y titilea al expandir el modal.
+              SIN translateZ(0): forzar capa GPU en este header coplanaba
+              el <canvas> WebGL del mapa en WebKit (Safari iOS) y lo dejaba
+              en negro. Ver docs/INCIDENTE-MAPA-iOS-SAFARI.md. */}
           <div
             className="absolute top-[max(14px,env(safe-area-inset-top))] left-4 right-4 z-30 max-w-md mx-auto pointer-events-auto flex flex-col items-center gap-2"
-            style={{ transform: "translateZ(0)" }}
           >
             {isTripViewActive ? (
 <ViajeHeader
@@ -1326,7 +1328,7 @@ export default function TransportesAppPage() {
 
                 {/* Píldora del Ramal Seleccionado (visible si no hay colectivo seleccionado) */}
                 {!selectedVehiculo && selectedRamal && (
-                  <div className="animate-in fade-in slide-in-from-top-2 duration-200 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-canvas dark:bg-canvas border border-hairline shadow-md text-xs pointer-events-auto max-w-full truncate">
+                  <div className="animate-in fade-in slide-in-from-top-2 duration-200 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-canvas dark:bg-canvas border border-hairline shadow-md text-xs pointer-events-auto max-w-full">
                     <span
                       className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black text-white shrink-0 shadow-xs"
                       style={{ backgroundColor: selectedRamal.color || selectedLinea?.colorHex || "#1D4ED8" }}
@@ -1336,7 +1338,7 @@ export default function TransportesAppPage() {
                     <span className="font-bold text-ink shrink-0">
                       {selectedRamal.codigo}:
                     </span>
-                    <span className="text-text-muted font-medium truncate">
+                    <span className="text-text-muted font-medium line-clamp-2 break-words min-w-0">
                       {getRamalDisplayName(selectedRamal)}
                     </span>
                     <button
@@ -1470,10 +1472,14 @@ export default function TransportesAppPage() {
               </button>
             )}
 
-            <button
+              <button
               onClick={() => {
                 setUserLocation((prev) =>
-                  prev ? null : { lat: SIMULATED_USER_LOCATION.lat, lng: SIMULATED_USER_LOCATION.lng }
+                  prev ? null : {
+                    lat: SIMULATED_USER_LOCATION.lat,
+                    lng: SIMULATED_USER_LOCATION.lng,
+                    heading: SIMULATED_USER_LOCATION.heading ?? null,
+                  }
                 );
               }}
               title={userLocation ? "Desactivar mi ubicación simulada" : "Activar mi ubicación simulada (Parque Centenario)"}
@@ -1507,6 +1513,7 @@ export default function TransportesAppPage() {
               liveFooterLabel={expectedArrival?.displayLabel ?? boardingHeroLive}
               onCollapsedChange={handlePanelCollapsedChange}
               onRepickDestination={handleRepickDestination}
+              userHeading={userLocation?.heading ?? null}
             />
           ) : (
             <LiveTransportBubble

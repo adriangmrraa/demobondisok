@@ -162,27 +162,30 @@ export default function BottomSheetPanel({
         <div className="w-10 h-1 rounded-full bg-hairline mb-2.5" />
 
         <div className="w-full flex items-center justify-between">
-          <div className="flex items-center gap-2 truncate">
+          <div className="flex items-center gap-2 min-w-0">
             {selectedLinea ? (
-              <div className="flex items-center gap-2 truncate">
+              <div className="flex items-center gap-2 min-w-0">
                 <span
                   className="px-3 py-1 rounded-full text-xs font-bold shrink-0"
                   style={{ backgroundColor: selectedLinea.colorHex, color: selectedLinea.textColorHex }}
                 >
                   Línea {selectedLinea.numero}
                 </span>
-                <span className="text-xs font-semibold text-ink truncate">
+                <span
+                  className="text-xs font-semibold text-ink line-clamp-2 break-words"
+                  title={selectedRamal ? `Ramal ${selectedRamal.codigo} · ${selectedRamal.nombre}` : selectedLinea.nombre}
+                >
                   {selectedRamal
                     ? `Ramal ${selectedRamal.codigo} · ${selectedRamal.nombre}`
                     : selectedLinea.nombre}
                 </span>
               </div>
             ) : selectedParada ? (
-              <div className="flex items-center gap-2 text-xs font-semibold text-ink truncate">
+              <div className="flex items-center gap-2 text-xs font-semibold text-ink min-w-0">
                 <div className="w-6 h-6 rounded-full bg-canvas-soft text-text-muted flex items-center justify-center shrink-0">
                   <MapPin className="w-3.5 h-3.5" />
                 </div>
-                <span className="truncate">{selectedParada.nombre}</span>
+                <span className="line-clamp-2 break-words" title={selectedParada.nombre}>{selectedParada.nombre}</span>
               </div>
             ) : (
               <div className="flex items-center gap-2 text-xs font-semibold text-ink">
@@ -518,11 +521,11 @@ export default function BottomSheetPanel({
                           />
                         </div>
 
-                        <div className="flex-1 truncate">
-                          <p className="text-xs font-semibold text-ink truncate">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-ink line-clamp-2 break-words" title={parada.nombre}>
                             {parada.nombre}
                           </p>
-                          <p className="text-[11px] text-text-muted truncate">{parada.direccion}</p>
+                          <p className="text-[11px] text-text-muted truncate" title={parada.direccion}>{parada.direccion}</p>
                         </div>
 
                         <div className="flex items-center gap-1 shrink-0">

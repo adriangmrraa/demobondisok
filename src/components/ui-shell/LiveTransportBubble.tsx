@@ -104,9 +104,9 @@ export default function LiveTransportBubble({
             handleToggle();
           }}
         >
-        <div className="flex items-center gap-2.5 truncate">
+        <div className="flex items-center gap-2.5 min-w-0">
           {selectedLinea ? (
-            <div className="flex items-center gap-2 truncate">
+            <div className="flex items-center gap-2 min-w-0">
               <span
                 className="px-2.5 py-0.5 rounded-full text-xs font-black shrink-0 shadow-xs"
                 style={{
@@ -116,8 +116,8 @@ export default function LiveTransportBubble({
               >
                 Línea {selectedLinea.numero}
               </span>
-              <div className="truncate">
-                <p className="text-xs font-bold text-ink truncate leading-tight">
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-ink line-clamp-2 break-words leading-tight" title={selectedRamal ? selectedRamal.nombre : selectedLinea.nombre}>
                   {selectedRamal ? selectedRamal.nombre : selectedLinea.nombre}
                 </p>
                 <p className="text-[10px] text-text-muted flex items-center gap-1 mt-0.5">
@@ -195,13 +195,22 @@ export default function LiveTransportBubble({
         {selectedVehiculo && (
           <div className="p-3 rounded-2xl bg-canvas-soft border border-hairline space-y-2">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <BusFront className="w-4 h-4 text-electric-blue" />
-                <span className="text-xs font-bold text-ink">
-                  Unidad #{selectedVehiculo.unitId}
+              <div className="flex items-center gap-2 min-w-0">
+                <span
+                  className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: selectedLinea?.colorHex || "#0284C7" }}
+                  aria-hidden="true"
+                >
+                  <BusFront className="w-3.5 h-3.5 text-white" />
+                </span>
+                <span
+                  className="text-base font-black text-ink tabular-nums"
+                  title={`Coche ${selectedVehiculo.unitId}`}
+                >
+                  {selectedVehiculo.unitId}
                 </span>
               </div>
-              <span className="text-[11px] font-semibold text-emerald-600 tabular-nums">
+              <span className="text-[11px] font-semibold text-emerald-600 tabular-nums shrink-0">
                 {Math.round(selectedVehiculo.speed || 0)} km/h
               </span>
             </div>
@@ -241,11 +250,11 @@ export default function LiveTransportBubble({
           <div className="space-y-2">
             {selectedParada ? (
               <div className="p-2.5 rounded-xl bg-canvas-soft border border-hairline-soft space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-ink truncate">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-ink line-clamp-2 break-words" title={`📍 ${selectedParada.nombre}`}>
                     📍 {selectedParada.nombre}
                   </span>
-                  <span className="text-[10px] text-text-muted">Parada seleccionada</span>
+                  <span className="text-[10px] text-text-muted shrink-0">Parada seleccionada</span>
                 </div>
                 {llegadas.length > 0 ? (
                   <div className="space-y-1 pt-1">
@@ -298,11 +307,11 @@ export default function LiveTransportBubble({
                       : "bg-canvas-soft hover:bg-field text-ink border border-hairline-soft"
                   }`}
                 >
-                  <div className="flex items-center gap-2 truncate">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
                     <span className="text-[10px] font-bold text-text-muted w-4">
                       #{idx + 1}
                     </span>
-                    <span className="text-xs font-semibold truncate">{p.nombre}</span>
+                    <span className="text-xs font-semibold line-clamp-2 break-words" title={p.nombre}>{p.nombre}</span>
                   </div>
                   <span className="text-[10px] text-text-muted shrink-0 ml-1">Ver</span>
                 </button>

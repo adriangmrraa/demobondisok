@@ -154,7 +154,7 @@ export function AssistantWizard({
             ) : (
               <Navigation className="w-4 h-4 text-electric-blue shrink-0" />
             )}
-            <span className="text-sm font-bold text-ink truncate">
+            <span className="text-sm font-bold text-ink truncate" title={STEP_LABELS[step]}>
               {STEP_LABELS[step]}
               <span className="ml-1.5 text-[11px] font-medium text-text-faint">
                 {stepIndex + 1}/{stepOrder.length}
@@ -197,7 +197,7 @@ export function AssistantWizard({
                   <MapPin className="w-4 h-4 text-electric-blue" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-bold text-ink truncate" title={locationName}>
+                  <span className="block text-sm font-bold text-ink line-clamp-2 break-words" title={locationName}>
                     {locationName}
                   </span>
                   <span className="block text-[11px] text-text-faint">Punto de referencia</span>
@@ -265,7 +265,7 @@ export function AssistantWizard({
                         )}
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-bold text-ink truncate" title={parada.nombre}>
+                          <p className="text-sm font-bold text-ink break-words line-clamp-2" title={parada.nombre}>
                             {parada.nombre}
                           </p>
                           <p className="text-[11px] text-text-muted">
@@ -347,11 +347,11 @@ export function AssistantWizard({
                         >
                           <MapPin className="w-4 h-4 text-text-muted shrink-0" />
                           <span className="min-w-0">
-                            <span className="block text-sm font-semibold text-ink truncate">
+                            <span className="block text-sm font-semibold text-ink line-clamp-2 break-words" title={place.name}>
                               {place.name}
                             </span>
                             {place.address && (
-                              <span className="block text-[11px] text-text-muted truncate">
+                              <span className="block text-[11px] text-text-muted truncate" title={place.address}>
                                 {place.address}
                               </span>
                             )}

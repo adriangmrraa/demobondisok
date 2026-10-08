@@ -125,11 +125,11 @@ export function PlaceSelector({ onSelect, onCancel }: PlaceSelectorProps) {
                     <MapPin className="w-3.5 h-3.5 text-ink" />
                   </span>
                   <span className="min-w-0">
-                    <span className="block text-sm font-bold text-ink truncate">
+                    <span className="block text-sm font-bold text-ink line-clamp-2 break-words" title={place.name}>
                       {place.name}
                     </span>
                     {place.address && (
-                      <span className="block text-xs text-text-muted truncate">
+                      <span className="block text-xs text-text-muted truncate" title={place.address}>
                         {place.address}
                       </span>
                     )}
