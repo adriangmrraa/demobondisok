@@ -108,6 +108,61 @@ function computeLineasBounds(
   ];
 }
 
+/**
+ * Variante "smart" de computeLineasBounds (PBI-034 v4): en lugar de usar el
+ * extent completo de las coordenadas de los recorridos (que se sale a La Plata
+ * para la 195, Luján para la 365, etc.), toma SOLO las paradas que tienen
+ * combinaciones con subte/tren/metrobus. Eso centra la cámara en la zona
+ * "interesante" (CABA + combinaciones) y permite zoom mucho más alto, en lugar
+ * de alejarse para abarcar outliers suburbanos.
+ *
+ * Si el set no tiene paradas con combinaciones, fallback al extent completo
+ * de coordenadas (caso edge: una línea sin combinaciones, ej: interurbana).
+ */
+function computeCombinacionesBounds(
+  lineaIds: string[],
+  dataset: TransportNetworkDataset,
+): [[number, number], [number, number]] | null {
+  if (lineaIds.length === 0) return null;
+  const lineasById = new Map<string, LineaDefinition>(
+    dataset.lineas.map((l) => [l.id, l]),
+  );
+  let minLng = Infinity;
+  let maxLng = -Infinity;
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  let any = false;
+  for (const id of lineaIds) {
+    const linea = lineasById.get(id);
+    if (!linea) continue;
+    for (const ramal of linea.ramales) {
+      for (const rec of ramal.recorridos) {
+        for (const stopId of rec.paradas) {
+          const parada = dataset.paradas[stopId];
+          if (!parada) continue;
+          const tieneConexion =
+            (parada.conexiones?.subte && parada.conexiones.subte.length > 0) ||
+            (parada.conexiones?.tren && parada.conexiones.tren.length > 0) ||
+            parada.conexiones?.metrobus === true;
+          if (!tieneConexion) continue;
+          if (parada.lng < minLng) minLng = parada.lng;
+          if (parada.lng > maxLng) maxLng = parada.lng;
+          if (parada.lat < minLat) minLat = parada.lat;
+          if (parada.lat > maxLat) maxLat = parada.lat;
+          any = true;
+        }
+      }
+    }
+  }
+  if (!any) return null;
+  const padLng = Math.max((maxLng - minLng) * LINE_FILTER_PADDING_RATIO, 0.002);
+  const padLat = Math.max((maxLat - minLat) * LINE_FILTER_PADDING_RATIO, 0.002);
+  return [
+    [minLng - padLng, minLat - padLat],
+    [maxLng + padLng, maxLat + padLat],
+  ];
+}
+
 /** Clave del trip vivo: cualquier cambio invalida los pins de otro viaje. */
 function buildTripKey(
   origin: LocationPoint | null,
@@ -624,7 +679,14 @@ export default function TransportesAppPage() {
   );
   const lineaFilterFocus: MapFocusRequest | null = useMemo(() => {
     if (isTripMode || effectiveLineaIds.length === 0) return null;
-    const bounds = computeLineasBounds(effectiveLineaIds, DATASET);
+    // PBI-034 v4: smart extent — preferimos las paradas con combinaciones
+    // (subte/tren/metrobus) que el extent completo de coordenadas. Eso evita
+    // que outliers suburbanos (195 a La Plata, 365 a Luján) jalan el centroide
+    // fuera de CABA. Fallback al extent completo si el set no tiene
+    // combinaciones (caso edge: línea interurbana pura).
+    const bounds =
+      computeCombinacionesBounds(effectiveLineaIds, DATASET) ??
+      computeLineasBounds(effectiveLineaIds, DATASET);
     if (!bounds) return null;
     // Nonce determinístico basado en los ids ordenados: cambios en el set (o en
     // el orden) re-disparan el fitBounds; ids repetidos lo mantienen estable.
