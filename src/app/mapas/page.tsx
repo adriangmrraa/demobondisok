@@ -39,13 +39,15 @@ const TRIP_PAD_EXPANDED = 514;
 /** Techo de zoom del foco por paso: un segmento corto no sobre-zoomea. */
 const STEP_FOCUS_MAX_ZOOM = 16.5;
 
-/** Techo de zoom del foco por líneas filtradas: una línea corta (CABA) no sobre-zoomea,
- *  pero tampoco queda muy lejos (cubre hasta 2-3 barrios). */
-const LINE_FILTER_MAX_ZOOM = 14;
+/** Techo de zoom del foco por líneas filtradas: una línea corta (CABA) llega
+ *  hasta nivel de barrio (zoom 16); líneas largas (194, 365) se limitan por
+ *  su extent, no por el maxZoom. */
+const LINE_FILTER_MAX_ZOOM = 16;
 
-/** Padding relativo al extent: 25% a cada lado para que las líneas no queden
- *  pegadas al borde del canvas ni a la barra del bottom nav. */
-const LINE_FILTER_PADDING_RATIO = 0.25;
+/** Padding relativo al extent: 12% a cada lado para que las líneas no queden
+ *  pegadas al borde del canvas ni a la barra del bottom nav, pero con menos
+ *  aire que antes (era 25%). Líneas cortas de CABA se ven 2-3x más cerca. */
+const LINE_FILTER_PADDING_RATIO = 0.12;
 
 /**
  * Calcula los bounds [[minLng,minLat],[maxLng,maxLat]] que abarcan todas las
