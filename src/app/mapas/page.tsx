@@ -39,15 +39,31 @@ const TRIP_PAD_EXPANDED = 514;
 /** Techo de zoom del foco por paso: un segmento corto no sobre-zoomea. */
 const STEP_FOCUS_MAX_ZOOM = 16.5;
 
-/** Techo de zoom del foco por líneas filtradas: una línea corta (CABA) llega
- *  hasta nivel de barrio (zoom 16); líneas largas (194, 365) se limitan por
- *  su extent, no por el maxZoom. */
-const LINE_FILTER_MAX_ZOOM = 16;
-
 /** Padding relativo al extent: 12% a cada lado para que las líneas no queden
  *  pegadas al borde del canvas ni a la barra del bottom nav, pero con menos
  *  aire que antes (era 25%). Líneas cortas de CABA se ven 2-3x más cerca. */
 const LINE_FILTER_PADDING_RATIO = 0.12;
+
+/** Umbrales del fitBounds adaptativo (PBI-034 v2): elegimos maxZoom según
+ *  el extent del set de líneas para que la cámara se acerque lo más posible
+ *  sin que las líneas queden pegadas al borde.
+ *  - extent < 12 km:  1 línea de CABA → maxZoom 16 (nivel de barrio)
+ *  - extent < 25 km:  2-3 líneas CABA → maxZoom 13.5 (vista de comuna)
+ *  - extent < 45 km:  corredor medio → maxZoom 11 (norte AMBA, CABA+)
+ *  - extent ≥ 45 km:  corredor largo / outliers (195 a La Plata) → maxZoom 9.5
+ *
+ *  Los valores se afinaron en sesión 2026-10-08 midiendo zooms reales con
+ *  Playwright + MapLibre contra viewport 390x844 mobile portrait. */
+const ZOOM_TIER_BREAKPOINTS_KM = [12, 25, 45] as const;
+const ZOOM_TIER_VALUES = [16, 13.5, 11, 9.5] as const;
+
+/** Devuelve el maxZoom para un extent en km (el lado mayor del bounding box). */
+function pickMaxZoomForExtent(extentKm: number): number {
+  for (let i = 0; i < ZOOM_TIER_BREAKPOINTS_KM.length; i++) {
+    if (extentKm < ZOOM_TIER_BREAKPOINTS_KM[i]) return ZOOM_TIER_VALUES[i];
+  }
+  return ZOOM_TIER_VALUES[ZOOM_TIER_VALUES.length - 1];
+}
 
 /**
  * Calcula los bounds [[minLng,minLat],[maxLng,maxLat]] que abarcan todas las
@@ -618,10 +634,21 @@ export default function TransportesAppPage() {
       .slice()
       .sort()
       .reduce((acc, id) => acc + id.split("").reduce((a, c) => a + c.charCodeAt(0), 0), 1);
+    // FitBounds adaptativo: medimos el extent en km y elegimos el maxZoom
+    // según el tier (ver ZOOM_TIER_BREAKPOINTS_KM). Así 1 línea local llega
+    // a nivel de barrio (zoom 16) y un multi-filtro con outliers (195 a La
+    // Plata) no jala la cámara a zoom 3.
+    const widthDeg = bounds[1][0] - bounds[0][0];
+    const heightDeg = bounds[1][1] - bounds[0][1];
+    const midLat = (bounds[0][1] + bounds[1][1]) / 2;
+    const widthKm = widthDeg * 111 * Math.cos((midLat * Math.PI) / 180);
+    const heightKm = heightDeg * 111;
+    const extentKm = Math.max(widthKm, heightKm);
+    const maxZoom = pickMaxZoomForExtent(extentKm);
     return {
       bounds,
       nonce,
-      maxZoom: LINE_FILTER_MAX_ZOOM,
+      maxZoom,
     };
   }, [isTripMode, effectiveLineaIds]);
 
