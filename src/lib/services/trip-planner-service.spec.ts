@@ -201,6 +201,19 @@ console.log("\n🎉 ¡Todos los 8 casos de prueba + caso especial pasaron con é
   assert.deepStrictEqual(guide.steps.map((step) => step.id), transferTrip.steps.map((step) => step.id), "La línea de tiempo debe conservar el orden del planificador");
   assert.ok(guide.steps.some((step) => step.type === "transfer"), "La combinación debe aparecer en la guía");
   assert.strictEqual(journeyEtaLabel(null), "Sin seguimiento en vivo");
-  assert.ok(imperativeStepLabel(guide.steps[0]).startsWith("Caminá") || imperativeStepLabel(guide.steps[0]).startsWith("Esperá"));
-  console.log("  ✓ Guía Expo: prioridad de línea, orden, combinación y ETA validados.");
+  assert.ok(/^(Caminá|Tomá|Bajá|Combiná|Esperá)/.test(imperativeStepLabel(guide.steps[0])), "El primer paso debe ser una instrucción accionable");
+  // Prioridad 4: la combinación nombra la línea que se toma después.
+  const transferIdx = guide.steps.findIndex((step) => step.type === "transfer");
+  assert.ok(transferIdx >= 0);
+  assert.ok(
+    imperativeStepLabel(guide.steps[transferIdx], null, guide.steps[transferIdx + 1]).includes("194"),
+    "El paso de combinación debe indicar la línea a tomar (194)",
+  );
+  // Prioridad 4: el último paso siempre es enfocable en el mapa.
+  const lastStep = transferTrip.steps[transferTrip.steps.length - 1];
+  assert.ok(
+    lastStep.legIndex !== undefined || lastStep.focusPoint !== undefined,
+    "El último paso debe poder enfocarse en el mapa (leg o focusPoint)",
+  );
+  console.log("  ✓ Guía Expo: prioridad de línea, orden, combinación, ETA y último paso validados.");
 }

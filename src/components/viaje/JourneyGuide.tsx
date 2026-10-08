@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ArrowLeft, Map, Navigation, Route } from 'lucide-react';
 import { buildJourneyGuideModel } from '@/lib/journey-guide';
 import { tripMapUrlFromState, type TripMapNavigationState } from '@/lib/trip-map-navigation';
-import type { TripOption } from '@/types/trip-planner';
+import type { TripOption, TripStep } from '@/types/trip-planner';
 import { JourneyTimeline } from './JourneyTimeline';
 import { TripDiagram } from './TripDiagram';
 import { LineDisplay } from '@/components/ui/line-display';
@@ -16,9 +16,46 @@ interface JourneyGuideProps {
   userHeading?: number | null;
 }
 
+/**
+ * ETA como pieza visual dominante del hero: número tabular grande, alto
+ * contraste sobre bg-ink y aria-live para avisar cambios sin saltos de layout.
+ * No recalcula ETA: sólo presenta el valor ya resuelto por el estado de viaje.
+ */
+function HeroEta({ etaMinutes, etaLabel }: { etaMinutes: number | null; etaLabel: string }) {
+  if (etaMinutes === null) {
+    return (
+      <span aria-live="polite" className="text-base font-bold leading-snug text-canvas/80">
+        Sin seguimiento en vivo
+      </span>
+    );
+  }
+  if (etaMinutes <= 0) {
+    return (
+      <span aria-live="polite" className="text-4xl font-black leading-none tracking-tight">
+        Llegando
+      </span>
+    );
+  }
+  return (
+    <span aria-live="polite" aria-label={etaLabel} className="flex flex-col items-end">
+      <span className="flex items-baseline gap-1">
+        <span className="text-6xl font-black leading-none tracking-tight tabular-nums">
+          {Math.ceil(etaMinutes)}
+        </span>
+        <span className="text-xl font-black text-canvas/70">min</span>
+      </span>
+      <span className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-canvas/60">
+        para que llegue
+      </span>
+    </span>
+  );
+}
+
 export function JourneyGuide({ option, state, etaMinutes, onBackToOptions, userHeading }: JourneyGuideProps) {
   const model = buildJourneyGuideModel(option, etaMinutes);
   const mapState = { ...state, selectedTripId: option.id };
+  const mapUrlForStep = (step: TripStep) =>
+    tripMapUrlFromState({ ...mapState, stepId: step.id });
   return (
     <section aria-label="Guía de viaje" className="space-y-5">
       <button type="button" onClick={onBackToOptions} className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-ink hover:text-electric-blue">
@@ -27,7 +64,7 @@ export function JourneyGuide({ option, state, etaMinutes, onBackToOptions, userH
       {model.hero ? (
         <div className="rounded-3xl bg-ink p-5 text-canvas shadow-[0_16px_35px_-16px_rgba(0,0,0,0.65)]">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-canvas/65">Tu próximo colectivo</p>
-          <div className="mt-3 flex items-end gap-4">
+          <div className="mt-3 flex items-center justify-between gap-4">
             <LineDisplay
               number={model.hero.lineNumber}
               color={model.hero.color}
@@ -35,7 +72,7 @@ export function JourneyGuide({ option, state, etaMinutes, onBackToOptions, userH
               size="xl"
               aria-label={`Línea ${model.hero.lineNumber} en pantalla`}
             />
-            <span className="mb-1 rounded-full bg-[#dcfce7] px-3 py-1.5 text-sm font-black text-[#166534]">{model.hero.etaLabel}</span>
+            <HeroEta etaMinutes={model.hero.etaMinutes} etaLabel={model.hero.etaLabel} />
           </div>
           <p className="mt-4 break-words text-base font-bold leading-snug">Hacia {model.hero.direction}</p>
           <p className="mt-1 text-sm leading-snug text-canvas/70">Esperalo en la parada indicada y seguí los pasos.</p>
@@ -48,7 +85,7 @@ export function JourneyGuide({ option, state, etaMinutes, onBackToOptions, userH
       )}
       <div className="rounded-3xl border border-hairline bg-canvas p-5">
         <div className="mb-5 flex items-center gap-2"><Navigation className="size-5 text-electric-blue" /><h2 className="text-lg font-black text-ink">Paso a paso</h2></div>
-        <JourneyTimeline steps={model.steps} userHeading={userHeading} />
+        <JourneyTimeline steps={model.steps} userHeading={userHeading} mapUrlForStep={mapUrlForStep} />
       </div>
       <div className="rounded-3xl border border-hairline bg-canvas p-5">
         <div className="mb-5 flex items-center gap-2"><Route className="size-5 text-electric-blue" /><h2 className="text-lg font-black text-ink">Recorrido</h2></div>

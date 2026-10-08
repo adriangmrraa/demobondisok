@@ -1,7 +1,7 @@
+import Link from 'next/link';
 import { Bus, Footprints, GitBranch, MapPin, Train, TramFront } from 'lucide-react';
 import { useState } from 'react';
 import { imperativeStepLabel } from '@/lib/journey-guide';
-import { walkDirectionLabel } from '@/lib/walk-direction';
 import { combinacionesDeParada, type Combinacion } from '@/lib/combinaciones';
 import { CombinationSheet } from './CombinationSheet';
 import type { TripStep } from '@/types/trip-planner';
@@ -13,15 +13,23 @@ interface JourneyTimelineProps {
   /** ID del step actual (parada donde está el pasajero ahora). Si se provee, ese step
    *  se resalta con dot más grande, color saturado y micro-animación de pulso. */
   currentStepId?: string | null;
+  /** Builder de URL a /mapas para enfocar un paso concreto (leg o focusPoint). */
+  mapUrlForStep?: (step: TripStep) => string;
 }
 
-function StepIcon({ type }: { type: TripStep['type'] }) {
-  if (type === 'walk') return <Footprints className="size-4" />;
-  if (type === 'transfer') return <GitBranch className="size-4" />;
+/** El paso puede enfocarse en el mapa: tiene leg con geometría o punto propio. */
+function isFocusable(step: TripStep): boolean {
+  return step.legIndex !== undefined || step.focusPoint !== undefined;
+}
+
+function StepIcon({ step }: { step: TripStep }) {
+  if (step.focusPoint) return <MapPin className="size-4" />;
+  if (step.type === 'walk') return <Footprints className="size-4" />;
+  if (step.type === 'transfer') return <GitBranch className="size-4" />;
   return <Bus className="size-4" />;
 }
 
-export function JourneyTimeline({ steps, userHeading, currentStepId }: JourneyTimelineProps) {
+export function JourneyTimeline({ steps, userHeading, currentStepId, mapUrlForStep }: JourneyTimelineProps) {
   const [openCombinacion, setOpenCombinacion] = useState<Combinacion | null>(null);
   const [combinacionParada, setCombinacionParada] = useState<string | undefined>(undefined);
 
@@ -65,7 +73,7 @@ export function JourneyTimeline({ steps, userHeading, currentStepId }: JourneyTi
                     <span className="h-2 w-2 rounded-full bg-canvas" />
                   </span>
                 ) : null}
-                <StepIcon type={step.type} />
+                <StepIcon step={step} />
                 {isCurrent ? (
                   <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[9px] font-black uppercase tracking-wider text-electric-blue bg-canvas px-1.5 rounded-full border border-electric-blue/30">
                     Acá
@@ -73,19 +81,22 @@ export function JourneyTimeline({ steps, userHeading, currentStepId }: JourneyTi
                 ) : null}
               </span>
               <div className="min-w-0 pt-0.5">
-                <p className={stepTitleClass}>{imperativeStepLabel(step, userHeading)}</p>
-                {step.type === "walk" && step.walkBearing != null ? (
-                  <p className="mt-1 text-xs font-semibold text-electric-blue">
-                    {walkDirectionLabel(step.walkBearing, userHeading)}
-                  </p>
-                ) : null}
+                <p className={stepTitleClass}>{imperativeStepLabel(step, userHeading, steps[index + 1])}</p>
                 <div className="mt-1 flex flex-wrap gap-x-2 text-xs text-text-muted">
-                  <span>{step.durationMinutes} min</span>
+                  {!step.focusPoint ? <span>{step.durationMinutes} min</span> : null}
                   {step.stopCount ? <span>{step.stopCount} parada{step.stopCount === 1 ? '' : 's'}</span> : null}
-                  {step.type === 'transfer' ? <span className="inline-flex items-center gap-1 font-semibold text-amber-800"><MapPin className="size-3" /> Punto de combinación</span> : null}
+                  {step.type === 'transfer' ? <span className="inline-flex items-center gap-1 font-semibold text-amber-800"><GitBranch className="size-3" /> Punto de combinación</span> : null}
                 </div>
-                {step.type === 'ride' && step.ramalNombre ? <p className="mt-1 break-words text-xs font-medium text-text-muted">Hacia {step.ramalNombre}</p> : null}
                 {step.type === 'ride' ? <p className="mt-1 break-words text-xs font-bold text-ink">Bajá en {step.toStopName}</p> : null}
+                {mapUrlForStep && isFocusable(step) ? (
+                  <Link
+                    href={mapUrlForStep(step)}
+                    className="-ml-2 mt-0.5 inline-flex min-h-11 items-center gap-1.5 px-2 text-xs font-bold text-electric-blue hover:underline"
+                    aria-label={`Ver el paso ${index + 1} en el mapa: ${step.description}`}
+                  >
+                    <MapPin className="size-3.5" aria-hidden="true" /> Ver en el mapa
+                  </Link>
+                ) : null}
                 {combinaciones.length > 0 ? (
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {combinaciones.map((c) => {

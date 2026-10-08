@@ -182,11 +182,6 @@ export function StopDetailCard({
           <span className="font-bold text-sm text-ink">
             {proximoArribo?.displayLabel || "5 min"}
           </span>
-          {proximoArribo?.interno && (
-            <span className="text-xs text-text-muted ml-1.5">
-              (Unidad {proximoArribo.interno})
-            </span>
-          )}
         </div>
       </div>
     </div>

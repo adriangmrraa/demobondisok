@@ -111,6 +111,35 @@ test('A passenger selects a text-first alternative before opening the map', asyn
   await expect(page.getByRole('link', { name: /ver el recorrido en el mapa/i })).toBeVisible();
 });
 
+test('Journey guide exposes dominant ETA, hides unit ids and focuses the last step on the map', async ({ page }) => {
+  await page.goto(journeyUrl);
+  await page.getByRole('region', { name: /alternativas de viaje/i }).getByRole('button').first().click();
+
+  const guide = page.getByRole('region', { name: /guía de viaje/i });
+  await expect(guide).toBeVisible();
+
+  // ETA visible y con aria-live (este viaje no trae feed: estado "sin seguimiento").
+  const eta = guide.locator('[aria-live="polite"]').filter({ hasText: /seguimiento|llegando|min/i });
+  await expect(eta.first()).toBeVisible();
+
+  // El identificador interno del vehículo nunca aparece en la guía.
+  await expect(guide.getByText(/coche|unidad|interno/i)).toHaveCount(0);
+
+  // El último paso (bajada/destino) es enfocable igual que los demás.
+  const steps = guide.getByRole('list', { name: /pasos del viaje/i }).getByRole('listitem');
+  const lastStep = steps.last();
+  const mapLink = lastStep.getByRole('link', { name: /ver el paso \d+ en el mapa/i });
+  await expect(mapLink).toBeVisible();
+  const href = await mapLink.getAttribute('href');
+  expect(href).toMatch(/\/mapas\?/);
+  expect(href).toMatch(/paso=step-/);
+
+  // Al tocarlo, /mapas conserva el viaje y recibe el paso a enfocar.
+  await mapLink.click();
+  await expect(page).toHaveURL(/\/mapas\?.*trip=1/);
+  await expect(page).toHaveURL(/paso=step-/);
+});
+
 test('Map rendering failure keeps the matching text journey available', async ({ page }) => {
   await page.addInitScript(() => {
     const canvasPrototype = HTMLCanvasElement.prototype as unknown as {

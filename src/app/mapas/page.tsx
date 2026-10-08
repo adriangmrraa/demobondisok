@@ -267,12 +267,9 @@ export default function TransportesAppPage() {
       }
     }
 
-    const unitNumber = selectedVehiculo.unitId.replace(/^[a-zA-Z]-?/, "");
-
     return {
       linea,
       ramal,
-      unitNumber,
       nextStopName,
       minutesToNextStop,
     };
@@ -487,7 +484,6 @@ export default function TransportesAppPage() {
   // still the nearest arrival, onboard snapshot once it wraps past the stop.
   // Guarantees the PASSED transfer window renders instead of unmounting.
   const cardLineaNumero = expectedArrival?.lineaNumero ?? onboard?.lineaNumero ?? null;
-  const cardUnitId = onboard?.unitId ?? selectedVehiculo?.unitId ?? null;
 
   // Parada de abordaje para el encuadre dual: la del trip resuelto, la
   // seleccionada o la legacy. Sin parada no hay follow-trip (solo follow-vehicle).
@@ -545,13 +541,22 @@ export default function TransportesAppPage() {
   }, [isTripViewActive, originLocation, destinationLocation]);
 
   const plannerPulse: PlannerMapPulse | null = useMemo(() => {
-    if (!isTripViewActive || !selectedTrip?.transferStopCoords) return null;
+    if (!isTripViewActive) return null;
+    // Paso "arrive" enfocado: pulso sobre la parada de descenso (mismo rojo
+    // que el marcador 'alight' de trip-used-stops) para señal visual clara.
+    if (activeStepId && selectedTrip) {
+      const focusedStep = selectedTrip.steps.find((s) => s.id === activeStepId);
+      if (focusedStep?.focusPoint) {
+        return { lat: focusedStep.focusPoint.lat, lng: focusedStep.focusPoint.lng, color: "#EF4444" };
+      }
+    }
+    if (!selectedTrip?.transferStopCoords) return null;
     return {
       lat: selectedTrip.transferStopCoords.lat,
       lng: selectedTrip.transferStopCoords.lng,
       color: selectedTrip.transferStopCoords.color || "#06B6D4",
     };
-  }, [isTripViewActive, selectedTrip]);
+  }, [isTripViewActive, selectedTrip, activeStepId]);
 
   const resolvedTripUsedStopIds = useMemo(() => {
     if (!resolvedTrip?.boardingStopId) return selectedTrip?.usedStopIds ?? null;
@@ -613,6 +618,25 @@ export default function TransportesAppPage() {
           bottomPadding: tripBottomPadding,
           pitch,
           bearing,
+          maxZoom: STEP_FOCUS_MAX_ZOOM,
+        };
+      }
+      // Paso final "arrive" (sin leg de geometría): encuadre de la parada de
+      // descenso + el destino juntos, para ver dónde bajar y a dónde se llega.
+      if (step?.focusPoint) {
+        const dest = selectedTrip.destinationCoords;
+        const minLng = Math.min(step.focusPoint.lng, dest.lng);
+        const maxLng = Math.max(step.focusPoint.lng, dest.lng);
+        const minLat = Math.min(step.focusPoint.lat, dest.lat);
+        const maxLat = Math.max(step.focusPoint.lat, dest.lat);
+        const padLng = Math.max((maxLng - minLng) * 0.6, 0.0035);
+        const padLat = Math.max((maxLat - minLat) * 0.6, 0.0035);
+        return {
+          bounds: [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
+          nonce: stepFocusNonce,
+          bottomPadding: tripBottomPadding,
+          pitch: trip3D ? 40 : 0,
+          bearing: 0,
           maxZoom: STEP_FOCUS_MAX_ZOOM,
         };
       }
@@ -821,6 +845,14 @@ export default function TransportesAppPage() {
       setSelectedTripId(request.selectedTripId ?? null);
       setSelectedLineaId(request.lineId ?? null);
       setSelectedRamalId(request.ramalId ?? null);
+      // `paso` (deep-link a un paso, ej. la bajada desde /viaje): enfoca esa
+      // sección del mapa apenas el trip se resuelve. Si el id no existe en la
+      // opción elegida, activeStepId lo descarta y vuelve el follow normal.
+      if (request.stepId) {
+        setSelectedStepId(request.stepId);
+        setStepFocusNonce((n) => n + 1);
+        setCameraMode("step-focus");
+      }
     });
     return () => window.cancelAnimationFrame(frame);
   }, []);
@@ -930,6 +962,7 @@ export default function TransportesAppPage() {
     const state = buildTripMapState(resolvedTrip.trip, originLocation, {
       boardingStopId: resolvedTrip.boardingStopId,
       arrival: expectedArrival ?? undefined,
+      stepId: activeStepId ?? undefined,
     });
     const structural: Array<[string, string | undefined]> = [
       ["origen", state.origin.name],
@@ -939,13 +972,14 @@ export default function TransportesAppPage() {
       ["linea", state.lineId],
       ["ramal", state.ramalId],
       ["interno", state.vehicleUnitId],
+      ["paso", state.stepId],
     ];
     const current = new URLSearchParams(window.location.search);
     if (current.get("trip") !== "1") return; // legacy (?linea=) se deja como está
     const differs = structural.some(([k, v]) => (current.get(k) ?? undefined) !== v);
     if (!differs) return;
     window.history.replaceState(null, "", tripMapUrlFromState(state));
-  }, [resolvedTrip, originLocation, destinationLocation, expectedArrival]);
+  }, [resolvedTrip, originLocation, destinationLocation, expectedArrival, activeStepId]);
 
   // Salir de la vista de viaje (rosa/X): oculta el chrome y libera la cámara,
   // pero conserva viaje, vehículo, parada y línea intactos.
@@ -1233,7 +1267,7 @@ export default function TransportesAppPage() {
                 {/* Píldora del Colectivo Seleccionado (Multilínea en mobile para mostrar información completa) */}
                 {tripViewVisible && selectedVehiculo && selectedVehicleInfo && (
                   <div className="animate-in fade-in slide-in-from-top-2 duration-200 w-full max-w-md px-3.5 py-2 rounded-2xl bg-canvas dark:bg-canvas border border-hairline shadow-md text-xs pointer-events-auto flex flex-col gap-1">
-                    {/* Fila 1: Insignia, Línea, Ramal, Coche y botón Cerrar */}
+                    {/* Fila 1: Insignia, Línea, Ramal y botón Cerrar */}
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
                         <span
@@ -1252,9 +1286,6 @@ export default function TransportesAppPage() {
                             • {selectedVehicleInfo.ramal.codigo}
                           </span>
                         )}
-                        <span className="font-semibold text-ink shrink-0">
-                          • Coche {selectedVehicleInfo.unitNumber}
-                        </span>
                       </div>
                       <button
                         type="button"
@@ -1381,12 +1412,11 @@ export default function TransportesAppPage() {
             />
           </div>
 
-          {isTripViewActive && isTripHeaderCollapsed && resolvedTrip && selectedVehiculo && (expectedArrival || onboard || arrivalPhase !== 'NORMAL') && cardLineaNumero && cardUnitId && (
+          {isTripViewActive && isTripHeaderCollapsed && resolvedTrip && selectedVehiculo && (expectedArrival || onboard || arrivalPhase !== 'NORMAL') && cardLineaNumero && (
             <ArrivalStatusCard
               phase={arrivalPhase}
               minutes={arrivalMinutes}
               lineNumber={cardLineaNumero}
-              unitId={cardUnitId}
               nextStopName={selectedVehicleInfo?.nextStopName ?? undefined}
               onDismiss={handleExitTripView}
             />

@@ -83,24 +83,33 @@ export function walkDirectionLabel(bearing: number, userHeading?: number | null)
 }
 
 /**
- * Enriquece los steps de tipo "walk" con el bearing calculado a partir
- * de la polilínea del leg correspondiente. Devuelve nuevos steps (no muta).
+ * Enriquece los steps de tipo "walk" y "transfer" con el bearing calculado a
+ * partir de la polilínea del leg correspondiente. Devuelve nuevos steps
+ * (no muta). Si el tramo no tiene desplazamiento real (ej: transbordo en la
+ * misma parada) no se asigna bearing — nunca se inventa una dirección.
  */
 export function enrichStepsWithBearing<T extends import('@/types/trip-planner').TripStep>(
   steps: readonly T[],
   legs: readonly import('@/types/trip-planner').TripLeg[],
 ): T[] {
   return steps.map((step) => {
-    if (step.type !== 'walk') return step;
+    if (step.type !== 'walk' && step.type !== 'transfer') return step;
     const matchingLeg = legs.find(
-      (l) => l.type === 'walk' && (l.to as { stopId?: string }).stopId === step.toStopId,
+      (l) =>
+        (l.type === 'walk' && (l.to as { stopId?: string }).stopId === step.toStopId) ||
+        (l.type === 'transfer' && l.toStop.id === step.toStopId),
     );
-    if (!matchingLeg || matchingLeg.type !== 'walk' || !matchingLeg.segmentCoordinates || matchingLeg.segmentCoordinates.length < 2) {
+    const coords =
+      matchingLeg && matchingLeg.type !== 'ride' ? matchingLeg.segmentCoordinates : undefined;
+    if (!coords || coords.length < 2) {
       return step;
     }
-    const coords = matchingLeg.segmentCoordinates;
     const from = coords[0];
     const to = coords[coords.length - 1];
+    // Tramo sin desplazamiento (~< 1 m): no hay dirección real que indicar.
+    if (Math.abs(to[0] - from[0]) < 1e-5 && Math.abs(to[1] - from[1]) < 1e-5) {
+      return step;
+    }
     return { ...step, walkBearing: computeBearing({ lat: from[1], lng: from[0] }, { lat: to[1], lng: to[0] }) };
   });
 }

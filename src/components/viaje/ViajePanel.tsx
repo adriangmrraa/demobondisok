@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { ArrowRight, Footprints, Bus, ChevronRight, ChevronDown, Layers, X, Info } from "lucide-react";
+import { ArrowRight, Footprints, Bus, ChevronRight, ChevronDown, Layers, X, Info, MapPin } from "lucide-react";
 import { TripOption, LocationPoint } from "@/types/trip-planner";
 import { TripPlannerService } from "@/lib/services/trip-planner-service";
 import { useDragCollapse } from "@/lib/hooks/use-drag-collapse";
 import type { BoardingOptionRow } from "@/lib/services/trip-boarding-options";
-import { walkDirectionLabel } from "@/lib/walk-direction";
+import { imperativeStepLabel } from "@/lib/journey-guide";
 
 interface ViajePanelProps {
   options: TripOption[];
@@ -188,7 +188,7 @@ export default function ViajePanel({
       >
         <div className="flex items-baseline gap-1.5 min-w-0">
           {selectedTrip && (
-            <span aria-live="polite" className="text-lg font-black text-ink leading-none tracking-tight tabular-nums whitespace-nowrap">
+            <span aria-live="polite" className="text-2xl font-black text-ink leading-none tracking-tight tabular-nums whitespace-nowrap">
               {liveHeroLabel ?? `${selectedTrip.totalDurationMinutes} min`}
             </span>
           )}
@@ -260,7 +260,7 @@ export default function ViajePanel({
                       key={row.unitKey}
                       type="button"
                       onClick={() => onSelectBoardingOption?.(row.unitKey)}
-                      aria-label={`Tomar línea ${row.lineaNumero}, coche ${row.interno}, ${row.displayLabel}`}
+                      aria-label={`Tomar línea ${row.lineaNumero} hacia ${row.ramal}, ${row.displayLabel}`}
                       className={`w-full text-left px-3 py-2 rounded-[16px] transition-colors active:scale-[0.99] flex items-center justify-between gap-2 ${
                         isRowSelected
                           ? "bg-canvas-soft ring-1 ring-ink/15"
@@ -276,9 +276,9 @@ export default function ViajePanel({
                         </span>
                         <span
                           className="text-xs font-bold text-ink truncate"
-                          title={`Coche ${row.interno} ${row.kind === "same-nearest" ? "· más próximo" : row.kind === "same-late" ? "· siguiente" : "· otra línea"}`}
+                          title={`${row.ramal} ${row.kind === "same-nearest" ? "· más próximo" : row.kind === "same-late" ? "· siguiente" : "· otra línea"}`}
                         >
-                          Coche {row.interno}
+                          {row.ramal}
                           <span className="ml-1.5 text-[10px] font-semibold text-text-muted">
                             {row.kind === "same-nearest" ? "· más próximo" : row.kind === "same-late" ? "· siguiente" : "· otra línea"}
                           </span>
@@ -372,7 +372,9 @@ export default function ViajePanel({
           <div className="space-y-1 py-1">
             {selectedTrip?.steps.map((step, idx) => {
               const isStepSelected = step.id === selectedStepId;
-              const tappable = step.legIndex !== undefined && onSelectStep;
+              // Enfocable: pasos con leg de geometría o punto de foco propio
+              // (el pseudo-step final "arrive" enfoca la parada de descenso).
+              const tappable = (step.legIndex !== undefined || step.focusPoint !== undefined) && onSelectStep;
               return (
               <div
                 key={step.id}
@@ -409,9 +411,15 @@ export default function ViajePanel({
                         : "size-7 border-hairline bg-canvas-soft text-ink"
                     }`}
                   >
-                    {step.type === "walk" && <Footprints className="w-3.5 h-3.5" />}
-                    {step.type === "transfer" && <Layers className="w-3.5 h-3.5" />}
-                    {step.type === "ride" && <Bus className="w-3.5 h-3.5" />}
+                    {step.focusPoint ? (
+                      <MapPin className="w-3.5 h-3.5" />
+                    ) : (
+                      <>
+                        {step.type === "walk" && <Footprints className="w-3.5 h-3.5" />}
+                        {step.type === "transfer" && <Layers className="w-3.5 h-3.5" />}
+                        {step.type === "ride" && <Bus className="w-3.5 h-3.5" />}
+                      </>
+                    )}
                   </div>
                   <span className="text-[9px] font-bold text-text-faint mt-0.5">{idx + 1}</span>
                 </div>
@@ -422,16 +430,13 @@ export default function ViajePanel({
                     className="text-sm font-bold text-ink break-words leading-snug"
                     title={step.description}
                   >
-                    {step.description}
+                    {imperativeStepLabel(step, userHeading, selectedTrip.steps[idx + 1])}
                   </p>
-                  {step.type === "walk" && step.walkBearing != null ? (
-                    <p className="mt-1 text-xs font-semibold text-electric-blue">
-                      {walkDirectionLabel(step.walkBearing, userHeading)}
+                  {!step.focusPoint && (
+                    <p className="mt-1 text-[11px] font-semibold text-text-muted tabular-nums">
+                      ~{step.durationMinutes} min
                     </p>
-                  ) : null}
-                  <p className="mt-1 text-[11px] font-semibold text-text-muted tabular-nums">
-                    ~{step.durationMinutes} min
-                  </p>
+                  )}
 
                   {step.type === "ride" && (
                     <div className="mt-2 flex items-center gap-2 flex-wrap">
@@ -459,16 +464,9 @@ export default function ViajePanel({
                     </div>
                   )}
 
-                  {step.type === "walk" && step.distanceMeters !== undefined && step.distanceMeters > 0 && (
-                    <p className="text-[10px] text-text-muted font-medium mt-0.5">
-                      {step.distanceMeters}m a pie
-                    </p>
-                  )}
-
                   {step.type === "transfer" && (
                     <p className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold mt-0.5">
                       Transbordo entre líneas
-                      {step.distanceMeters !== undefined && step.distanceMeters > 15 ? ` · ${step.distanceMeters}m a pie` : ""}
                     </p>
                   )}
                 </div>
