@@ -45,7 +45,6 @@ export function StopSequenceItem({
     isImminent,
     displayStatus,
     displayLabel,
-    statusColor,
     walkComparison,
     scheduledNextSlots,
   } = status;

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { RECORRIDOS_MOCK, VEHICULOS_INICIALES_MOCK } from "@/lib/mock/amba-data";
-import { VehiculoEnVivo, Vehicle } from "@/types/transport";
+import { VehiculoEnVivo } from "@/types/transport";
 
 /**
  * Calcula el rumbo (bearing) en grados (0-360) entre dos coordenadas geográficas.
@@ -18,7 +18,7 @@ function calculateBearing(startLat: number, startLng: number, destLat: number, d
     Math.cos(startLatRad) * Math.sin(destLatRad) -
     Math.sin(startLatRad) * Math.cos(destLatRad) * Math.cos(destLngRad - startLngRad);
 
-  let brng = (Math.atan2(y, x) * 180) / Math.PI;
+  const brng = (Math.atan2(y, x) * 180) / Math.PI;
   return Math.round((brng + 360) % 360);
 }
 

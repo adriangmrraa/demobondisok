@@ -180,7 +180,6 @@ export function computeLineStopStatuses(
   const statuses: StopLiveStatus[] = projectedStops.map(({ stop, index, alongM }) => {
     let nearestUnitId: string | null = null;
     let minDistanceAhead = Infinity;
-    let effectiveSpeed = AVERAGE_BUS_SPEED_KMH;
     let nearestVehIsDwelling = false;
     let nearestVehDwellRemaining = 0;
     let nearestVehAlongM = 0;
@@ -191,7 +190,6 @@ export function computeLineStopStatuses(
       if (distAhead < minDistanceAhead) {
         minDistanceAhead = distAhead;
         nearestUnitId = veh.unitId;
-        effectiveSpeed = veh.speed > 0 ? veh.speed : AVERAGE_BUS_SPEED_KMH;
         nearestVehIsDwelling = veh.isDwelling && (veh.currentStopId === stop.id || distAhead <= 25);
         nearestVehDwellRemaining = veh.dwellRemainingSeconds;
         nearestVehAlongM = veh.alongM;

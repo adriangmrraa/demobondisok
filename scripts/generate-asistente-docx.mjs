@@ -10,7 +10,7 @@
  */
 import {
   Document, Packer, Paragraph, TextRun, HeadingLevel,
-  AlignmentType, BorderStyle, Table, TableRow, TableCell,
+  AlignmentType, Table, TableRow, TableCell,
   WidthType, ShadingType,
 } from "docx";
 import fs from "node:fs";
@@ -64,11 +64,6 @@ const code = (t) => new Paragraph({
   spacing: { after: 20 },
   shading: { type: ShadingType.SOLID, color: "F1F5F9" },
   children: [new TextRun({ text: t || " ", size: 16, font: "Consolas" })],
-});
-const divider = () => new Paragraph({
-  spacing: { before: 200, after: 200 },
-  border: { bottom: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" } },
-  children: [],
 });
 const cell = (text, header, widthDxa) => new TableCell({
   children: [new Paragraph({ children: runs(text, { size: 18, ...(header ? { bold: true, color: "FFFFFF" } : {}) }) })],

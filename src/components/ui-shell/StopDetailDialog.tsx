@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Parada, Linea, EstimacionLlegada } from "@/types/transport";
-import { Bus, Clock, ArrowRightLeft, TrainFront, Compass } from "lucide-react";
+import { Bus, Clock, TrainFront, Compass } from "lucide-react";
 
 interface StopDetailDialogProps {
   open: boolean;
