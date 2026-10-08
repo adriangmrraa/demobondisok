@@ -384,11 +384,10 @@ export default function HomePage() {
       setLineLookupOpen(true);
       return;
     }
-    // "Paradas cerca" y "¿A dónde vas?" desembocan en el flujo completo de
-    // /como-llego (ubicación → parada → destino → alternativas → mapa); `auto`
-    // lo arranca directo, igual que el botón Empezar de esa página.
+    // La pantalla de planificación nunca solicita la ubicación al entrar.
+    // Cada acceso llega al mismo formulario; el pasajero la pide desde Origen.
     if (action === 'nearby' || action === 'destination') {
-      router.push('/como-llego?auto=1');
+      router.push('/como-llego');
       return;
     }
     router.push('/mapas?explorar=1');
