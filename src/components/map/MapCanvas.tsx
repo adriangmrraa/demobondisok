@@ -81,6 +81,14 @@ export interface MapFocusRequest {
   bearing?: number;
   /** Techo de zoom para que un segmento corto no sobre-zoomee. */
   maxZoom?: number;
+  /**
+   * Si está definido, hace jumpTo({ center, zoom }) en vez de fitBounds.
+   * Útil para "zoom responsivo" donde queremos un zoom fijo por tier sin
+   * importar el extent (fitBounds elegiría el zoom mínimo tal que el extent
+   * quepa, lo que aleja la cámara para líneas cortas). El centro se calcula
+   * como el centroide del extent.
+   */
+  zoom?: number;
 }
 
 /** Borrador del planner (Fase 4): marcadores de origen y destino. */
@@ -580,6 +588,24 @@ export function MapCanvas({
     const raf = requestAnimationFrame(() => {
       const map = mapRef.current;
       if (!map || !focusRequest) return;
+      // Modo "zoom fijo": easeTo al centroide del extent con un zoom dado.
+      // Se usa cuando queremos "zoom responsivo" sin importar el tamaño del
+      // extent (fitBounds elegiría el zoom mínimo tal que el extent quepa).
+      if (focusRequest.zoom !== undefined) {
+        const center: [number, number] = [
+          (focusRequest.bounds[0][0] + focusRequest.bounds[1][0]) / 2,
+          (focusRequest.bounds[0][1] + focusRequest.bounds[1][1]) / 2,
+        ];
+        map.easeTo({
+          center,
+          zoom: focusRequest.zoom,
+          duration: 900,
+          essential: true,
+          ...(focusRequest.pitch !== undefined ? { pitch: focusRequest.pitch } : {}),
+          ...(focusRequest.bearing !== undefined ? { bearing: focusRequest.bearing } : {}),
+        });
+        return;
+      }
       map.fitBounds(focusRequest.bounds, {
         padding: clampFitPadding(map, {
           top: 130,
