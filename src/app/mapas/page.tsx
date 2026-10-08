@@ -43,18 +43,17 @@ const STEP_FOCUS_MAX_ZOOM = 16.5;
  *  pegadas al borde del canvas ni a la barra del bottom nav. */
 const LINE_FILTER_PADDING_RATIO = 0.12;
 
-/** Umbrales del zoom responsivo (PBI-034 v2): elegimos un zoom FIJO según el
- *  extent del set de líneas y usamos jumpTo({ center, zoom }) en lugar de
- *  fitBounds (que elegiría el zoom mínimo tal que el extent quepa y alejaría
- *  la cámara para líneas cortas).
- *  - extent < 8 km:   1 línea CABA → zoom 14 (nivel de barrio, se ven paradas)
- *  - extent < 18 km:  2-3 líneas CABA → zoom 12 (vista de comuna)
- *  - extent < 35 km:  corredor medio → zoom 10.5 (vista regional)
- *  - extent ≥ 35 km:  corredor largo / outliers (195 a La Plata) → zoom 9
+/** Umbrales del zoom responsivo (PBI-034 v3): zoom FIJO por tier según extent
+ *  del set de líneas. v3 = "mucho más foco a las calles" (~+1.5 niveles vs v2,
+ *  que es ~×2.83 más pixeles/grado).
+ *  - extent < 8 km:   1 línea CABA → zoom 15.5 (calles individuales)
+ *  - extent < 18 km:  2-3 líneas CABA → zoom 13.5 (vista de comuna)
+ *  - extent < 35 km:  corredor medio → zoom 12 (vista regional)
+ *  - extent ≥ 35 km:  corredor largo / outliers (195 a La Plata) → zoom 10.5
  *  Se acepta que para extent muy grande el extent se salga del viewport —
- *  el objetivo es ver la línea principal de cerca, no abarcar todo. */
+ *  el objetivo es ver la línea de cerca, no abarcar todo. */
 const ZOOM_TIER_BREAKPOINTS_KM = [8, 18, 35] as const;
-const ZOOM_TIER_VALUES = [14, 12, 10.5, 9] as const;
+const ZOOM_TIER_VALUES = [15.5, 13.5, 12, 10.5] as const;
 
 /** Devuelve el zoom para un extent en km (el lado mayor del bounding box). */
 function pickZoomForExtent(extentKm: number): number {
