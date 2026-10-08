@@ -85,13 +85,8 @@ const UNIDADES_194 = [
   "601", "603"
 ];
 
-// sdd/trip-options-upgrade 1.2: 3rd-line data-only sim (DATASET-driven, corredor 65)
-const UNIDADES_60 = ["701", "703", "705"];
-
 const paradas65 = PARADAS_MOCK.filter((p) => p.lineasIds.includes("line-65"));
 const paradas194 = PARADAS_MOCK.filter((p) => p.lineasIds.includes("line-194"));
-const paradas60 = PARADAS_MOCK.filter((p) => p.lineasIds.includes("line-60"));
-const paradas60Seed = paradas60.length > 0 ? paradas60 : paradas65;
 
 const vehiculos65: VehiculoEnVivo[] = UNIDADES_65.map((interno, idx) => {
   const stopTarget = paradas65[idx % paradas65.length]!;
@@ -127,24 +122,7 @@ const vehiculos194: VehiculoEnVivo[] = UNIDADES_194.map((interno, idx) => {
   };
 });
 
-const vehiculos60: VehiculoEnVivo[] = UNIDADES_60.map((interno, idx) => {
-  const stopTarget = paradas60Seed[idx % paradas60Seed.length]!;
-  return {
-    id: `veh-60-${interno}`,
-    lineaId: "line-60",
-    interno,
-    lat: stopTarget.lat,
-    lng: stopTarget.lng,
-    bearing: 160,
-    velocidadKmH: 19,
-    sentido: idx % 2 === 0 ? "ida" : "vuelta",
-    proximaParadaId: stopTarget.id,
-    retrasoMinutos: 0,
-    ocupacion: idx % 3 === 0 ? "alta" : idx % 2 === 0 ? "media" : "baja",
-  };
-});
-
-export const VEHICULOS_INICIALES_MOCK: VehiculoEnVivo[] = [...vehiculos65, ...vehiculos194, ...vehiculos60];
+export const VEHICULOS_INICIALES_MOCK: VehiculoEnVivo[] = [...vehiculos65, ...vehiculos194];
 
 // ─── Alertas de Servicio ──────────────────────────────────────────────
 export const ALERTAS_MOCK: AlertaServicio[] = [

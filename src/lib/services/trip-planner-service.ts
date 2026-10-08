@@ -1,6 +1,7 @@
 import { PARADAS_MOCK, DATASET } from "@/lib/mock/amba-data";
 import { Parada } from "@/types/transport";
 import { searchGeocode, geoToLocationPoint } from "@/lib/planner/geocoder";
+import { enrichStepsWithBearing } from "@/lib/walk-direction";
 import {
   LocationPoint,
   TripOption,
@@ -584,7 +585,14 @@ export class TripPlannerService {
         a.totalDurationMinutes - b.totalDurationMinutes
     );
 
-    return pareto.slice(0, 5);
+    // Enriquece los walk steps con el bearing para mostrar dirección
+    // ("a tu izquierda", "al frente", "a tu derecha") en el JourneyTimeline.
+    const enriched = pareto.map((opt) => ({
+      ...opt,
+      steps: enrichStepsWithBearing(opt.steps, opt.legs),
+    }));
+
+    return enriched.slice(0, 5);
   }
 
   /**

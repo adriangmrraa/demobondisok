@@ -23,6 +23,8 @@ export interface Line {
   name: string;
   shortName: string;
   color: string;
+  /** Color de texto sobre la línea (WCAG). Default blanco. */
+  textColor?: string;
   direction: string;
   frequency: number;
 }

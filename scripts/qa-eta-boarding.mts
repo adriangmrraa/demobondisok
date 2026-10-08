@@ -97,8 +97,8 @@ const SEEDS: SeedRoute[] = [
 // other-line sobre las llegadas de la parada de subida.
 
 const SEED_EXPECT: Record<string, number[]> = {
-  "seed-65-centenario-barrancas": [3, 5, 14],
-  "seed-65-constitucion-barrancas": [0, 3, 12],
+  "seed-65-centenario-barrancas": [3, 5, 8],
+  "seed-65-constitucion-barrancas": [0, 3, 6],
   "seed-194-once-escobar": [0, 5, 23],
   "seed-194-once-zarate": [0, 5, 23],
 };
@@ -107,7 +107,7 @@ const SEED_EXPECT: Record<string, number[]> = {
 
 function ramalTag(lineId: string, interno: string): string {
   const ramalId = getRamalForUnit(lineId, interno);
-  return ramalId ? ramalId.replace(/^ramal-(?:65|194|60)-/, "") : "-";
+  return ramalId ? ramalId.replace(/^ramal-(?:65|194)-/, "") : "-";
 }
 
 function labelOf(a: EstimacionLlegada): string {
@@ -173,7 +173,8 @@ function seedBoardingRows(seed: SeedRoute): BoardingOptionRow[] {
 //
 // NOTA DE FIDELIDAD: la línea base real difiere de los valores estimados en el
 // brief SDD. Motivos verificados:
-//   - `stop-65-05`/`stop-65-01` son paradas 65+60 → hasta 6 filas (3 por línea).
+//   - `stop-65-05`/`stop-65-01` son paradas de la 65 → 3 filas (la línea 60 se
+//     eliminó del dataset; antes aportaba otras 3 unidades al mismo stop).
 //   - `stop-194-once` sólo es servida por `line-194` y cada línea aporta como
 //     máximo 3 (`slice(0,3)`), por lo que un "5× En parada" es inalcanzable.
 // Se congela lo medido, que es determinista y reproducible.
@@ -188,21 +189,21 @@ interface FrozenStop {
 const FROZEN_BASELINE: FrozenStop[] = [
   {
     stopId: "stop-65-05",
-    minutos: [3, 5, 8, 14, 35, 58],
-    labels: ["3 min", "5 min", "8 min", "14 min", "35 min", "58 min"],
-    note: "HARD FREEZE · 3×line-65 + 3×line-60; W2′ no lo toca (ninguna línea es rala)",
+    minutos: [3, 5, 8],
+    labels: ["3 min", "5 min", "8 min"],
+    note: "HARD FREEZE · 3×line-65 (baja de la línea 60; flota solo 65/194); W2′ no lo toca (ninguna línea es rala)",
   },
   {
     stopId: "stop-65-01",
-    minutos: [0, 3, 6, 12, 22, 44],
-    labels: ["En parada", "3 min", "6 min", "12 min", "22 min", "44 min"],
-    note: "colapso stop-level: 701 (line-60 en parada) → SIM 6, colisiona con 65 real 6 → bump 12",
+    minutos: [0, 3, 6],
+    labels: ["En parada", "3 min", "6 min"],
+    note: "18 en parada · 101/98 proyectados (sin colapso 701: la línea 60 no existe en el dataset)",
   },
   {
     stopId: "stop-65-09",
-    minutos: [0, 3, 6, 12, 22, 44],
-    labels: ["En parada", "3 min", "6 min", "12 min", "22 min", "44 min"],
-    note: "idéntica a stop-65-01 · colapso 701 → SIM 12 por bump anti-colisión",
+    minutos: [0, 3, 6],
+    labels: ["En parada", "3 min", "6 min"],
+    note: "idéntica a stop-65-01 · misma flota 65, sin bump anti-colisión de la 60",
   },
   {
     stopId: "stop-194-once",
