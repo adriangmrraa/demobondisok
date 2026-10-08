@@ -43,24 +43,29 @@ const STEP_FOCUS_MAX_ZOOM = 16.5;
  *  pegadas al borde del canvas ni a la barra del bottom nav. */
 const LINE_FILTER_PADDING_RATIO = 0.12;
 
-/** Umbrales del zoom responsivo (PBI-034 v3): zoom FIJO por tier según extent
- *  del set de líneas. v3 = "mucho más foco a las calles" (~+1.5 niveles vs v2,
- *  que es ~×2.83 más pixeles/grado).
- *  - extent < 8 km:   1 línea CABA → zoom 15.5 (calles individuales)
- *  - extent < 18 km:  2-3 líneas CABA → zoom 13.5 (vista de comuna)
- *  - extent < 35 km:  corredor medio → zoom 12 (vista regional)
- *  - extent ≥ 35 km:  corredor largo / outliers (195 a La Plata) → zoom 10.5
- *  Se acepta que para extent muy grande el extent se salga del viewport —
- *  el objetivo es ver la línea de cerca, no abarcar todo. */
+/** Estrategia híbrida (PBI-034 v5): prioriza "ver el recorrido completo" sobre
+ *  "ver de cerca". El usuario quiere ver el RECORRIDO de las líneas, no un
+ *  punto del centroide. Entonces:
+ *  - Si el extent es chico (< 8 km, 1 línea CABA), jumpTo con zoom 15.5 →
+ *    cabe todo y se ven las calles.
+ *  - Si el extent es medio/grande, fitBounds con maxZoom adaptativo. MapLibre
+ *    elige el zoom MÍNIMO tal que el extent quepa respetando maxZoom como
+ *    techo. Resultado: se ve TODO el recorrido aunque sea un poco lejos.
+ *  - Tiers de maxZoom: 8-18 km → 13, 18-35 km → 11.5, ≥ 35 km → 10.5. */
 const ZOOM_TIER_BREAKPOINTS_KM = [8, 18, 35] as const;
-const ZOOM_TIER_VALUES = [15.5, 13.5, 12, 10.5] as const;
+const ZOOM_TIER_MAX_VALUES = [15.5, 13, 11.5, 10.5] as const;
 
-/** Devuelve el zoom para un extent en km (el lado mayor del bounding box). */
-function pickZoomForExtent(extentKm: number): number {
+/** extentKm < 8 km → jumpTo zoom 15.5 (caso 1 línea, cabe todo). */
+const SINGLE_LINE_ZOOM = 15.5;
+
+/** Devuelve el maxZoom para fitBounds según el extent. Si el extent es < 8 km,
+ *  el caller debería usar jumpTo zoom 15.5 en su lugar (esta función no se
+ *  usa en ese caso). */
+function pickMaxZoomForExtent(extentKm: number): number {
   for (let i = 0; i < ZOOM_TIER_BREAKPOINTS_KM.length; i++) {
-    if (extentKm < ZOOM_TIER_BREAKPOINTS_KM[i]) return ZOOM_TIER_VALUES[i];
+    if (extentKm < ZOOM_TIER_BREAKPOINTS_KM[i]) return ZOOM_TIER_MAX_VALUES[i];
   }
-  return ZOOM_TIER_VALUES[ZOOM_TIER_VALUES.length - 1];
+  return ZOOM_TIER_MAX_VALUES[ZOOM_TIER_MAX_VALUES.length - 1];
 }
 
 /**
@@ -679,11 +684,12 @@ export default function TransportesAppPage() {
   );
   const lineaFilterFocus: MapFocusRequest | null = useMemo(() => {
     if (isTripMode || effectiveLineaIds.length === 0) return null;
-    // PBI-034 v4: smart extent — preferimos las paradas con combinaciones
-    // (subte/tren/metrobus) que el extent completo de coordenadas. Eso evita
-    // que outliers suburbanos (195 a La Plata, 365 a Luján) jalan el centroide
-    // fuera de CABA. Fallback al extent completo si el set no tiene
-    // combinaciones (caso edge: línea interurbana pura).
+    // PBI-034 v5: smart extent (combinaciones) + estrategia híbrida:
+    //   - extent < 8 km (1 línea CABA): jumpTo zoom 15.5 → cabe todo + se ven
+    //     las calles.
+    //   - extent ≥ 8 km: fitBounds con maxZoom adaptativo → MapLibre elige el
+    //     zoom MÍNIMO tal que el extent quepa, respetando maxZoom como techo.
+    //     El usuario ve el RECORRIDO completo, no un punto del centroide.
     const bounds =
       computeCombinacionesBounds(effectiveLineaIds, DATASET) ??
       computeLineasBounds(effectiveLineaIds, DATASET);
@@ -694,21 +700,17 @@ export default function TransportesAppPage() {
       .slice()
       .sort()
       .reduce((acc, id) => acc + id.split("").reduce((a, c) => a + c.charCodeAt(0), 0), 1);
-    // Zoom responsivo: medimos el extent en km y elegimos un zoom FIJO
-    // según el tier. Usamos zoom (jumpTo) en vez de maxZoom (fitBounds) para
-    // evitar que fitBounds elija el zoom mínimo tal que el extent quepa.
+    // Decidir modo: jumpTo (zoom fijo) o fitBounds (maxZoom adaptativo).
     const widthDeg = bounds[1][0] - bounds[0][0];
     const heightDeg = bounds[1][1] - bounds[0][1];
     const midLat = (bounds[0][1] + bounds[1][1]) / 2;
     const widthKm = widthDeg * 111 * Math.cos((midLat * Math.PI) / 180);
     const heightKm = heightDeg * 111;
     const extentKm = Math.max(widthKm, heightKm);
-    const zoom = pickZoomForExtent(extentKm);
-    return {
-      bounds,
-      nonce,
-      zoom,
-    };
+    if (extentKm < 8) {
+      return { bounds, nonce, zoom: SINGLE_LINE_ZOOM };
+    }
+    return { bounds, nonce, maxZoom: pickMaxZoomForExtent(extentKm) };
   }, [isTripMode, effectiveLineaIds]);
 
   const plannerPoints: PlannerMapPoints | null = useMemo(() => {
