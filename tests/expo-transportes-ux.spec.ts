@@ -25,12 +25,8 @@ test('Home offers the four accessible discovery flows', async ({ page }) => {
   await page.goto('/inicio');
   await page.getByRole('button', { name: /paradas cerca/i }).click();
   await expect(page).toHaveURL(/\/como-llego/);
-  const consent = page.getByRole('dialog', { name: /usamos tu ubicación/i });
-  await expect(consent).toBeVisible();
-  await expect(consent.getByRole('button', { name: /usar ubicación real/i })).toBeVisible();
-  await expect(consent.getByRole('button', { name: /usar ubicación demo/i })).toBeVisible();
-  await expect(consent.getByRole('button', { name: /elegir ubicación manualmente/i })).toBeVisible();
-  await consent.getByRole('button', { name: /cerrar ubicación/i }).click();
+  await expect(page.getByRole('dialog', { name: /usamos tu ubicación/i })).not.toBeVisible();
+  await expect(page.getByRole('button', { name: /usar mi ubicación/i })).toBeVisible();
 
   await page.goto('/inicio');
   await page.getByRole('button', { name: /a dónde vas/i }).click();

@@ -384,14 +384,9 @@ export default function HomePage() {
       setLineLookupOpen(true);
       return;
     }
-    // "Paradas cerca" inicia el gate de ubicación porque esa es la acción que
-    // explícitamente la requiere. "¿A dónde vas?" sólo abre el planificador:
-    // la ubicación se pide recién al tocar su acción dentro de esa pantalla.
-    if (action === 'nearby') {
-      router.push('/como-llego?auto=1');
-      return;
-    }
-    if (action === 'destination') {
+    // La pantalla de planificación nunca solicita la ubicación al entrar.
+    // Cada acceso llega al mismo formulario; el pasajero la pide desde Origen.
+    if (action === 'nearby' || action === 'destination') {
       router.push('/como-llego');
       return;
     }

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, MapPin, Navigation, Search, Sparkles } from 'lucide-react';
 import { BottomNav } from '@/components/ui/bottom-nav';
@@ -41,18 +41,6 @@ export default function ComoLlegoPage() {
   const [destinationQuery, setDestinationQuery] = useState('');
   const [locationModalOpen, setLocationModalOpen] = useState(false);
   const [planningError, setPlanningError] = useState<string | null>(null);
-
-  // "Paradas cerca" es una acción explícita de ubicación y conserva su
-  // apertura directa. Los demás accesos a /como-llego nunca abren el modal.
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('auto') !== '1') return;
-    const url = new URL(window.location.href);
-    url.searchParams.delete('auto');
-    window.history.replaceState(null, '', url.pathname + url.search + url.hash);
-    const frame = window.requestAnimationFrame(() => setLocationModalOpen(true));
-    return () => window.cancelAnimationFrame(frame);
-  }, []);
 
   const originResults = useMemo(
     () => (originQuery.trim() && !origin ? TripPlannerService.searchLocations(originQuery).slice(0, 5) : []),
