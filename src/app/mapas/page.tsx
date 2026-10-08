@@ -63,6 +63,10 @@ export default function TransportesAppPage() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number; heading?: number | null; accuracy?: number } | null>(null);
   const [selectedLineaId, setSelectedLineaId] = useState<string | null>(null);
   const [selectedRamalId, setSelectedRamalId] = useState<string | null>(null);
+  // Filtro multi-línea para entradas de Red Metropol (?lineas=line-65,line-109,...).
+  // Vacío = comportamiento single-line (selectedLineaId manda). Con 1+ ids, el mapa
+  // muestra el set completo: posiciones, trazas y chip de "N líneas" en el header.
+  const [lineaFilter, setLineaFilter] = useState<string[]>([]);
   const [selectedParada, setSelectedParada] = useState<Parada | null>(null);
   const [stopFocusNonce, setStopFocusNonce] = useState(0);
   const [selectedVehiculo, setSelectedVehiculo] = useState<VehiclePosition | null>(null);
@@ -192,14 +196,20 @@ export default function TransportesAppPage() {
   }, [resolvedTrip]);
 
   const regularHighlightLines = useMemo(() => {
+    // Multi-filtro desde Red Metropol manda por encima del single-line.
+    if (lineaFilter.length > 0) return lineaFilter;
     if (selectedRamalId) return [selectedRamalId];
     if (selectedLineaId) return [selectedLineaId];
     return []; // Ocultas por defecto: trazas invisibles hasta que el usuario elija línea o ramal
-  }, [selectedLineaId, selectedRamalId]);
+  }, [lineaFilter, selectedLineaId, selectedRamalId]);
 
   const filteredPositions = useMemo(() => {
     if (resolvedTrip && selectedVehiculo) {
       return positions.filter((p) => p.lineId === selectedVehiculo.lineId && p.unitId === selectedVehiculo.unitId);
+    }
+    if (lineaFilter.length > 0) {
+      const set = new Set(lineaFilter);
+      return positions.filter((p) => set.has(p.lineId));
     }
     if (selectedRamalId) {
       return positions.filter((p) => p.ramalId === selectedRamalId);
@@ -208,7 +218,7 @@ export default function TransportesAppPage() {
       return positions.filter((p) => p.lineId === selectedLineaId);
     }
     return [];
-  }, [positions, resolvedTrip, selectedVehiculo, selectedLineaId, selectedRamalId]);
+  }, [positions, resolvedTrip, selectedVehiculo, lineaFilter, selectedLineaId, selectedRamalId]);
 
   const selectedKey = useMemo(() => {
     return selectedVehiculo ? `${selectedVehiculo.lineId}-${selectedVehiculo.unitId}` : null;
@@ -1049,34 +1059,53 @@ export default function TransportesAppPage() {
   // El contrato portable (trip=1) lo maneja su propio effect: acá se ignora.
   // El setState se difiere a un rAF: así no dispara cascadas de render en el mount
   // (regla react-hooks/set-state-in-effect) y sigue corriendo post-hidratación.
+  //
+  // PBI-034: ?lineas=line-65,line-109,... activa el multi-filtro desde Red Metropol.
+  // Cualquier id que no exista en el dataset se descarta silenciosamente.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("trip") === "1") return;
     const stopId = params.get("parada");
     const lineaId = params.get("linea");
+    const lineasParam = params.get("lineas");
     const ramalId = params.get("ramal");
-    if (!stopId && !lineaId) return;
+    if (!stopId && !lineaId && !lineasParam) return;
+
+    const lineas = TransportService.getLineas();
+    const lineasOk = lineasParam
+      ? lineasParam
+          .split(",")
+          .map((id) => id.trim())
+          .filter((id) => id && lineas.some((l) => l.id === id))
+      : [];
+    const lineaOk = lineaId ? lineas.some((l) => l.id === lineaId) : false;
     const stop = stopId ? TripPlannerService.getStopById(stopId) : null;
-    const lineaOk = lineaId ? TransportService.getLineas().some((l) => l.id === lineaId) : false;
     const ramalOk = !!(
       lineaOk && ramalId &&
-      TransportService.getLineas()
+      lineas
         .find((l) => l.id === lineaId)
         ?.ramalesDetalle?.some((r) => r.id === ramalId)
     );
-    // Se conserva `linea`/`ramal` en la URL para que el refresh restaure el filtro;
+    // Se conserva `linea`/`lineas`/`ramal` en la URL para que el refresh restaure el filtro;
     // solo `parada` se consume una vez (abre el bubble).
     const url = new URL(window.location.href);
     url.searchParams.delete("parada");
     window.history.replaceState(null, "", url.pathname + url.search + url.hash);
-    if (!stop && !lineaOk) return;
-    if (stopId && lineaOk) {
-      pendingArrivalFocusRef.current = { stopId, lineaId: lineaId as string };
+    if (!stop && !lineaOk && lineasOk.length === 0) return;
+    if (stopId && (lineaOk || lineasOk.length > 0)) {
+      pendingArrivalFocusRef.current = { stopId, lineaId: (lineaOk ? lineaId : lineasOk[0]) as string };
     }
     const legacyStopCoords = stop ? { lat: stop.lat, lng: stop.lng } : null;
     const raf = window.requestAnimationFrame(() => {
       if (legacyStopCoords) setLegacyBoardingStop(legacyStopCoords);
-      if (lineaOk && lineaId) {
+      if (lineasOk.length > 0) {
+        setLineaFilter(lineasOk);
+        // Mantener compat con LineSelectorBar: la primera línea del set es la "activa"
+        // (la que se usa para ramales, color de header, camera follow, etc.).
+        setSelectedLineaId(lineasOk[0] ?? null);
+        setSelectedRamalId(null);
+      } else if (lineaOk && lineaId) {
+        setLineaFilter([lineaId]);
         setSelectedLineaId(lineaId);
         setSelectedRamalId(ramalOk && ramalId ? ramalId : null);
       }
@@ -1216,6 +1245,22 @@ export default function TransportesAppPage() {
   const mapUnavailableHref = tripSeed ? tripJourneyUrlFromState(tripSeed) : "/inicio";
   const mapUnavailableLabel = tripSeed ? "Volver a la guía del viaje" : "Volver al inicio";
 
+  // PBI-034: cuando entramos al mapa con ?lineas=line-65,line-109,... (multi-filtro
+  // desde Red Metropol) mostramos un chip arriba con la cantidad + chips de línea,
+  // y permitimos cerrarlo para volver al comportamiento single-line por defecto.
+  const lineaFilterInfo = useMemo(() => {
+    if (lineaFilter.length < 2) return null;
+    const items = lineaFilter
+      .map((id) => lineas.find((l) => l.id === id))
+      .filter((l): l is NonNullable<typeof l> => Boolean(l));
+    return { count: items.length, items };
+  }, [lineaFilter, lineas]);
+
+  const handleClearLineaFilter = useCallback(() => {
+    setLineaFilter([]);
+    // Mantener selectedLineaId con la primera para no perder la selección visual.
+  }, []);
+
   return (
     <div className="relative w-full h-full min-h-dvh overflow-hidden bg-background text-foreground select-none">
       {/* Vista de Mapa Interactivo WebGL */}
@@ -1323,6 +1368,43 @@ export default function TransportesAppPage() {
                         </span>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Chip de multi-filtro desde Red Metropol (PBI-034).
+                    Muestra las N líneas pre-seleccionadas con su color de marca
+                    y permite cerrar el filtro para volver al modo single-line. */}
+                {lineaFilterInfo && !isTripViewActive && (
+                  <div
+                    role="status"
+                    aria-label={`Mostrando ${lineaFilterInfo.count} líneas: ${lineaFilterInfo.items.map((l) => l.numero).join(", ")}`}
+                    className="animate-in fade-in slide-in-from-top-2 duration-200 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-canvas border border-hairline shadow-md pointer-events-auto max-w-full"
+                  >
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-text-muted shrink-0">
+                      {lineaFilterInfo.count} líneas
+                    </span>
+                    <div className="flex items-center gap-1 min-w-0 flex-wrap">
+                      {lineaFilterInfo.items.map((l) => (
+                        <span
+                          key={l.id}
+                          className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-black text-white shrink-0 shadow-xs"
+                          style={{ backgroundColor: l.colorHex }}
+                          title={l.nombre}
+                          aria-label={`Línea ${l.numero}`}
+                        >
+                          {l.numero}
+                        </span>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleClearLineaFilter}
+                      title="Cerrar filtro de líneas"
+                      aria-label="Cerrar filtro de líneas"
+                      className="ml-0.5 w-5 h-5 rounded-full bg-canvas-soft hover:bg-field border border-hairline flex items-center justify-center text-text-muted hover:text-ink shrink-0 transition-colors"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
                   </div>
                 )}
 
