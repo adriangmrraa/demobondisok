@@ -45,7 +45,8 @@ import {
 } from '@/lib/map/vehicle-sprites';
 import { isIsoFlipped, isoBillboardRotation, shadowRotation } from '@/lib/map/vehicle-billboard';
 import { headingDelta, nextSteerBucket, smoothSteerRate } from '@/lib/map/vehicle-steer';
-import { MOCK_ROUTES, MOCK_LINES, MOCK_STOPS, MOCK_LINE_STOPS, RAMAL_COLORS, DATASET } from '@/mock/data';
+import { MOCK_ROUTES, MOCK_LINES, MOCK_STOPS, MOCK_LINE_STOPS, DATASET } from '@/mock/data';
+import { getLineColor, getRouteLineColor } from '@/lib/line-theme';
 import {
   URBAN_ICON_TYPES,
   SIGNAL_MIN_ZOOM,
@@ -258,10 +259,6 @@ const TRIP_STOP_ROLE_COLOR: Record<string, string> = {
   transfer: '#F59E0B',
   alight: '#EF4444',
 };
-
-const LINE_COLORS: Record<string, string> = Object.fromEntries(
-  MOCK_LINES.map((l) => [l.id, l.color]),
-);
 
 /** Estela de la corriente por línea (color de línea aclarado) */
 const LINE_COLOR_LIGHT: Record<string, string> = Object.fromEntries(
@@ -515,13 +512,12 @@ export function MapCanvas({
     const llegadas = TransportService.getLlegadasPorParada(stop.id, positionsRef.current);
     const prox = llegadas[0];
     const etaText = prox?.displayLabel || 'Cada 5 min';
-    const isVuelta = stop.id.includes('stop-65-1') && stop.id !== 'stop-65-01';
     const stopLines = ('lineIds' in stop && stop.lineIds && (stop.lineIds as string[]).length > 0)
       ? (stop.lineIds as string[]).map((id: string) => id.replace('line-', '')).join(', ')
       : (stop.id.startsWith('stop-65') ? '65' : '194');
-    const lineBadgeColor = stop.id.startsWith('stop-65')
-      ? (isVuelta ? '#EA580C' : '#0284C7')
-      : '#16A34A';
+    const lineBadgeColor = getLineColor(
+      ('lineIds' in stop && stop.lineIds?.[0]) || (stop.id.startsWith('stop-65') ? 'line-65' : 'line-194'),
+    );
 
     if (!stopPopupRef.current) {
       stopPopupRef.current = new maplibregl.Popup({
@@ -864,7 +860,7 @@ export function MapCanvas({
         trailKey = selKeyNow;
         trail = [];
         const meta = selKeyNow ? metaMap.get(selKeyNow) : undefined;
-        trailColor = meta?.direction === 'vuelta' ? '#EF4444' : meta?.direction === 'ida' ? '#0EA5E9' : (MOCK_LINES.find((l) => l.id === meta?.lineId)?.color ?? '#101D3D');
+        trailColor = getLineColor(meta?.lineId ?? '');
         lastTrailPush = 0;
       }
       const srcTrail = map.getSource('bus-trail') as maplibregl.GeoJSONSource | undefined;
@@ -1511,11 +1507,11 @@ export function MapCanvas({
             let stopColor = '#101D3D';
             if (hlSet && hlSet.size === 1) {
               const activeKey = Array.from(hlSet)[0]!;
-              stopColor = RAMAL_COLORS[activeKey] || LINE_COLORS[activeKey] || (p.id.startsWith('stop-65') ? '#0284C7' : '#16A34A');
+              stopColor = getRouteLineColor(activeKey, p.id.startsWith('stop-65') ? getLineColor('line-65') : getLineColor('line-194'));
             } else if (p.id.startsWith('stop-65')) {
-              stopColor = '#0284C7';
+              stopColor = getLineColor('line-65');
             } else {
-              stopColor = '#16A34A';
+              stopColor = getLineColor('line-194');
             }
 
             return {
@@ -1568,14 +1564,11 @@ export function MapCanvas({
       const llegadas = TransportService.getLlegadasPorParada(stopId, positionsRef.current);
       const prox = llegadas[0];
       const etaText = prox?.displayLabel || 'Cada 5 min';
-      const isVuelta = stopId.includes('stop-65-1') && stopId !== 'stop-65-01';
       const stopObj = MOCK_STOPS.find((s) => s.id === stopId) || DATASET.paradas[stopId];
       const stopLines = stopObj && 'lineIds' in stopObj && (stopObj.lineIds as string[])?.length > 0
         ? (stopObj.lineIds as string[]).map((id: string) => id.replace('line-', '')).join(', ')
         : (stopId.startsWith('stop-65') ? '65' : '194');
-      const lineBadgeColor = stopId.startsWith('stop-65')
-        ? (isVuelta ? '#EA580C' : '#0284C7')
-        : '#16A34A';
+      const lineBadgeColor = getLineColor(stopId.startsWith('stop-65') ? 'line-65' : 'line-194');
 
       stopPopup
         .setLngLat(coords)
@@ -1673,14 +1666,11 @@ export function MapCanvas({
             const llegadas = TransportService.getLlegadasPorParada(stopId, positionsRef.current);
             const prox = llegadas[0];
             const etaText = prox?.displayLabel || 'Cada 5 min';
-            const isVuelta = stopId.includes('stop-65-1') && stopId !== 'stop-65-01';
             const stopObj = MOCK_STOPS.find((s) => s.id === stopId) || DATASET.paradas[stopId];
             const stopLines = stopObj && 'lineIds' in stopObj && (stopObj.lineIds as string[])?.length > 0
               ? (stopObj.lineIds as string[]).map((id: string) => id.replace('line-', '')).join(', ')
               : (stopId.startsWith('stop-65') ? '65' : '194');
-            const lineBadgeColor = stopId.startsWith('stop-65')
-              ? (isVuelta ? '#EA580C' : '#0284C7')
-              : '#16A34A';
+            const lineBadgeColor = getLineColor(stopId.startsWith('stop-65') ? 'line-65' : 'line-194');
 
             stopPopup
               .setLngLat(coords)
@@ -1769,13 +1759,7 @@ export function MapCanvas({
       for (const linea of DATASET.lineas) {
         for (const ramal of linea.ramales) {
           for (const rec of ramal.recorridos) {
-            // Colores diferenciados entre ida y vuelta para cada ramal
-            const isVuelta = rec.sentido === 'vuelta';
-            const color = rec.color || (
-              linea.id === 'line-65'
-                ? (isVuelta ? '#EA580C' : '#0284C7')
-                : (isVuelta ? lightenHex(ramal.color || linea.color, 0.45) : (ramal.color || linea.color))
-            );
+            const color = getLineColor(linea.id, linea.color);
             routeFeatures.push({
               type: 'Feature' as const,
               properties: {
@@ -2066,7 +2050,7 @@ export function MapCanvas({
       const stopFeatures = ROUTE_STOPS.map((s) => ({
         type: 'Feature' as const,
         geometry: { type: 'Point' as const, coordinates: [s.lng, s.lat] as [number, number] },
-        properties: { lineId: s.lineId, name: s.name, color: LINE_COLORS[s.lineId] ?? '#101D3D' },
+        properties: { lineId: s.lineId, name: s.name, color: getLineColor(s.lineId) },
       }));
       map.addSource('route-stops', { type: 'geojson', data: { type: 'FeatureCollection', features: stopFeatures } });
       map.addLayer({
@@ -2116,32 +2100,32 @@ export function MapCanvas({
       const iconDefs: { id: string; svg: string; w: number; h: number }[] = [
         ...MOCK_LINES.flatMap((line) => [
           { id: `badge-${line.id}`, svg: busBadgeSvg(line.color, line.shortName), w: 96, h: 96 },
-          { id: `badge-${line.id}-ida`, svg: busBadgeSvg('#0EA5E9', line.shortName), w: 96, h: 96 },
-          { id: `badge-${line.id}-vuelta`, svg: busBadgeSvg('#EF4444', line.shortName), w: 96, h: 96 },
+          { id: `badge-${line.id}-ida`, svg: busBadgeSvg(line.color, line.shortName), w: 96, h: 96 },
+          { id: `badge-${line.id}-vuelta`, svg: busBadgeSvg(line.color, line.shortName), w: 96, h: 96 },
           { id: `heading-${line.id}`, svg: busHeadingSvg(line.color), w: 96, h: 96 },
-          { id: `heading-${line.id}-ida`, svg: busHeadingSvg('#0EA5E9'), w: 96, h: 96 },
-          { id: `heading-${line.id}-vuelta`, svg: busHeadingSvg('#EF4444'), w: 96, h: 96 },
+          { id: `heading-${line.id}-ida`, svg: busHeadingSvg(line.color), w: 96, h: 96 },
+          { id: `heading-${line.id}-vuelta`, svg: busHeadingSvg(line.color), w: 96, h: 96 },
           { id: `top-${line.id}`, svg: busTopDownSvg(line.color), w: 96, h: 96 },
-          { id: `top-${line.id}-ida`, svg: busTopDownSvg('#0EA5E9'), w: 96, h: 96 },
-          { id: `top-${line.id}-vuelta`, svg: busTopDownSvg('#EF4444'), w: 96, h: 96 },
+          { id: `top-${line.id}-ida`, svg: busTopDownSvg(line.color), w: 96, h: 96 },
+          { id: `top-${line.id}-vuelta`, svg: busTopDownSvg(line.color), w: 96, h: 96 },
           { id: `iso-${line.id}`, svg: busIsoSvg(line.color), w: ISO_W, h: ISO_H },
-          { id: `iso-${line.id}-ida`, svg: busIsoSvg('#0EA5E9'), w: ISO_W, h: ISO_H },
-          { id: `iso-${line.id}-vuelta`, svg: busIsoSvg('#EF4444'), w: ISO_W, h: ISO_H },
+          { id: `iso-${line.id}-ida`, svg: busIsoSvg(line.color), w: ISO_W, h: ISO_H },
+          { id: `iso-${line.id}-vuelta`, svg: busIsoSvg(line.color), w: ISO_W, h: ISO_H },
           { id: `isoL-${line.id}`, svg: busIsoSvg(line.color, -1), w: ISO_W, h: ISO_H },
-          { id: `isoL-${line.id}-ida`, svg: busIsoSvg('#0EA5E9', -1), w: ISO_W, h: ISO_H },
-          { id: `isoL-${line.id}-vuelta`, svg: busIsoSvg('#EF4444', -1), w: ISO_W, h: ISO_H },
+          { id: `isoL-${line.id}-ida`, svg: busIsoSvg(line.color, -1), w: ISO_W, h: ISO_H },
+          { id: `isoL-${line.id}-vuelta`, svg: busIsoSvg(line.color, -1), w: ISO_W, h: ISO_H },
           { id: `isoR-${line.id}`, svg: busIsoSvg(line.color, 1), w: ISO_W, h: ISO_H },
-          { id: `isoR-${line.id}-ida`, svg: busIsoSvg('#0EA5E9', 1), w: ISO_W, h: ISO_H },
-          { id: `isoR-${line.id}-vuelta`, svg: busIsoSvg('#EF4444', 1), w: ISO_W, h: ISO_H },
+          { id: `isoR-${line.id}-ida`, svg: busIsoSvg(line.color, 1), w: ISO_W, h: ISO_H },
+          { id: `isoR-${line.id}-vuelta`, svg: busIsoSvg(line.color, 1), w: ISO_W, h: ISO_H },
           { id: `isoFlip-${line.id}`, svg: busIsoSvg(line.color, 0, true), w: ISO_W, h: ISO_H },
-          { id: `isoFlip-${line.id}-ida`, svg: busIsoSvg('#0EA5E9', 0, true), w: ISO_W, h: ISO_H },
-          { id: `isoFlip-${line.id}-vuelta`, svg: busIsoSvg('#EF4444', 0, true), w: ISO_W, h: ISO_H },
+          { id: `isoFlip-${line.id}-ida`, svg: busIsoSvg(line.color, 0, true), w: ISO_W, h: ISO_H },
+          { id: `isoFlip-${line.id}-vuelta`, svg: busIsoSvg(line.color, 0, true), w: ISO_W, h: ISO_H },
           { id: `isoFlipL-${line.id}`, svg: busIsoSvg(line.color, -1, true), w: ISO_W, h: ISO_H },
-          { id: `isoFlipL-${line.id}-ida`, svg: busIsoSvg('#0EA5E9', -1, true), w: ISO_W, h: ISO_H },
-          { id: `isoFlipL-${line.id}-vuelta`, svg: busIsoSvg('#EF4444', -1, true), w: ISO_W, h: ISO_H },
+          { id: `isoFlipL-${line.id}-ida`, svg: busIsoSvg(line.color, -1, true), w: ISO_W, h: ISO_H },
+          { id: `isoFlipL-${line.id}-vuelta`, svg: busIsoSvg(line.color, -1, true), w: ISO_W, h: ISO_H },
           { id: `isoFlipR-${line.id}`, svg: busIsoSvg(line.color, 1, true), w: ISO_W, h: ISO_H },
-          { id: `isoFlipR-${line.id}-ida`, svg: busIsoSvg('#0EA5E9', 1, true), w: ISO_W, h: ISO_H },
-          { id: `isoFlipR-${line.id}-vuelta`, svg: busIsoSvg('#EF4444', 1, true), w: ISO_W, h: ISO_H },
+          { id: `isoFlipR-${line.id}-ida`, svg: busIsoSvg(line.color, 1, true), w: ISO_W, h: ISO_H },
+          { id: `isoFlipR-${line.id}-vuelta`, svg: busIsoSvg(line.color, 1, true), w: ISO_W, h: ISO_H },
         ]),
         { id: 'shadow-blob', svg: busShadowSvg(), w: 96, h: 96 },
       ];
