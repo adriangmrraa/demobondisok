@@ -13,7 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
-const BACKLOG = path.join(ROOT, "docs", "backlog.json");
+const BACKLOG = process.env.BACKLOG_JSON_PATH ?? path.join(ROOT, "docs", "backlog.json");
 
 if (!fs.existsSync(BACKLOG)) {
   console.error(`[backlog] No existe ${BACKLOG}`);

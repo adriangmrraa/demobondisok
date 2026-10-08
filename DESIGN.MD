@@ -99,11 +99,28 @@ Estos tokens viven en los DATOS, no en CSS. La razón: cada línea de colectivo 
 
 ### Colores por línea (de `src/data/routes.json`)
 
-| Línea | Ida (hex) | Vuelta (hex) | Notas |
-|---|---|---|---|
-| 65 | `#0284C7` (azul cielo) | `#EA580C` (naranja) | Línea piloto, color "oficial" según theme.ts es `#0EA5E9`/`#EF4444`. **Inconsistencia a resolver.** |
-| 194 | `#06B6D4` (cyan) | `#15803D` (verde oscuro) | Recorridos largos AMBA |
-| (otras en dataset) | `#10B981`, `#84CC16`, `#3B82F6`, `#14B8A6`, `#6366F1`, `#EF4444`, `#A855F7`, `#9333EA` | variantes claras | Ver `routes.json` línea 566+ |
+Las 11 líneas operativas del catálogo (PBI-033) usan un color único de marca por línea
+(en `linea.color`) más una variante más oscura por sentido (ida = base, vuelta = variante
+~20% más oscura). El badge del colectivo (`LineDisplay`) usa solo `linea.color`.
+
+| Línea | Color de marca | Ida (hex) | Vuelta (hex) | Cabeceras |
+|---|---|---|---|---|
+| 65 | `#0284C7` (azul cielo) | `#0284C7` | `#EA580C` | Constitución ↔ Barrancas de Belgrano |
+| 109 | `#EF4444` (rojo) | `#EF4444` | `#B91C1C` | Puerto Madero ↔ Liniers |
+| 136 | `#10B981` (verde) | `#10B981` | `#047857` | Pza. Primera Junta ↔ Marcos Paz |
+| 151 | `#F59E0B` (ámbar) | `#F59E0B` | `#B45309` | Constitución ↔ Aristóbulo del Valle |
+| 163 | `#8B5CF6` (violeta) | `#8B5CF6` | `#6D28D9` | Pza. Primera Junta ↔ UNGS |
+| 176 | `#EC4899` (rosa) | `#EC4899` | `#BE185D` | Villa Crespo ↔ Escobar |
+| 181 | `#14B8A6` (teal) | `#14B8A6` | `#0F766E` | Boedo ↔ Hospital Güemes |
+| 182 | `#F97316` (naranja) | `#F97316` | `#C2410C` | Parque Avellaneda ↔ José C. Paz |
+| 194 | `#06B6D4` (cyan) | `#06B6D4` | `#15803D` | Once ↔ Zárate / Escobar / Campana |
+| 195 | `#3B82F6` (azul) | `#3B82F6` | `#1D4ED8` | Retiro ↔ La Plata |
+| 365 | `#84CC16` (lima) | `#84CC16` | `#4D7C0F` | Puente Saavedra ↔ Luján |
+
+> **Nota sobre inconsistencias heredadas:**
+> - Línea 65: el color "oficial" según `theme.ts:18-21` (`#0EA5E9`/`#EF4444`) NO coincide con el
+>   color del dataset (`#0284C7`/`#EA580C`). El dataset manda.
+> - Línea 194: la vuelta oficial era `#15803D` (verde oscuro); el dataset extendido lo mantiene.
 
 > **Convención ida/vuelta** (en `src/lib/theme.ts:18-21`):
 > - Ida = celeste/cyan (más frío, "vamos")
