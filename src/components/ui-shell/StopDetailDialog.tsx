@@ -150,9 +150,6 @@ export function StopDetailDialog({
                 <span className="font-bold text-sm text-ink">
                   {proximoArribo.displayLabel}
                 </span>
-                <span className="text-text-muted text-[11px] ml-1.5">
-                  (Unidad {proximoArribo.interno})
-                </span>
               </div>
             </div>
           )}

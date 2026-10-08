@@ -790,7 +790,8 @@ export class TripPlannerService {
                     fromStopName: dCand.stop.nombre,
                     toStopName: destination.name,
                     durationMinutes: 1,
-                    description: `Bajar en ${dCand.stop.nombre} (destino)`,
+                    description: `Bajar en ${dCand.stop.nombre} — tu destino: ${destination.name}`,
+                    focusPoint: { lat: dCand.stop.lat, lng: dCand.stop.lng },
                   });
                 }
 
@@ -1151,7 +1152,8 @@ export class TripPlannerService {
                               fromStopName: dCand.stop.nombre,
                               toStopName: destination.name,
                               durationMinutes: 1,
-                              description: `Bajar en ${dCand.stop.nombre} (destino)`,
+                              description: `Bajar en ${dCand.stop.nombre} — tu destino: ${destination.name}`,
+                              focusPoint: { lat: dCand.stop.lat, lng: dCand.stop.lng },
                             });
                           }
 
@@ -1343,8 +1345,10 @@ export class TripPlannerService {
                               segments.push({ id: `seg-ride-3-${linea3.id}`, type: "ride", color: linea3.color, isDashed: false, coordinates: g3 });
 
                               if (dCand.distanceMeters > 25) {
-                                legs.push({ type: "walk", from: { name: dCand.stop.nombre, lat: dCand.stop.lat, lng: dCand.stop.lng, stopId: dCand.stop.id }, to: destination, distanceMeters: dCand.distanceMeters, durationMinutes: dCand.walkMinutes, description: `Caminar ${dCand.distanceMeters} m al destino`, segmentCoordinates: [[dCand.stop.lng, dCand.stop.lat], [destination.lng, destination.lat]] });
-                                steps.push({ id: `step-walk-d-${dCand.stop.id}`, type: "walk", fromStopId: dCand.stop.id, fromStopName: dCand.stop.nombre, toStopName: destination.name, distanceMeters: dCand.distanceMeters, durationMinutes: dCand.walkMinutes, description: `Caminar ${dCand.distanceMeters} m al destino` });
+                                legs.push({ type: "walk", from: { name: dCand.stop.nombre, lat: dCand.stop.lat, lng: dCand.stop.lng, stopId: dCand.stop.id }, to: destination, distanceMeters: dCand.distanceMeters, durationMinutes: dCand.walkMinutes, description: `Bajar en ${dCand.stop.nombre} y caminar ${dCand.distanceMeters} m al destino`, segmentCoordinates: [[dCand.stop.lng, dCand.stop.lat], [destination.lng, destination.lat]] });
+                                steps.push({ id: `step-walk-d-${dCand.stop.id}`, type: "walk", fromStopId: dCand.stop.id, fromStopName: dCand.stop.nombre, toStopName: destination.name, distanceMeters: dCand.distanceMeters, durationMinutes: dCand.walkMinutes, description: `Bajar en ${dCand.stop.nombre} y caminar ${dCand.distanceMeters} m al destino` });
+                              } else {
+                                steps.push({ id: `step-arrive-${dCand.stop.id}`, type: "walk", fromStopId: dCand.stop.id, fromStopName: dCand.stop.nombre, toStopName: destination.name, durationMinutes: 1, description: `Bajar en ${dCand.stop.nombre} — tu destino: ${destination.name}`, focusPoint: { lat: dCand.stop.lat, lng: dCand.stop.lng } });
                               }
 
                               options.push({

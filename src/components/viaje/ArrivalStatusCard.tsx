@@ -7,7 +7,6 @@ interface ArrivalStatusCardProps {
   phase: ArrivalPhase;
   minutes: number | null;
   lineNumber: string;
-  unitId: string;
   nextStopName?: string;
   onDismiss: () => void;
 }
@@ -27,12 +26,13 @@ function RollingDuration({ value }: { value: number }) {
   );
 }
 
-/** Presentational shell: the parent retains the arrival state machine. */
+/** Presentational shell: the parent retains the arrival state machine.
+ *  El identificador interno de la unidad nunca se muestra al pasajero:
+ *  la card prioriza línea, sentido, próxima parada y ETA. */
 export default function ArrivalStatusCard({
   phase,
   minutes,
   lineNumber,
-  unitId,
   nextStopName,
   onDismiss,
 }: ArrivalStatusCardProps) {
@@ -47,20 +47,23 @@ export default function ArrivalStatusCard({
 
   const isArriving = phase === "ARRIBANDO";
   const isRiding = phase === "VIAJANDO_GREEN" || phase === "VIAJANDO_YELLOW";
+  const isBoarded = phase === "PASSED";
   const phaseClass = `arrival-card--${phase.toLowerCase().replaceAll("_", "-")}`;
+
+  const statusText = isArriving
+    ? `ARRIBANDO · Línea ${lineNumber}`
+    : isRiding
+      ? `VIAJANDO · Línea ${lineNumber}${nextStopName ? ` → ${nextStopName}` : ""}`
+      : isBoarded
+        ? `A bordo · Línea ${lineNumber}`
+        : `Línea ${lineNumber}`;
 
   return (
     <div className="absolute left-4 right-4 top-[calc(max(14px,env(safe-area-inset-top))+72px+var(--trip-stack-gap,0px))] z-30 mx-auto max-w-[320px] pointer-events-none">
       <div aria-live="polite" data-arrival-phase={phase} className={`arrival-card pointer-events-auto relative mt-0 flex items-center justify-between gap-3 rounded-2xl border px-3.5 py-2.5 ${phaseClass}`}>
         <div className="min-w-0">
-          <p className="arrival-card__eyebrow">{isRiding ? "Viajando" : "Tu colectivo"}</p>
-          {isArriving ? (
-            <p className="truncate text-sm font-black tracking-wide">ARRIBANDO · Línea {lineNumber}</p>
-          ) : isRiding ? (
-            <p className="truncate text-sm font-bold">VIAJANDO · Línea {lineNumber} · coche {unitId}{nextStopName ? ` → ${nextStopName}` : ""}</p>
-          ) : (
-            <p className="truncate text-sm font-bold">Línea {lineNumber} · coche {unitId}</p>
-          )}
+          <p className="arrival-card__eyebrow">{isRiding ? "Viajando" : isBoarded ? "A bordo" : "Tu colectivo"}</p>
+          <p className="line-clamp-2 break-words text-sm font-bold" title={statusText}>{statusText}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {phase === "NORMAL" && minutes !== null && <span data-arrival-eta className="arrival-card__eta"><RollingDuration value={minutes} /></span>}

@@ -16,6 +16,8 @@ export interface TripMapNavigationState {
   vehicleUnitId?: string;
   etaReferenceMs?: number;
   etaMinutes?: number;
+  /** Paso del viaje a enfocar en el mapa (ej: el step "arrive" final). */
+  stepId?: string;
 }
 
 function selectedRide(trip: TripOption): TransitLeg | undefined {
@@ -25,7 +27,7 @@ function selectedRide(trip: TripOption): TransitLeg | undefined {
 export function buildTripMapState(
   trip: TripOption,
   origin: LocationPoint,
-  options: Pick<TripMapNavigationState, 'boardingStopId'> & { arrival?: EstimacionLlegada },
+  options: Pick<TripMapNavigationState, 'boardingStopId' | 'stepId'> & { arrival?: EstimacionLlegada },
 ): TripMapNavigationState {
   const ride = selectedRide(trip);
   return {
@@ -38,6 +40,7 @@ export function buildTripMapState(
     vehicleUnitId: options.arrival?.interno,
     etaReferenceMs: options.arrival ? Date.now() : undefined,
     etaMinutes: options.arrival?.minutos,
+    stepId: options.stepId,
   };
 }
 
@@ -58,6 +61,7 @@ export function tripUrlFromState(state: TripMapNavigationState, pathname: '/mapa
   if (state.vehicleUnitId) params.set('interno', state.vehicleUnitId);
   if (state.etaReferenceMs) params.set('etaRef', String(state.etaReferenceMs));
   if (state.etaMinutes !== undefined) params.set('etaMin', String(state.etaMinutes));
+  if (state.stepId) params.set('paso', state.stepId);
   return `${pathname}?${params.toString()}`;
 }
 
@@ -117,6 +121,7 @@ export function parseTripMapState(params: URLSearchParams): TripMapNavigationSta
     vehicleUnitId: params.get('interno') ?? undefined,
     etaReferenceMs: finiteNumber(params.get('etaRef')) ?? undefined,
     etaMinutes: finiteNumber(params.get('etaMin')) ?? undefined,
+    stepId: params.get('paso') ?? undefined,
   };
 }
 

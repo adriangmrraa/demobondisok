@@ -83,8 +83,13 @@ export interface TripStep {
   durationMinutes: number;
   distanceMeters?: number;
   description: string;
+  /** Bearing geodésico del paso a pie (0-360°, 0=Norte). Solo para type="walk" y "transfer". */
+  walkBearing?: number;
   /** Índice en TripOption.legs para tap-to-focus (ausente en pseudo-steps "arrive"). */
   legIndex?: number;
+  /** Punto a enfocar en el mapa cuando el paso no tiene leg con geometría
+   *  (pseudo-step final "arrive": la parada de descenso). */
+  focusPoint?: { lat: number; lng: number };
 }
 
 export interface TripLineChip {
