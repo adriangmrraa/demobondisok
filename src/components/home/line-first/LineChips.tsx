@@ -93,7 +93,7 @@ export function LineChips({ lines, selectedLineId, onSelect, layout = 'row', tra
   return (
     <div
       aria-label="Líneas"
-      className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="-mx-4 -my-3 flex items-center gap-2 overflow-x-auto px-4 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {operational.map((line, i) => chip(line, i))}
       {upcoming.length > 0 && (

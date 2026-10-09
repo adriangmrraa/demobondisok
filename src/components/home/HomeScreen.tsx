@@ -526,6 +526,7 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                     onToggleDirection={lineFirst.toggleDirection}
                     onOpenStopPicker={() => setStopPickerOpen(true)}
                     bare
+                    hideDirectionRow
                   />
                 </div>
               )}
@@ -593,6 +594,7 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                     perHour={lineFirst.perHour}
                     onToggleDirection={lineFirst.toggleDirection}
                     onOpenStopPicker={() => setStopPickerOpen(true)}
+                    hideDirectionRow
                     className="rounded-none border-0 bg-none shadow-none"
                   />
                 </div>

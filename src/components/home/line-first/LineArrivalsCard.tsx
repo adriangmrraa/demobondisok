@@ -14,6 +14,8 @@ interface LineArrivalsCardProps {
   onOpenStopPicker: () => void;
   /** Sin superficie/borde: el contenido flota sobre el fondo (Home A). */
   bare?: boolean;
+  /** Sin fila de dirección (texto origen→destino + botón Cambiar): arribos directo. */
+  hideDirectionRow?: boolean;
   className?: string;
 }
 
@@ -48,6 +50,7 @@ export function LineArrivalsCard({
   onToggleDirection,
   onOpenStopPicker,
   bare = false,
+  hideDirectionRow = false,
   className,
 }: LineArrivalsCardProps) {
   const { line, recorrido, stop, canSwitchDirection } = context;
@@ -87,23 +90,25 @@ export function LineArrivalsCard({
         </button>
       </div>
 
-      <div className={cn('flex items-center gap-2', bare ? 'mt-2' : 'mt-3')}>
-        <p className="min-w-0 flex-1 text-[13px] leading-snug text-text-muted">
-          {recorrido.origen} <span aria-hidden="true">→</span> {recorrido.destino}
-        </p>
-        <button
-          type="button"
-          onClick={onToggleDirection}
-          disabled={!canSwitchDirection}
-          aria-label={canSwitchDirection ? 'Cambiar dirección' : 'Este ramal tiene un solo sentido'}
-          className="inline-flex size-[62px] shrink-0 items-center justify-center gap-1 rounded-full border border-electric-blue/40 bg-electric-blue/10 text-electric-blue transition-[background-color,transform] duration-150 hover:bg-electric-blue/15 active:scale-95 disabled:opacity-40 disabled:active:scale-100"
-        >
-          <ArrowLeftRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          <span className="text-[10px] font-bold leading-[1.05]">
-            Cambiar<br />dirección
-          </span>
-        </button>
-      </div>
+      {hideDirectionRow ? null : (
+        <div className="mt-3 flex items-center gap-2">
+          <p className="min-w-0 flex-1 text-[13px] leading-snug text-text-muted">
+            {recorrido.origen} <span aria-hidden="true">→</span> {recorrido.destino}
+          </p>
+          <button
+            type="button"
+            onClick={onToggleDirection}
+            disabled={!canSwitchDirection}
+            aria-label={canSwitchDirection ? 'Cambiar dirección' : 'Este ramal tiene un solo sentido'}
+            className="inline-flex size-[62px] shrink-0 items-center justify-center gap-1 rounded-full border border-electric-blue/40 bg-electric-blue/10 text-electric-blue transition-[background-color,transform] duration-150 hover:bg-electric-blue/15 active:scale-95 disabled:opacity-40 disabled:active:scale-100"
+          >
+            <ArrowLeftRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span className="text-[10px] font-bold leading-[1.05]">
+              Cambiar<br />dirección
+            </span>
+          </button>
+        </div>
+      )}
 
       <div className={cn('home-well rounded-2xl px-3', bare ? 'mt-2 pb-2.5 pt-2' : 'mt-3 pb-3 pt-2.5')}>
         <div className="flex items-center gap-2">

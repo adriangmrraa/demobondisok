@@ -22,8 +22,6 @@ const operationalNumbers = dataset.lineas.map((l) => l.numero);
 const upcomingNumber = metropol.lines.map((l) => l.number).find((n) => n && !operationalNumbers.includes(n))!;
 const line65 = dataset.lineas.find((l) => l.id === 'line-65')!;
 const line194 = dataset.lineas.find((l) => l.id === 'line-194')!;
-const ida65 = line65.ramales[0]!.recorridos.find((r) => r.sentido === 'ida')!;
-const vuelta65 = line65.ramales[0]!.recorridos.find((r) => r.sentido === 'vuelta')!;
 const stopName = (id: string) => dataset.paradas[id]!.nombre;
 const shortName = (name: string) => name.split(' / ')[0]!.replace(/\s*\([^)]*\)\s*$/, '').trim();
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -54,7 +52,8 @@ test.describe('Inicio A (/inicio)', () => {
     await expect(page.getByRole('button', { name: `Línea ${line65.numero}`, exact: true })).toHaveAttribute('aria-pressed', 'true');
     const card = lineCard(page);
     await expect(card).toContainText(`Línea 65 · ${shortName(stopName('stop-65-05'))}`);
-    await expect(card).toContainText(`${ida65.origen} → ${ida65.destino}`);
+    await expect(card).not.toContainText('→');
+    await expect(card).not.toContainText('Cambiar dirección');
     await expect(card).toContainText(`Pasa cada ~${line65.frecuenciaPicoMin} min`);
     await expect(card).toContainText(`unos ${Math.round(60 / line65.frecuenciaPicoMin)} en la próxima hora`);
 
@@ -64,26 +63,19 @@ test.describe('Inicio A (/inicio)', () => {
     await expect(arrivals.first()).toBeInViewport();
   });
 
-  test('cambiar de línea, de dirección y de parada actualiza la card con datos reales', async ({ page }) => {
+  test('cambiar de línea y de parada actualiza la card con datos reales', async ({ page }) => {
     test.slow(); // Muchas interacciones sobre la página con mapa WebGL (SwiftShader en CI).
     await page.goto('/inicio');
     const card = lineCard(page);
 
     await page.getByRole('button', { name: `Línea ${line194.numero}`, exact: true }).click();
-    const ida194 = line194.ramales[0]!.recorridos.find((r) => r.paradas.includes('stop-194-once'))!;
     await expect(card).toContainText(`Línea 194 · ${shortName(stopName('stop-194-once'))}`);
-    await expect(card).toContainText(`${ida194.origen} → ${ida194.destino}`);
-
-    await page.getByRole('button', { name: `Línea ${line65.numero}`, exact: true }).click();
-    await card.getByRole('button', { name: 'Cambiar dirección' }).click();
-    await expect(card).toContainText(`${vuelta65.origen} → ${vuelta65.destino}`);
-    const vueltaStop = await card.getByRole('button', { name: /^Cambiar parada/ }).getAttribute('aria-label');
-    expect(vuelta65.paradas.map(stopName).some((name) => vueltaStop!.includes(name))).toBe(true);
 
     await card.getByRole('button', { name: /^Cambiar parada/ }).click();
     const picker = page.getByRole('dialog', { name: /Elegí tu parada/ });
-    await expect(picker.getByRole('listitem')).toHaveCount(vuelta65.paradas.length);
-    const target = stopName(vuelta65.paradas[6]!);
+    const ida194 = line194.ramales[0]!.recorridos.find((r) => r.paradas.includes('stop-194-once'))!;
+    await expect(picker.getByRole('listitem')).toHaveCount(ida194.paradas.length);
+    const target = stopName(ida194.paradas[6]!);
     await picker.getByRole('textbox', { name: 'Nombre de la parada' }).fill(shortName(target));
     await picker.getByRole('button', { name: new RegExp(escape(target)) }).click();
     await expect(picker).toBeHidden();
