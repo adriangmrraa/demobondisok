@@ -19,8 +19,6 @@ import {
   Route,
   CheckCircle2,
   ChevronRight,
-  Layers,
-  MapPin,
 } from 'lucide-react';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { AssistantBar } from '@/components/home/AssistantBar';
@@ -82,21 +80,18 @@ function activeAlertLabelForLine(lineId: string): string | null {
   return alert ? (ALERT_BADGE_LABEL[alert.type] ?? 'ALERTA') : null;
 }
 
+const subscribeToNothing = () => () => {};
 const formatToday = () =>
   new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
 
 /**
- * La fecha se resuelve SOLO en el cliente (useEffect): la página se prerenderiza
- * en el build y una fecha de servidor no coincide con la del dispositivo (React #418).
- * Initial state = null → server y client renderizan null → no hay hydration
- * mismatch. useEffect setea la fecha real después del mount.
+ * La fecha se resuelve solo en el cliente: la página se prerenderiza en el
+ * build y una fecha de servidor no coincide con la del dispositivo (React #418).
+ * Server snapshot = null → el HTML del server y el primer render del client
+ * coinciden; el valor real llega cuando React re-lee el snapshot post-mount.
  */
 function useToday(): string | null {
-  const [today, setToday] = useState<string | null>(null);
-  useEffect(() => {
-    setToday(formatToday());
-  }, []);
-  return today;
+  return useSyncExternalStore(subscribeToNothing, formatToday, () => null);
 }
 
 interface HomeScreenProps {
@@ -714,17 +709,18 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
               <div className="relative mt-2.5" style={{ '--home-delay': '360ms' } as CSSProperties}>
                 {showLinearDiagram ? (
                   lineContext ? (
-                    <div className="home-rise overflow-hidden rounded-3xl border border-hairline home-surface p-2">
+                    <div className="home-rise overflow-x-auto overflow-y-hidden rounded-3xl border border-hairline bg-[#121418] p-3">
                       <LineSchematic
-                        lineNumber={lineContext.line.numero}
+                        origin={`${getStop(lineContext.recorrido.origen)?.nombre ?? lineContext.line.numero} hacia ${getStop(lineContext.recorrido.destino)?.nombre ?? ''}`}
+                        eta={lineFirst.arrivals[0] ? (lineFirst.arrivals[0].displayStatus === 'en-parada' || lineFirst.arrivals[0].minutos === 0 ? 'En la parada' : lineFirst.arrivals[0].displayStatus === 'arribando' ? 'Llegando' : `Llega en ${lineFirst.arrivals[0].minutos} min`) : undefined}
                         color={lineContext.line.color}
                         stops={lineContext.stops.map((stop) => ({
                           id: stop.id,
                           nombre: stop.nombre,
-                          isCabecera: stop.id === lineContext.recorrido.origen || stop.id === lineContext.recorrido.destino,
+                          tipo: stop.id === lineContext.recorrido.origen || stop.id === lineContext.recorrido.destino ? 'CABECERA' : undefined,
                         }))}
                         highlightStopId={lineContext.stop.id}
-                        className="h-[240px]"
+                        className="h-[240px] min-w-full"
                       />
                     </div>
                   ) : (

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type TouchEvent, type WheelEvent } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type TouchEvent, type WheelEvent } from 'react';
 import { cn } from '@/lib/utils';
 
 interface LineSchematicStop {
@@ -21,7 +21,7 @@ interface LineSchematicProps {
 const ZOOM_MIN = 0.5;
 const ZOOM_MAX = 4;
 const ZOOM_STEP = 0.25;
-const LABEL_MAX_CHARS = 22;
+const LABEL_MAX_CHARS = 14;
 
 /**
  * Diagrama Lineal Horizontal de UNA línea.
@@ -53,6 +53,13 @@ export function LineSchematic({
   const trackY = 120;
   const labelNameY = trackY + 26;
   const labelTipoY = trackY + 44;
+
+  // Labels en dos filas alternadas (pares arriba, impares abajo): con el pitch
+  // de 52px una sola fila superpone nombres vecinos; la segunda fila duplica
+  // el ancho disponible por label a ~104px.
+  const LABEL_ROW_B = 34;
+  const labelNameYB = labelNameY + LABEL_ROW_B;
+  const labelTipoYB = labelTipoY + LABEL_ROW_B;
 
   const trackX1 = padX;
   const trackX2 = viewW - padX;
@@ -87,7 +94,7 @@ export function LineSchematic({
 
   const lastTouchXRef = useRef<number | null>(null);
   const lastPinchDistRef = useRef<number | null>(null);
-  const isDraggingRef = useRef(false);
+  const [isDragging, setIsDragging] = useState(false);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
 
   // ResizeObserver
@@ -109,12 +116,9 @@ export function LineSchematic({
   const clampPan = (x: number): number => Math.max(minPanX, Math.min(maxPanX, x));
   const clampZoom = (z: number): number => Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z));
 
-  useEffect(() => {
-    if (containerWidth > 0 && effectiveW <= containerWidth && panX !== 0) {
-      setPanX(0);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [containerWidth, effectiveW]);
+  // Si el contenido entra en el contenedor, el pan se ignora (derivado en
+  // render — no hace falta resetear el state con un efecto).
+  const renderPanX = effectiveW <= containerWidth ? 0 : panX;
 
   // ── Handlers touch ───────────────────────────────────────────────────────
   const getTouchDist = (touches: React.TouchList): number => {
@@ -126,15 +130,15 @@ export function LineSchematic({
   const onTouchStart = (event: TouchEvent<HTMLDivElement>) => {
     if (event.touches.length === 1) {
       lastTouchXRef.current = event.touches[0]!.clientX;
-      isDraggingRef.current = true;
+      setIsDragging(true);
     } else if (event.touches.length === 2) {
-      isDraggingRef.current = true;
+      setIsDragging(true);
       lastPinchDistRef.current = getTouchDist(event.touches);
     }
   };
 
   const onTouchMove = (event: TouchEvent<HTMLDivElement>) => {
-    if (!isDraggingRef.current) return;
+    if (!isDragging) return;
     if (event.touches.length === 1 && lastTouchXRef.current !== null) {
       const dx = event.touches[0]!.clientX - lastTouchXRef.current;
       lastTouchXRef.current = event.touches[0]!.clientX;
@@ -150,7 +154,7 @@ export function LineSchematic({
   const onTouchEnd = () => {
     lastTouchXRef.current = null;
     lastPinchDistRef.current = null;
-    isDraggingRef.current = false;
+    setIsDragging(false);
   };
 
   const onWheel = (event: WheelEvent<HTMLDivElement>) => {
@@ -167,13 +171,13 @@ export function LineSchematic({
     setPanX(0);
   };
 
-  const isModified = zoom !== 1 || panX !== 0;
+  const isModified = zoom !== 1 || renderPanX !== 0;
 
   // ── Render ───────────────────────────────────────────────────────────────
   const transformStyle: CSSProperties = {
-    transform: `translateX(${panX}px) scale(${zoom})`,
+    transform: `translateX(${renderPanX}px) scale(${zoom})`,
     transformOrigin: '0 0',
-    transition: isDraggingRef.current ? 'none' : 'transform 200ms ease-out',
+    transition: isDragging ? 'none' : 'transform 200ms ease-out',
   };
 
   const firstStopName = stops[0]?.nombre ?? '';
@@ -277,6 +281,8 @@ export function LineSchematic({
           const isHead = isFirst || isLast || stop.tipo === 'CABECERA';
           const isHighlight = highlightStopId === stop.id;
           const dotSize = isHead ? 6 : 4;
+          const nameY = i % 2 === 0 ? labelNameY : labelNameYB;
+          const tipoY = i % 2 === 0 ? labelTipoY : labelTipoYB;
 
           return (
             <g key={`${stop.id}-${reactId}`}>
@@ -319,7 +325,7 @@ export function LineSchematic({
               {/* Label nombre — SIEMPRE visible */}
               <text
                 x={x}
-                y={labelNameY}
+                y={nameY}
                 textAnchor="middle"
                 className="fill-canvas"
                 style={{ fontSize: labelNameFontSize, fontWeight: isHead ? 700 : 600 }}
@@ -330,7 +336,7 @@ export function LineSchematic({
               {stop.tipo && (
                 <text
                   x={x}
-                  y={labelTipoY}
+                  y={tipoY}
                   textAnchor="middle"
                   className="fill-text-muted"
                   style={{ fontSize: labelTipoFontSize, fontWeight: 600, letterSpacing: '0.04em' }}
