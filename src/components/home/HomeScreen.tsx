@@ -714,19 +714,40 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
               <div className="relative mt-2.5" style={{ '--home-delay': '360ms' } as CSSProperties}>
                 {showLinearDiagram ? (
                   lineContext ? (
-                    <div className="home-rise overflow-hidden rounded-3xl border border-hairline home-surface p-2">
-                      <LineSchematic
-                        lineNumber={lineContext.line.numero}
-                        color={lineContext.line.color}
-                        stops={lineContext.stops.map((stop) => ({
-                          id: stop.id,
-                          nombre: stop.nombre,
-                          isCabecera: stop.id === lineContext.recorrido.origen || stop.id === lineContext.recorrido.destino,
-                        }))}
-                        highlightStopId={lineContext.stop.id}
-                        className="h-[240px]"
-                      />
-                    </div>
+                    (() => {
+                      const originName = getStop(lineContext.recorrido.origen)?.nombre ?? lineContext.line.numero;
+                      const destinationName = getStop(lineContext.recorrido.destino)?.nombre ?? '';
+                      const originLabel = destinationName
+                        ? `${originName} hacia ${destinationName}`
+                        : originName;
+                      const etaText = (() => {
+                        const next = lineFirst.arrivals[0];
+                        if (!next) return undefined;
+                        if (next.displayStatus === 'en-parada' || next.minutos === 0) return 'En la parada';
+                        if (next.displayStatus === 'arribando') return 'Llegando';
+                        return `Llega en ${next.minutos} min`;
+                      })();
+                      return (
+                        <div className="home-rise overflow-hidden rounded-3xl border border-hairline bg-[#121418] p-3">
+                          <LineSchematic
+                            origin={originLabel}
+                            eta={etaText}
+                            color={lineContext.line.color}
+                            stops={lineContext.stops.map((stop) => {
+                              const isCab = stop.id === lineContext.recorrido.origen
+                                || stop.id === lineContext.recorrido.destino;
+                              return {
+                                id: stop.id,
+                                nombre: stop.nombre,
+                                tipo: isCab ? 'CABECERA' : undefined,
+                              };
+                            })}
+                            highlightStopId={lineContext.stop.id}
+                            className="h-[200px]"
+                          />
+                        </div>
+                      );
+                    })()
                   ) : (
                     <div className="home-rise flex h-[240px] items-center justify-center rounded-3xl border border-dashed border-hairline bg-canvas-soft px-4 text-center">
                       <p className="text-xs font-medium text-text-muted">
