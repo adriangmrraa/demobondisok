@@ -59,11 +59,11 @@ export function LineArrivalsCard({
   return (
     <section
       aria-label={`Línea ${line.numero}, parada ${stopLabel}`}
-      className={cn(bare ? 'px-1 py-0' : 'home-surface rounded-3xl border border-hairline p-4', className)}
+      className={cn(bare ? 'px-1 py-0' : 'home-surface rounded-3xl border border-hairline p-3', className)}
     >
       <div className="flex items-center gap-3">
         <span
-          className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full text-xl font-black tabular-nums"
+          className={cn('flex shrink-0 items-center justify-center rounded-full font-black tabular-nums', bare ? 'size-11 text-lg' : 'size-12 text-xl')}
           style={{
             background: `linear-gradient(150deg, color-mix(in srgb, ${line.color} 70%, white), ${line.color} 58%)`,
             color: line.textColor,
@@ -110,7 +110,7 @@ export function LineArrivalsCard({
         </div>
       )}
 
-      <div className={cn('home-well rounded-2xl px-3', bare ? 'mt-2 pb-2.5 pt-2' : 'mt-3 pb-3 pt-2.5')}>
+      <div className={cn('home-well rounded-2xl px-3', bare ? 'mt-1.5 pb-2 pt-1.5' : 'mt-2 pb-2.5 pt-2')}>
         <div className="flex items-center gap-2">
           <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
             <span className="home-live-dot absolute inset-0 rounded-full bg-emerald-500" />
@@ -123,11 +123,11 @@ export function LineArrivalsCard({
           </p>
         )}
         {arrivals.length > 0 ? (
-          <ul aria-live="polite" className={cn('grid grid-cols-3 divide-x divide-hairline', bare ? 'mt-2' : 'mt-3')}>
+          <ul aria-live="polite" className={cn('grid grid-cols-3 divide-x divide-hairline', bare ? 'mt-1.5' : 'mt-2')}>
             {arrivals.map((arrival, index) => (
               <li
                 key={`${stop.id}-${arrival.interno}`}
-                className={cn('home-eta flex flex-col items-center justify-center gap-1 px-1 text-center', bare ? 'min-h-[56px]' : 'min-h-[64px]')}
+                className={cn('home-eta flex flex-col items-center justify-center gap-0.5 px-1 text-center', bare ? 'min-h-[50px]' : 'min-h-[56px]')}
                 style={{ animationDelay: `${index * 70}ms` }}
               >
                 <ArrivalValue arrival={arrival} first={index === 0} />

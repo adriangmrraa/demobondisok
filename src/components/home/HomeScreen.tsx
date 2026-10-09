@@ -480,7 +480,7 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
       {/* Velo de apertura: cubre el primer paint y se disuelve mientras las
           secciones entran. pointer-events-none y se apaga con reduced-motion. */}
       <div className="home-veil" aria-hidden="true" />
-      <header className="home-rise px-4 pt-6 pb-3 flex items-center gap-3 shrink-0">
+      <header className="home-rise px-4 pt-4 pb-2 flex items-center gap-3 shrink-0">
         <MetropolRose className="h-9 w-auto shrink-0" />
         <div className="min-w-0">
           <h1 className="text-[22px] font-bold leading-tight tracking-tight text-ink">
@@ -491,11 +491,11 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
         </div>
       </header>
 
-      <main className="px-4 flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto overscroll-contain pb-[104px]">
+      <main className="px-4 flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto overscroll-contain pb-[104px]">
         {variant === 'a' ? (
           <>
             {/* Variante A (imagen 1): Elegí tu línea → mapa del tramo → arribos → Ver mapa → últimos viajes */}
-            <section aria-label="Elegí tu línea" className="flex flex-col gap-3">
+            <section aria-label="Elegí tu línea" className="flex flex-col gap-2.5">
               <LineChips lines={catalog} selectedLineId={lineFirst.selection?.lineId ?? null} onSelect={lineFirst.selectLine} />
               {lineFirst.notice && (
                 <p role="status" className="home-fade rounded-2xl border border-hairline bg-canvas-soft px-3 py-2 text-sm text-text-muted">
@@ -512,7 +512,7 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                     bounds={previewBounds}
                     href={lineFirst.mapHref}
                     ariaLabel={`Ver la línea ${lineContext.line.numero} en el mapa en vivo, parada ${lineContext.stop.nombre}`}
-                    className="h-[196px]"
+                    className="h-[176px]"
                   />
                 </div>
               )}
@@ -584,7 +584,7 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                       bounds={previewBounds}
                       href={lineFirst.mapHref}
                       ariaLabel={`Ver la línea ${lineContext.line.numero} en el mapa en vivo, parada ${lineContext.stop.nombre}`}
-                      className="h-[300px] rounded-none border-0 shadow-none"
+                      className="h-[272px] rounded-none border-0 shadow-none"
                     />
                   )}
                   <LineArrivalsCard
