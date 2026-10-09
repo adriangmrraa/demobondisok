@@ -39,7 +39,7 @@ import { StopPickerSheet } from '@/components/home/line-first/StopPickerSheet';
 import { RecentTrips } from '@/components/home/line-first/RecentTrips';
 import { ViewMapCta } from '@/components/home/line-first/ViewMapCta';
 import { useLineFirstSelection } from '@/hooks/use-line-first-selection';
-import { routeBounds, stopAreaBounds, type CatalogLine } from '@/lib/home/line-first';
+import { stopAreaBounds, type CatalogLine } from '@/lib/home/line-first';
 import { SEEDED_ROUTES, type SeededRoute } from '@/lib/home/seeded-routes';
 import { MOCK_STOPS, MOCK_LINES, MOCK_ALERTS } from '@/mock/data';
 import { subscribeToPositions } from '@/mock/live';
@@ -451,8 +451,8 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
     [selectStop],
   );
   const previewBounds = useMemo(
-    () => (lineContext ? (variant === 'a' ? stopAreaBounds(lineContext) : routeBounds(lineContext)) : null),
-    [lineContext, variant],
+    () => (lineContext ? stopAreaBounds(lineContext) : null),
+    [lineContext],
   );
 
   /** Un tap en un recorrido demo inicia ese viaje en el mapa. */
@@ -510,7 +510,7 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                     color={lineContext.line.color}
                     positions={lineFirst.linePositions}
                     bounds={previewBounds}
-                    href={lineFirst.mapHref}
+                    href={lineFirst.journeyHref}
                     ariaLabel={`Ver la línea ${lineContext.line.numero} en el mapa en vivo, parada ${lineContext.stop.nombre}`}
                     className="h-[176px]"
                   />
@@ -525,6 +525,7 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                     perHour={lineFirst.perHour}
                     onToggleDirection={lineFirst.toggleDirection}
                     onOpenStopPicker={() => setStopPickerOpen(true)}
+                    arrivalHref={lineFirst.arrivalHref}
                     bare
                     hideDirectionRow
                   />
@@ -534,7 +535,7 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
 
             {lineContext && (
               <div className="home-rise" style={{ '--home-delay': '540ms' } as CSSProperties}>
-                <ViewMapCta href={lineFirst.mapHref} lineNumber={lineContext.line.numero} color={lineContext.line.color} />
+                <ViewMapCta href={lineFirst.journeyHref} lineNumber={lineContext.line.numero} color={lineContext.line.color} />
               </div>
             )}
 
@@ -573,20 +574,22 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                   {lineFirst.notice}
                 </p>
               )}
+              {lineContext && previewBounds && (
+                <div className="mt-2.5" style={{ '--home-delay': '360ms' } as CSSProperties}>
+                  <LinePreviewMap
+                    recorridoId={lineContext.recorrido.id}
+                    stop={lineContext.stop}
+                    color={lineContext.line.color}
+                    positions={lineFirst.linePositions}
+                    bounds={previewBounds}
+                    href={lineFirst.journeyHref}
+                    ariaLabel={`Ver la línea ${lineContext.line.numero} en el mapa en vivo, parada ${lineContext.stop.nombre}`}
+                    className="h-[176px]"
+                  />
+                </div>
+              )}
               {lineContext && (
-                <div className="home-fade home-surface mt-3 overflow-hidden rounded-3xl border border-hairline" style={{ '--home-delay': '360ms' } as CSSProperties}>
-                  {previewBounds && (
-                    <LinePreviewMap
-                      recorridoId={lineContext.recorrido.id}
-                      stop={lineContext.stop}
-                      color={lineContext.line.color}
-                      positions={lineFirst.linePositions}
-                      bounds={previewBounds}
-                      href={lineFirst.mapHref}
-                      ariaLabel={`Ver la línea ${lineContext.line.numero} en el mapa en vivo, parada ${lineContext.stop.nombre}`}
-                      className="h-[272px] rounded-none border-0 shadow-none"
-                    />
-                  )}
+                <div className="home-rise mt-2.5" style={{ '--home-delay': '400ms' } as CSSProperties}>
                   <LineArrivalsCard
                     context={lineContext}
                     arrivals={lineFirst.arrivals}
@@ -594,8 +597,9 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                     perHour={lineFirst.perHour}
                     onToggleDirection={lineFirst.toggleDirection}
                     onOpenStopPicker={() => setStopPickerOpen(true)}
+                    arrivalHref={lineFirst.arrivalHref}
+                    bare
                     hideDirectionRow
-                    className="rounded-none border-0 bg-none shadow-none"
                   />
                 </div>
               )}

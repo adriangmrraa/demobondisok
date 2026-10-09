@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { CSSProperties } from 'react';
 import { ArrowLeft, Map, Navigation, Route } from 'lucide-react';
 import { buildJourneyGuideModel } from '@/lib/journey-guide';
 import { tripMapUrlFromState, type TripMapNavigationState } from '@/lib/trip-map-navigation';
@@ -62,7 +63,10 @@ export function JourneyGuide({ option, state, etaMinutes, onBackToOptions, userH
         <ArrowLeft className="size-4" /> Ver alternativas
       </button>
       {model.hero ? (
-        <div className="rounded-3xl bg-ink p-5 text-canvas shadow-[0_16px_35px_-16px_rgba(0,0,0,0.65)]">
+        <div
+          className="rounded-3xl bg-ink p-5 text-canvas shadow-[0_16px_35px_-16px_rgba(0,0,0,0.65)]"
+          style={{ background: `linear-gradient(150deg, color-mix(in srgb, ${model.hero.color} 30%, #141414), #141414 72%)` }}
+        >
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-canvas/65">Tu próximo colectivo</p>
           <div className="mt-3 flex items-center justify-between gap-4">
             <LineDisplay
@@ -78,20 +82,24 @@ export function JourneyGuide({ option, state, etaMinutes, onBackToOptions, userH
           <p className="mt-1 text-sm leading-snug text-canvas/70">Esperalo en la parada indicada y seguí los pasos.</p>
         </div>
       ) : (
-        <div className="rounded-3xl border border-hairline bg-canvas-soft p-5">
+        <div className="home-surface rounded-3xl border border-hairline p-5">
           <p className="text-lg font-black text-ink">Este tramo es a pie</p>
           <p className="mt-1 text-sm text-text-muted">No necesitás esperar un colectivo para esta alternativa.</p>
         </div>
       )}
-      <div className="rounded-3xl border border-hairline bg-canvas p-5">
+      <div className="home-surface rounded-3xl border border-hairline p-5">
         <div className="mb-5 flex items-center gap-2"><Navigation className="size-5 text-electric-blue" /><h2 className="text-lg font-black text-ink">Paso a paso</h2></div>
         <JourneyTimeline steps={model.steps} userHeading={userHeading} mapUrlForStep={mapUrlForStep} />
       </div>
-      <div className="rounded-3xl border border-hairline bg-canvas p-5">
+      <div className="home-surface rounded-3xl border border-hairline p-5">
         <div className="mb-5 flex items-center gap-2"><Route className="size-5 text-electric-blue" /><h2 className="text-lg font-black text-ink">Recorrido</h2></div>
         <TripDiagram option={option} />
       </div>
-      <Link href={tripMapUrlFromState(mapState)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-hairline bg-canvas font-bold text-ink transition-colors hover:bg-canvas-soft">
+      <Link
+        href={tripMapUrlFromState(mapState)}
+        style={model.hero ? ({ '--cta': model.hero.color } as CSSProperties) : undefined}
+        className="home-cta flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl font-bold text-white transition-all duration-300 active:scale-[0.98]"
+      >
         <Map className="size-4" /> Ver el recorrido en el mapa
       </Link>
     </section>

@@ -2,6 +2,9 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { TransportService } from '@/lib/services/transport-service';
+import { TripPlannerService } from '@/lib/services/trip-planner-service';
+import { buildTripJourneyUrl, buildTripMapState, tripMapUrlFromState } from '@/lib/trip-map-navigation';
+import type { EstimacionLlegada } from '@/types/transport';
 import {
   defaultSelection,
   mapHrefFor,
@@ -81,6 +84,47 @@ export function useLineFirstSelection(catalog: CatalogLine[], positions: Vehicle
 
   const frequencyMin = context?.line.frecuenciaPicoMin ?? 0;
 
+  // Viaje natural del bloque: subir en la parada elegida hasta la cabecera
+  // del sentido activo. Si el planner no encuentra opción (última parada,
+  // sin combinación), los destinos caen al deep link legacy de /mapas.
+  const trip = useMemo(() => {
+    if (!context) return null;
+    const lastStopId = context.recorrido.paradas[context.recorrido.paradas.length - 1];
+    if (!lastStopId || lastStopId === context.stop.id) return null;
+    return (
+      TripPlannerService.planTrip(context.stop.id, lastStopId).find((option) =>
+        option.legs.some(
+          (leg) => leg.type === 'ride' && leg.lineaId === context.line.id && leg.fromStop.id === context.stop.id,
+        ),
+      ) ?? null
+    );
+  }, [context]);
+
+  // "Ir al mapa" (preview + CTA): pasa por /viaje (alternativas → guía) antes
+  // de abrir el mapa, igual que los últimos viajes. El primer arribo real viaja
+  // en la URL: el hero muestra el ETA en vivo y el mapa enfoca esa unidad.
+  const journeyHref = useMemo(() => {
+    if (!context) return '/mapas';
+    if (!trip) return mapHrefFor(context);
+    const firstReal = arrivals.find((a) => !a.simulated);
+    return buildTripJourneyUrl(trip, trip.origin, { boardingStopId: context.stop.id, arrival: firstReal });
+  }, [context, trip, arrivals]);
+
+  // Un arribo concreto abre /mapas directo en modo viaje con esa unidad
+  // enfocada (?interno=), como ya hace el flujo de viaje.
+  const arrivalHref = useCallback(
+    (arrival: EstimacionLlegada): string => {
+      if (!context) return '/mapas';
+      if (!trip) return mapHrefFor(context);
+      // Unidad simulada sin interno vivo: el mapa resuelve la más cercana.
+      const live = arrival.simulated ? undefined : arrival;
+      return tripMapUrlFromState(
+        buildTripMapState(trip, trip.origin, { boardingStopId: context.stop.id, arrival: live }),
+      );
+    },
+    [context, trip],
+  );
+
   return {
     selection,
     context,
@@ -90,6 +134,8 @@ export function useLineFirstSelection(catalog: CatalogLine[], positions: Vehicle
     frequencyMin,
     perHour: frequencyMin > 0 ? Math.round(60 / frequencyMin) : 0,
     mapHref: context ? mapHrefFor(context) : '/mapas',
+    journeyHref,
+    arrivalHref,
     selectLine,
     toggleDirection,
     selectRamal,

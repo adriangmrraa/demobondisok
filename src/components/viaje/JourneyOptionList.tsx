@@ -1,5 +1,6 @@
 'use client';
 
+import type { CSSProperties } from 'react';
 import { ArrowRight, Footprints } from 'lucide-react';
 import type { TripOption } from '@/types/trip-planner';
 
@@ -17,7 +18,7 @@ export function JourneyOptionList({ options, selectedOptionId, onSelect }: Journ
         <p className="text-sm text-text-muted">Compará las opciones antes de abrir el mapa.</p>
       </div>
       <div className="space-y-2">
-        {options.map((option) => {
+        {options.map((option, index) => {
           const selected = option.id === selectedOptionId;
           return (
             <button
@@ -25,8 +26,11 @@ export function JourneyOptionList({ options, selectedOptionId, onSelect }: Journ
               type="button"
               onClick={() => onSelect(option.id)}
               aria-pressed={selected}
-              className={`w-full min-h-[104px] rounded-2xl border p-4 text-left transition-colors active:scale-[0.99] ${
-                selected ? 'border-electric-blue bg-electric-blue/10 ring-1 ring-electric-blue/30' : 'border-hairline bg-canvas hover:bg-canvas-soft'
+              style={{ '--home-delay': `${180 + index * 90}ms` } as CSSProperties}
+              className={`home-rise w-full min-h-[104px] rounded-3xl border p-4 text-left transition-[box-shadow,transform,background-color] duration-200 active:scale-[0.99] ${
+                selected
+                  ? 'border-electric-blue bg-electric-blue/10 shadow-[0_14px_30px_-16px_rgba(0,102,255,0.55)] ring-1 ring-electric-blue/40'
+                  : 'home-surface border-hairline hover:bg-canvas-soft'
               }`}
             >
               <div className="flex items-start justify-between gap-3">
@@ -38,7 +42,15 @@ export function JourneyOptionList({ options, selectedOptionId, onSelect }: Journ
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-1.5">
                 {option.linesInvolved.length > 0 ? option.linesInvolved.map((line) => (
-                  <span key={line.id} className="rounded-full px-2.5 py-1 text-xs font-black" style={{ backgroundColor: line.color, color: line.textColor }}>
+                  <span
+                    key={line.id}
+                    className="rounded-full px-2.5 py-1 text-xs font-black"
+                    style={{
+                      background: `linear-gradient(150deg, color-mix(in srgb, ${line.color} 72%, white), ${line.color} 55%)`,
+                      color: line.textColor,
+                      boxShadow: `inset 0 1px 0 rgba(255,255,255,.3), 0 8px 16px -10px ${line.color}`,
+                    }}
+                  >
                     {line.numero}
                   </span>
                 )) : (

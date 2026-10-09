@@ -91,16 +91,29 @@ test.describe('Inicio A (/inicio)', () => {
     await expect(page.getByRole('button', { name: `Línea ${line65.numero}`, exact: true })).toHaveAttribute('aria-pressed', 'true');
   });
 
-  test('el mapa embebido pinta y abre /mapas con la línea y la parada elegidas', async ({ page }) => {
+  test('el mapa embebido pinta y "ir al mapa" pasa por /viaje antes de abrir /mapas', async ({ page }) => {
     test.slow();
     await page.goto('/inicio');
     await expectMapPainted(page);
 
     const cta = page.getByRole('link', { name: 'Ver la línea 65 en el mapa en vivo', exact: true });
-    await expect(cta).toHaveAttribute('href', '/mapas?linea=line-65&parada=stop-65-05');
+    await expect(cta).toHaveAttribute('href', /^\/viaje\?trip=1&/);
     await cta.click();
-    await expect(page).toHaveURL(/\/mapas\?linea=line-65/);
-    await expect(page.getByText('Troncal Constitución – Barrancas de Belgrano')).toBeVisible({ timeout: 15_000 });
+    await expect(page).toHaveURL(/\/viaje\?trip=1/);
+    await expect(page.getByRole('region', { name: /alternativas de viaje/i })).toBeVisible();
+  });
+
+  test('tocar un próximo colectivo abre /mapas en modo viaje con esa unidad', async ({ page }) => {
+    test.slow();
+    await page.goto('/inicio');
+    const card = lineCard(page);
+    const arrival = card.getByRole('link', { name: /^Seguir el colectivo / }).first();
+    await expect(arrival).toHaveAttribute('href', /\/mapas\?trip=1&/);
+    await expect(arrival).toHaveAttribute('href', /interno=/);
+    await expect(arrival).toHaveAttribute('href', /linea=line-65/);
+    await arrival.click();
+    await expect(page).toHaveURL(/\/mapas\?trip=1/);
+    await expect(page).toHaveURL(/interno=/);
   });
 
   test('un viaje reciente inicia el mismo flujo de viaje de siempre', async ({ page }) => {

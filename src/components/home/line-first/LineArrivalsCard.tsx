@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { ArrowLeftRight, Bus, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { shortStopName, type LineFirstContext } from '@/lib/home/line-first';
@@ -12,6 +13,8 @@ interface LineArrivalsCardProps {
   perHour: number;
   onToggleDirection: () => void;
   onOpenStopPicker: () => void;
+  /** Destino por arribo: /mapas en modo viaje con esa unidad enfocada. */
+  arrivalHref?: (arrival: EstimacionLlegada) => string;
   /** Sin superficie/borde: el contenido flota sobre el fondo (Home A). */
   bare?: boolean;
   /** Sin fila de dirección (texto origen→destino + botón Cambiar): arribos directo. */
@@ -49,6 +52,7 @@ export function LineArrivalsCard({
   perHour,
   onToggleDirection,
   onOpenStopPicker,
+  arrivalHref,
   bare = false,
   hideDirectionRow = false,
   className,
@@ -110,7 +114,7 @@ export function LineArrivalsCard({
         </div>
       )}
 
-      <div className={cn('home-well rounded-2xl px-3', bare ? 'mt-1.5 pb-2 pt-1.5' : 'mt-2 pb-2.5 pt-2')}>
+      <div className={cn('home-well rounded-2xl px-3', bare ? 'mt-1.5 pb-2 pt-1.5' : 'mt-2 pb-2.5 pt-2', 'overflow-hidden')}>
         <div className="flex items-center gap-2">
           <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
             <span className="home-live-dot absolute inset-0 rounded-full bg-emerald-500" />
@@ -124,19 +128,37 @@ export function LineArrivalsCard({
         )}
         {arrivals.length > 0 ? (
           <ul aria-live="polite" className={cn('grid grid-cols-3 divide-x divide-hairline', bare ? 'mt-1.5' : 'mt-2')}>
-            {arrivals.map((arrival, index) => (
-              <li
-                key={`${stop.id}-${arrival.interno}`}
-                className={cn('home-eta flex flex-col items-center justify-center gap-0.5 px-1 text-center', bare ? 'min-h-[50px]' : 'min-h-[56px]')}
-                style={{ animationDelay: `${index * 70}ms` }}
-              >
-                <ArrivalValue arrival={arrival} first={index === 0} />
-                <span className="inline-flex items-center gap-1 text-[11px] text-text-muted">
-                  <Bus className="h-3 w-3 shrink-0" aria-hidden="true" />
-                  {arrival.simulated ? 'Estimado' : 'En recorrido'}
-                </span>
-              </li>
-            ))}
+            {arrivals.map((arrival, index) => {
+              const href = arrivalHref?.(arrival);
+              const body = (
+                <>
+                  <ArrivalValue arrival={arrival} first={index === 0} />
+                  <span className="inline-flex items-center gap-1 text-[11px] text-text-muted">
+                    <Bus className="h-3 w-3 shrink-0" aria-hidden="true" />
+                    {arrival.simulated ? 'Estimado' : 'En recorrido'}
+                  </span>
+                </>
+              );
+              return (
+                <li
+                  key={`${stop.id}-${arrival.interno}`}
+                  className={cn('home-eta', bare ? 'min-h-[50px]' : 'min-h-[56px]')}
+                  style={{ animationDelay: `${index * 70}ms` }}
+                >
+                  {href ? (
+                    <Link
+                      href={href}
+                      aria-label={`Seguir el colectivo ${arrival.interno} de la línea ${line.numero} en el mapa en vivo`}
+                      className="flex h-full min-h-[inherit] w-full flex-col items-center justify-center gap-0.5 px-1 text-center transition-colors hover:bg-canvas-soft/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue"
+                    >
+                      {body}
+                    </Link>
+                  ) : (
+                    <span className="flex h-full min-h-[inherit] w-full flex-col items-center justify-center gap-0.5 px-1 text-center">{body}</span>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <p className="mt-3 text-sm text-text-muted">Buscando colectivos en camino…</p>
