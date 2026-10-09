@@ -724,18 +724,30 @@ export default function TransportesAppPage() {
       left: 40, // LineSelectorBar (compacto)
       right: 30, // controles zoom + share (mínimo viable)
     };
-    // PBI-034 v16: cliente eligió valores exactos del fitBounds mobile
-    // (zoom 8.53, center [-58.2679, -34.8285] Quilmes). Aplicamos con jumpTo
-    // fijo. Si el cliente ve otro valor al final, es porque está scrolleando
-    // manualmente — el jumpTo inicial aplica correctamente.
-    const ZOOM_MOBILE = 8.53;
-    const ZOOM_MOBILE_CENTER: [number, number] = [-58.2679, -34.8285];
+    // PBI-034 v17: el cliente ve "se ve mal" porque la UI (header pill + bottom
+    // nav + LineSelectorBar) tapa los extremos del extent. Solución: fitBounds
+    // con padding interno que COMPENSA la UI real:
+    // - top 110: header pill (¿A dónde vas? + chip 4 LÍNEAS) ~100dp
+    // - bottom 130: bottom nav (5 items + safe area) ~120dp
+    // - left 60: LineSelectorBar (5 líneas) ~56dp
+    // - right 50: controles de zoom + share
+    // + maxZoom 12 para que el extent quepa en el área visible, no en el
+    // viewport total. El centroide queda centrado en el área visible del mapa.
     const ZOOM_DESKTOP = 20;
+    const ZOOM_MOBILE_MAX = 12;
+    const MOBILE_PADDING = { top: 110, bottom: 130, left: 60, right: 50 };
     const modePrefix = isMobileViewport ? "M" : "D";
     if (isMobileViewport) {
       if (effectiveLineaIds.length === 0) {
         const b = computeLinea195Bounds(DATASET);
-        if (b) return { bounds: b, center: ZOOM_MOBILE_CENTER, nonce: `${modePrefix}-195`, zoom: ZOOM_MOBILE };
+        if (b) {
+          return {
+            bounds: b,
+            nonce: `${modePrefix}-195`,
+            padding: MOBILE_PADDING,
+            maxZoom: ZOOM_MOBILE_MAX,
+          };
+        }
         return null;
       }
       const b =
@@ -748,9 +760,9 @@ export default function TransportesAppPage() {
         .reduce((acc, id) => acc + id.split("").reduce((a, c) => a + c.charCodeAt(0), 0), 1);
       return {
         bounds: b,
-        center: ZOOM_MOBILE_CENTER,
         nonce: `${modePrefix}-${idHash}`,
-        zoom: ZOOM_MOBILE,
+        padding: MOBILE_PADDING,
+        maxZoom: ZOOM_MOBILE_MAX,
       };
     }
     // DESKTOP: fitBounds con maxZoom como techo.
