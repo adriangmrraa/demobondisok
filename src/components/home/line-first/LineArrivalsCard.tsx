@@ -12,6 +12,8 @@ interface LineArrivalsCardProps {
   perHour: number;
   onToggleDirection: () => void;
   onOpenStopPicker: () => void;
+  /** Sin superficie/borde: el contenido flota sobre el fondo (Home A). */
+  bare?: boolean;
   className?: string;
 }
 
@@ -45,6 +47,7 @@ export function LineArrivalsCard({
   perHour,
   onToggleDirection,
   onOpenStopPicker,
+  bare = false,
   className,
 }: LineArrivalsCardProps) {
   const { line, recorrido, stop, canSwitchDirection } = context;
@@ -53,7 +56,7 @@ export function LineArrivalsCard({
   return (
     <section
       aria-label={`Línea ${line.numero}, parada ${stopLabel}`}
-      className={cn('home-surface rounded-3xl border border-hairline p-4', className)}
+      className={cn(bare ? 'px-1 py-0' : 'home-surface rounded-3xl border border-hairline p-4', className)}
     >
       <div className="flex items-center gap-3">
         <span
@@ -84,7 +87,7 @@ export function LineArrivalsCard({
         </button>
       </div>
 
-      <div className="mt-3 flex items-center gap-2">
+      <div className={cn('flex items-center gap-2', bare ? 'mt-2' : 'mt-3')}>
         <p className="min-w-0 flex-1 text-[13px] leading-snug text-text-muted">
           {recorrido.origen} <span aria-hidden="true">→</span> {recorrido.destino}
         </p>
@@ -102,7 +105,7 @@ export function LineArrivalsCard({
         </button>
       </div>
 
-      <div className="home-well mt-3 rounded-2xl px-3 pb-3 pt-2.5">
+      <div className={cn('home-well rounded-2xl px-3', bare ? 'mt-2 pb-2.5 pt-2' : 'mt-3 pb-3 pt-2.5')}>
         <div className="flex items-center gap-2">
           <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
             <span className="home-live-dot absolute inset-0 rounded-full bg-emerald-500" />
@@ -115,11 +118,11 @@ export function LineArrivalsCard({
           </p>
         )}
         {arrivals.length > 0 ? (
-          <ul aria-live="polite" className="mt-3 grid grid-cols-3 divide-x divide-hairline">
+          <ul aria-live="polite" className={cn('grid grid-cols-3 divide-x divide-hairline', bare ? 'mt-2' : 'mt-3')}>
             {arrivals.map((arrival, index) => (
               <li
                 key={`${stop.id}-${arrival.interno}`}
-                className="home-eta flex min-h-[64px] flex-col items-center justify-center gap-1 px-1 text-center"
+                className={cn('home-eta flex flex-col items-center justify-center gap-1 px-1 text-center', bare ? 'min-h-[56px]' : 'min-h-[64px]')}
                 style={{ animationDelay: `${index * 70}ms` }}
               >
                 <ArrivalValue arrival={arrival} first={index === 0} />

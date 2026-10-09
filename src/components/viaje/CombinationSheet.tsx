@@ -60,7 +60,7 @@ export function CombinationSheet({ combinacion, paradaNombre, onClose }: Combina
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full sm:max-w-md bg-canvas rounded-t-3xl sm:rounded-3xl border border-hairline shadow-[0_24px_60px_-12px_rgba(0,0,0,0.45)] overflow-hidden"
+        className="home-rise w-full sm:max-w-md bg-canvas rounded-t-3xl sm:rounded-3xl border border-hairline shadow-[0_24px_60px_-12px_rgba(0,0,0,0.45)] overflow-hidden"
       >
         <div className="px-5 pt-4 pb-4 flex items-start gap-3 border-b border-hairline-soft">
           <div

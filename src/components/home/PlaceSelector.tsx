@@ -74,7 +74,7 @@ export function PlaceSelector({ onSelect, onCancel }: PlaceSelectorProps) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="place-selector-title"
-        className="w-full max-w-[360px] bg-canvas border border-hairline rounded-3xl p-4 shadow-[0_16px_45px_-6px_rgba(16,29,61,0.35)] animate-in fade-in slide-in-from-bottom-4 duration-200"
+        className="home-rise w-full max-w-[360px] bg-canvas border border-hairline rounded-3xl p-4 shadow-[0_16px_45px_-6px_rgba(16,29,61,0.35)]"
       >
         <h2 id="place-selector-title" className="text-base font-bold text-ink">
           ¿Dónde estás esperando el colectivo?

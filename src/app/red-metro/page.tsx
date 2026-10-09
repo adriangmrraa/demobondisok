@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import type React from 'react';
 import { ArrowLeft, Map as MapIcon, X, Bus, ChevronRight } from 'lucide-react';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { ZONAS_AMBA, lineasEnZona, type Zona } from '@/data/zonas-amba';
@@ -31,8 +32,9 @@ export default function RedMetroPage() {
   const lineas = selectedZona ? lineasEnZona(selectedZona) : [];
 
   return (
-    <div className="h-dvh bg-canvas flex flex-col overflow-hidden">
-      <header className="px-4 pt-[calc(14px+env(safe-area-inset-top))] pb-3 bg-canvas flex items-center gap-3 shrink-0">
+    <div className="home-backdrop h-dvh flex flex-col overflow-hidden">
+      <div className="home-veil" aria-hidden />
+      <header className="home-rise px-4 pt-[calc(14px+env(safe-area-inset-top))] pb-3 flex items-center gap-3 shrink-0">
         <Link
           href="/inicio"
           className="w-9 h-9 rounded-full bg-canvas-soft border border-hairline flex items-center justify-center text-ink hover:bg-field transition-colors active:scale-95"
@@ -47,7 +49,7 @@ export default function RedMetroPage() {
       </header>
 
       <main className="px-4 flex-1 min-h-0 overflow-y-auto overscroll-contain pb-[120px]">
-        <section className="mt-4">
+        <section className="home-rise mt-4" style={{ '--home-delay': '120ms' } as React.CSSProperties}>
           <p className="text-sm font-semibold text-text-muted">Mapa esquemático</p>
           <p className="mt-1 text-xs text-text-muted leading-snug">
             Tocá una zona para ver las líneas que la conectan y las paradas cabeceras. Para el
@@ -56,14 +58,15 @@ export default function RedMetroPage() {
         </section>
 
         <section className="mt-4 grid grid-cols-1 gap-3">
-          {ZONAS_AMBA.map((zona) => {
+          {ZONAS_AMBA.map((zona, index) => {
             const lineasZona = lineasEnZona(zona);
             return (
               <button
                 key={zona.id}
                 type="button"
                 onClick={() => setSelectedZona(zona)}
-                className={`w-full text-left rounded-2xl border-2 p-4 transition-all active:scale-[0.99] hover:shadow-md ${
+                style={{ '--home-delay': `${200 + index * 60}ms` } as React.CSSProperties}
+                className={`home-rise w-full text-left rounded-2xl border-2 p-4 transition-all active:scale-[0.99] hover:shadow-md ${
                   ZONA_TYPE_ACCENT[zona.type]
                 }`}
               >
@@ -99,10 +102,10 @@ export default function RedMetroPage() {
           })}
         </section>
 
-        <section className="mt-6 mb-2">
+        <section className="home-rise mt-6 mb-2" style={{ '--home-delay': '620ms' } as React.CSSProperties}>
           <Link
             href="/mapas"
-            className="inline-flex items-center justify-center gap-2 min-h-11 w-full rounded-2xl bg-ink text-canvas text-sm font-bold transition-colors active:scale-95"
+            className="home-cta inline-flex items-center justify-center gap-2 min-h-11 w-full rounded-2xl text-white text-sm font-bold transition-all active:scale-95"
           >
             <MapIcon className="w-4 h-4" aria-hidden="true" />
             Ver mapa en vivo
@@ -121,7 +124,7 @@ export default function RedMetroPage() {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full sm:max-w-md bg-canvas rounded-t-3xl sm:rounded-3xl border border-hairline shadow-[0_24px_60px_-12px_rgba(0,0,0,0.45)] overflow-hidden"
+            className="home-rise w-full sm:max-w-md bg-canvas rounded-t-3xl sm:rounded-3xl border border-hairline shadow-[0_24px_60px_-12px_rgba(0,0,0,0.45)] overflow-hidden"
           >
             <div className="px-5 pt-4 pb-3 flex items-start justify-between gap-3 border-b border-hairline-soft">
               <div className="flex-1 min-w-0">
@@ -200,7 +203,7 @@ export default function RedMetroPage() {
                     : "/mapas"
                 }
                 onClick={() => setSelectedZona(null)}
-                className="inline-flex items-center justify-center gap-2 min-h-11 w-full rounded-2xl bg-ink text-canvas text-sm font-bold transition-colors active:scale-95"
+                className="home-cta inline-flex items-center justify-center gap-2 min-h-11 w-full rounded-2xl text-white text-sm font-bold transition-all active:scale-95"
               >
                 <MapIcon className="w-4 h-4" aria-hidden="true" />
                 {lineas.length > 1

@@ -1,18 +1,22 @@
 import Link from 'next/link';
+import type { CSSProperties } from 'react';
 import { ChevronRight, Map as MapIcon } from 'lucide-react';
 
 interface ViewMapCtaProps {
   href: string;
   lineNumber: string;
+  /** Color de la línea seleccionada: el CTA lo toma como acento. */
+  color?: string;
 }
 
 /** CTA "Ver mapa" de la variante A: abre /mapas con la línea y la parada elegidas. */
-export function ViewMapCta({ href, lineNumber }: ViewMapCtaProps) {
+export function ViewMapCta({ href, lineNumber, color }: ViewMapCtaProps) {
   return (
     <Link
       href={href}
       aria-label={`Ver la línea ${lineNumber} en el mapa en vivo`}
-      className="home-cta group flex min-h-[68px] items-center gap-3 rounded-3xl px-3.5 text-white transition-transform duration-150 active:scale-[0.98]"
+      style={color ? ({ '--cta': color } as CSSProperties) : undefined}
+      className="home-cta group flex min-h-[68px] items-center gap-3 rounded-3xl px-3.5 text-white transition-all duration-300 active:scale-[0.98]"
     >
       <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/15 shadow-[inset_0_1px_0_rgba(255,255,255,.25)]">
         <MapIcon className="h-5 w-5" aria-hidden="true" />

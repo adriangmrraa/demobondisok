@@ -512,7 +512,7 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                     bounds={previewBounds}
                     href={lineFirst.mapHref}
                     ariaLabel={`Ver la línea ${lineContext.line.numero} en el mapa en vivo, parada ${lineContext.stop.nombre}`}
-                    className="h-[210px]"
+                    className="h-[196px]"
                   />
                 </div>
               )}
@@ -525,6 +525,7 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                     perHour={lineFirst.perHour}
                     onToggleDirection={lineFirst.toggleDirection}
                     onOpenStopPicker={() => setStopPickerOpen(true)}
+                    bare
                   />
                 </div>
               )}
@@ -532,7 +533,7 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
 
             {lineContext && (
               <div className="home-rise" style={{ '--home-delay': '540ms' } as CSSProperties}>
-                <ViewMapCta href={lineFirst.mapHref} lineNumber={lineContext.line.numero} />
+                <ViewMapCta href={lineFirst.mapHref} lineNumber={lineContext.line.numero} color={lineContext.line.color} />
               </div>
             )}
 

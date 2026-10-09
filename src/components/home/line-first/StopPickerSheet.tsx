@@ -60,7 +60,7 @@ export function StopPickerSheet({ open, context, onClose, onSelectStop, onSelect
         role="dialog"
         aria-modal="true"
         aria-labelledby="stop-picker-title"
-        className="flex max-h-[85dvh] w-full max-w-[420px] flex-col rounded-t-3xl border border-hairline bg-canvas p-4 shadow-2xl sm:rounded-3xl"
+        className="home-rise flex max-h-[85dvh] w-full max-w-[420px] flex-col rounded-t-3xl border border-hairline bg-canvas p-4 shadow-2xl sm:rounded-3xl"
       >
         <header className="flex items-start justify-between gap-3">
           <div className="min-w-0">

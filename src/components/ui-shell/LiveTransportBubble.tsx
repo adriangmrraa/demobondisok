@@ -78,7 +78,7 @@ export default function LiveTransportBubble({
       <aside
         aria-label="Panel de información en vivo de la línea"
         style={{ maxHeight: collapsed ? "74px" : half ? "40dvh" : "58dvh" }}
-        className="pointer-events-auto w-full max-w-[410px] bg-canvas dark:bg-canvas border border-hairline rounded-[28px] shadow-[0_16px_45px_-4px_rgba(0,0,0,0.22)] dark:shadow-[0_20px_50px_-4px_rgba(0,0,0,0.7)] flex flex-col relative animate-in fade-in slide-in-from-bottom-3 duration-200 overflow-hidden transition-[max-height] duration-300"
+        className="pointer-events-auto w-full max-w-[410px] bg-canvas dark:bg-canvas border border-hairline rounded-[28px] shadow-[0_16px_45px_-4px_rgba(0,0,0,0.22)] dark:shadow-[0_20px_50px_-4px_rgba(0,0,0,0.7)] flex flex-col relative home-rise overflow-hidden transition-[max-height] duration-300"
       >
         {/* Puntero triangular tipo burbuja apuntando al botón de Líneas en la navbar */}
         <div

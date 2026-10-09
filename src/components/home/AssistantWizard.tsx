@@ -137,7 +137,7 @@ export function AssistantWizard({
         role="dialog"
         aria-modal="true"
         aria-label={`Asistente de viaje. Paso ${stepIndex + 1} de ${stepOrder.length}: ${STEP_LABELS[step]}`}
-        className="w-full max-w-[400px] bg-canvas border border-hairline rounded-3xl shadow-[0_16px_45px_-6px_rgba(16,29,61,0.4)] overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200"
+        className="home-rise w-full max-w-[400px] bg-canvas border border-hairline rounded-3xl shadow-[0_16px_45px_-6px_rgba(16,29,61,0.4)] overflow-hidden"
       >
         {/* Header + stepper */}
         <div className="flex items-center justify-between gap-2 px-4 h-[52px] border-b border-hairline-soft">

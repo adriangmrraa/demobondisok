@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useMemo, useRef, useState } from 'react';
+import type React from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, MapPin, Navigation, Search, Sparkles } from 'lucide-react';
 import { BottomNav } from '@/components/ui/bottom-nav';
@@ -106,8 +107,9 @@ export default function ComoLlegoPage() {
   }, [selectDestination]);
 
   return (
-    <div className="h-dvh bg-canvas flex flex-col overflow-hidden">
-      <header className="px-4 pt-[calc(14px+env(safe-area-inset-top))] pb-3 bg-canvas flex items-center gap-3 shrink-0">
+    <div className="home-backdrop h-dvh flex flex-col overflow-hidden">
+      <div className="home-veil" aria-hidden />
+      <header className="home-rise px-4 pt-[calc(14px+env(safe-area-inset-top))] pb-3 flex items-center gap-3 shrink-0">
         <Link href="/inicio" className="w-9 h-9 rounded-full bg-canvas-soft border border-hairline flex items-center justify-center text-ink hover:bg-field transition-colors active:scale-95" aria-label="Volver al inicio">
           <ArrowLeft className="w-4 h-4" aria-hidden="true" />
         </Link>
@@ -118,7 +120,7 @@ export default function ComoLlegoPage() {
       </header>
 
       <main className="px-4 flex-1 min-h-0 overflow-y-auto overscroll-contain pb-[120px]">
-        <section aria-label="Planificar viaje" className="mt-3 rounded-3xl border border-hairline bg-canvas-soft p-3 shadow-sm">
+        <section aria-label="Planificar viaje" className="home-rise mt-3 rounded-3xl border border-hairline home-surface p-3" style={{ '--home-delay': '120ms' } as React.CSSProperties}>
           <div className="relative">
             <MapPin className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-500" aria-hidden="true" />
             <input ref={originInputRef} type="text" value={locationLabel(origin, originQuery)} onChange={(event) => { setOrigin(null); setOriginQuery(event.target.value); setPlanningError(null); }} placeholder="Origen — ¿Dónde estás?" autoComplete="off" aria-label="Origen del viaje" className="w-full min-h-[54px] rounded-2xl border border-hairline bg-canvas pl-10 pr-4 text-sm font-medium text-ink placeholder:text-text-faint focus:outline-none focus:ring-2 focus:ring-ink/20" />
@@ -136,27 +138,27 @@ export default function ComoLlegoPage() {
           </div>
           {destinationResults.length > 0 ? <LocationResults results={destinationResults} onSelect={selectDestination} /> : null}
           {planningError ? <p role="alert" className="mt-3 rounded-xl bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-800 dark:text-amber-200">{planningError}</p> : null}
-          <button type="button" onClick={planTrip} className="mt-3 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-ink px-4 text-sm font-bold text-canvas transition-transform active:scale-[0.98]">
+          <button type="button" onClick={planTrip} className="home-cta mt-3 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl px-4 text-sm font-bold text-white transition-transform active:scale-[0.98]">
             <Search className="h-4 w-4" aria-hidden="true" /> Buscar cómo llegar
           </button>
         </section>
 
-        <section aria-labelledby="featured-destinations-title" className="mt-6">
+        <section aria-labelledby="featured-destinations-title" className="home-rise mt-6" style={{ '--home-delay': '240ms' } as React.CSSProperties}>
           <div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-electric-blue" aria-hidden="true" /><h2 id="featured-destinations-title" className="text-sm font-bold uppercase tracking-[0.12em] text-text-muted">Destinos destacados</h2></div>
           <div className="mt-3 grid grid-cols-2 gap-2.5">
             {FEATURED_DESTINATIONS.map((place) => (
-              <button key={place.name} type="button" onClick={() => pickFeaturedDestination(place.name)} className="min-h-[84px] rounded-2xl border border-hairline bg-canvas p-3 text-left shadow-sm transition-colors hover:bg-canvas-soft active:scale-[0.98]">
+              <button key={place.name} type="button" onClick={() => pickFeaturedDestination(place.name)} className="min-h-[84px] rounded-2xl border border-hairline home-surface p-3 text-left transition-all hover:border-electric-blue/40 active:scale-[0.98]">
                 <MapPin className="h-4 w-4 text-electric-blue" aria-hidden="true" /><span className="mt-2 block text-sm font-bold leading-tight text-ink">{place.name}</span><span className="mt-1 block text-[11px] leading-tight text-text-muted">{place.description}</span>
               </button>
             ))}
           </div>
         </section>
 
-        <section aria-labelledby="active-lines-title" className="mt-6">
+        <section aria-labelledby="active-lines-title" className="home-rise mt-6" style={{ '--home-delay': '360ms' } as React.CSSProperties}>
           <h2 id="active-lines-title" className="text-sm font-bold uppercase tracking-[0.12em] text-text-muted">Líneas disponibles</h2>
           <div className="mt-3 flex flex-col gap-2">
             {ACTIVE_LINES.map((line) => (
-              <button key={line.id} type="button" onClick={() => router.push(`/diagrama/${line.id}`)} aria-label={`Ver diagrama de la línea ${line.number}`} className="flex min-h-[70px] w-full items-center gap-3 rounded-2xl border border-hairline bg-canvas px-3 text-left shadow-sm transition-colors hover:bg-canvas-soft active:scale-[0.98]">
+              <button key={line.id} type="button" onClick={() => router.push(`/diagrama/${line.id}`)} aria-label={`Ver diagrama de la línea ${line.number}`} className="flex min-h-[70px] w-full items-center gap-3 rounded-2xl border border-hairline home-surface px-3 text-left transition-all hover:border-electric-blue/40 active:scale-[0.98]">
                 <span className="flex h-10 min-w-10 items-center justify-center rounded-xl px-2 text-sm font-black text-white" style={{ backgroundColor: getLineColor(line.id) }}>{line.number}</span>
                 <span className="min-w-0 flex-1"><span className="block text-sm font-bold leading-tight text-ink">{line.route}</span><span className="mt-1 block text-[11px] text-text-muted">{line.operator}</span></span>
               </button>

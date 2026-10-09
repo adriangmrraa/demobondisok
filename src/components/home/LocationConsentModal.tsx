@@ -65,7 +65,7 @@ export function LocationConsentModal({ onUseReal, onUseDemo, onUseManual, onClos
         role="dialog"
         aria-modal="true"
         aria-labelledby="consent-title"
-        className="w-full max-w-[360px] rounded-3xl border border-white/15 bg-canvas/92 p-5 shadow-[0_24px_70px_-16px_rgba(0,0,0,0.7)] ring-1 ring-ink/10 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-4 duration-200"
+        className="home-rise w-full max-w-[360px] rounded-3xl border border-white/15 bg-canvas/92 p-5 shadow-[0_24px_70px_-16px_rgba(0,0,0,0.7)] ring-1 ring-ink/10 backdrop-blur-xl"
       >
         <div className="flex items-start justify-between">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-hairline bg-canvas-soft">

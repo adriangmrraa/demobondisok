@@ -879,7 +879,7 @@ export function MapCanvas({
             headingIcon: `heading-${m.lineId}${dirSuffix}`,
             topDown: `top-${m.lineId}${dirSuffix}`,
             iso: isoIcon,
-            colorLight: m.direction === 'vuelta' ? '#FCA5A5' : m.direction === 'ida' ? '#7DD3FC' : (LINE_COLOR_LIGHT[m.lineId] ?? '#67E8F9'),
+            colorLight: LINE_COLOR_LIGHT[m.lineId] ?? '#67E8F9',
             heading: Math.round(pos.heading),
             isoRotate: isoBillboardRotation(pos.heading, camBearing),
             shadowRotate: shadowRotation(pos.heading),
@@ -2007,14 +2007,13 @@ export function MapCanvas({
           type: 'FeatureCollection',
           features: highlightRef.current && highlightRef.current.length > 0
             ? MOCK_STOPS.map((s) => {
-                const isVuelta = s.id.includes('stop-65-1') && s.id !== 'stop-65-01';
                 return {
                   type: 'Feature',
                   geometry: { type: 'Point', coordinates: [s.lng, s.lat] },
                   properties: {
                     id: s.id,
                     name: s.name,
-                    color: isVuelta ? '#EF4444' : '#0EA5E9',
+                    color: getLineColor(s.lineIds?.[0] ?? '', '#0EA5E9'),
                   },
                 };
               })

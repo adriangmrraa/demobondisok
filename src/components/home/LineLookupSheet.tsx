@@ -63,7 +63,7 @@ export function LineLookupSheet({ open, onClose, onSelectLine }: LineLookupSheet
         role="dialog"
         aria-modal="true"
         aria-labelledby="line-lookup-title"
-        className="w-full max-w-[420px] rounded-3xl border border-hairline bg-canvas p-4 shadow-2xl"
+        className="home-rise w-full max-w-[420px] rounded-3xl border border-hairline bg-canvas p-4 shadow-2xl"
       >
         <header className="flex items-start justify-between gap-3">
           <div>

@@ -1500,6 +1500,8 @@ export default function TransportesAppPage() {
 
   return (
     <div className="relative w-full h-full min-h-dvh overflow-hidden bg-background text-foreground select-none">
+      {/* Velo de apertura: solo opacity (fondo canvas), hermano del mapa — nunca ancestro. */}
+      <div className="home-veil" aria-hidden />
       {/* Vista de Mapa Interactivo WebGL */}
       <main
           className="relative w-screen h-[100dvh] overflow-hidden select-none bg-canvas text-foreground touch-manipulation"
@@ -1512,7 +1514,8 @@ export default function TransportesAppPage() {
               el <canvas> WebGL del mapa en WebKit (Safari iOS) y lo dejaba
               en negro. Ver docs/INCIDENTE-MAPA-iOS-SAFARI.md. */}
           <div
-            className="absolute top-[max(14px,env(safe-area-inset-top))] left-4 right-4 z-30 max-w-md mx-auto pointer-events-auto flex flex-col items-center gap-2"
+            className="home-fade absolute top-[max(14px,env(safe-area-inset-top))] left-4 right-4 z-30 max-w-md mx-auto pointer-events-auto flex flex-col items-center gap-2"
+            style={{ "--home-delay": "180ms" } as React.CSSProperties}
           >
             {isTripViewActive ? (
 <ViajeHeader
@@ -1542,7 +1545,7 @@ export default function TransportesAppPage() {
                   onClick={handleOpenTripMode}
                   title="Planificar viaje en transporte público"
                   aria-label="Abrir planificador de viaje"
-                  className="w-full bg-canvas dark:bg-canvas border border-hairline rounded-full px-3.5 py-2 shadow-sm flex items-center justify-between text-left hover:bg-canvas-soft transition-all active:scale-[0.99] group"
+                  className="home-surface w-full border border-hairline rounded-full px-3.5 py-2 flex items-center justify-between text-left hover:border-electric-blue/40 transition-all active:scale-[0.99] group"
                 >
                   <div className="flex items-center gap-2.5 truncate">
                     <div className="w-7 h-7 rounded-full bg-canvas-soft border border-hairline flex items-center justify-center text-text-muted group-hover:text-ink shrink-0">
@@ -1694,7 +1697,7 @@ export default function TransportesAppPage() {
               role="note"
               className="absolute left-14 z-30 w-[calc(100vw-152px)] max-w-[240px] animate-in fade-in slide-in-from-left-2 duration-300 top-[calc(max(14px,env(safe-area-inset-top))+62px)]"
             >
-              <div className="flex items-start gap-1 rounded-2xl border border-hairline bg-canvas p-3 pr-1 shadow-lg">
+              <div className="flex items-start gap-1 rounded-2xl border border-hairline home-surface p-3 pr-1">
                 <Layers className="mt-0.5 h-4 w-4 shrink-0 text-electric-blue" aria-hidden="true" />
                 <p className="flex-1 text-xs font-semibold leading-snug text-ink">
                   Elegí una línea para ver su recorrido y sus unidades en vivo.
@@ -1758,7 +1761,8 @@ export default function TransportesAppPage() {
           )}
           {/* Controles Flotantes en el Mapa */}
           <div
-            className={`absolute right-4 z-20 flex flex-col gap-2 pointer-events-auto items-center w-10 transition-all duration-300 ease-out ${
+            style={{ "--home-delay": "320ms" } as React.CSSProperties}
+            className={`home-fade absolute right-4 z-20 flex flex-col gap-2 pointer-events-auto items-center w-10 transition-all duration-300 ease-out ${
               hasActivePill
                 ? "top-[calc(max(14px,env(safe-area-inset-top))+250px)]"
                 : "top-[calc(max(14px,env(safe-area-inset-top))+184px)]"
@@ -1771,7 +1775,7 @@ export default function TransportesAppPage() {
               onClick={handleResetCamera}
               title="Centrar en Metropol"
               aria-label="Centrar vista en Metropol"
-              className="w-10 h-10 rounded-full bg-canvas/95 border border-hairline flex items-center justify-center text-foreground hover:bg-canvas-soft active:scale-95 transition-all"
+              className="w-10 h-10 rounded-full home-surface border border-hairline flex items-center justify-center text-foreground hover:border-electric-blue/40 active:scale-95 transition-all"
             >
               <RotateCcw className="w-4 h-4" />
             </button>
@@ -1784,7 +1788,7 @@ export default function TransportesAppPage() {
                 className={`w-10 h-10 rounded-full border flex items-center justify-center active:scale-95 transition-all ${
                   is3DActive
                     ? "bg-primary text-primary-foreground border-primary font-medium"
-                    : "bg-canvas/95 text-foreground border-hairline hover:bg-canvas-soft"
+                    : "home-surface text-foreground border-hairline hover:border-electric-blue/40"
                 }`}
               >
                 <Eye className="w-4 h-4" />
@@ -1806,7 +1810,7 @@ export default function TransportesAppPage() {
               className={`w-10 h-10 rounded-full border flex items-center justify-center active:scale-95 transition-all ${
                 userLocation
                   ? "bg-primary text-primary-foreground border-primary font-medium"
-                  : "bg-canvas/95 text-text-muted border-hairline hover:bg-canvas-soft"
+                  : "home-surface text-text-muted border-hairline hover:border-electric-blue/40"
               }`}
             >
               <Navigation className={`w-4 h-4 ${userLocation ? "fill-current" : ""}`} />
