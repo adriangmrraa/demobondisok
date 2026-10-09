@@ -24,7 +24,7 @@ import { AssistantBar } from '@/components/home/AssistantBar';
 import { AssistantAnswerSheet } from '@/components/home/AssistantAnswerSheet';
 import { ClassicTripActions, type ClassicTripAction } from '@/components/home/ClassicTripActions';
 import { LineLookupSheet } from '@/components/home/LineLookupSheet';
-import { buildTripJourneyUrl } from '@/lib/trip-map-navigation';
+import { buildTripJourneyUrl, buildTripMapState, tripJourneyUrlFromState } from '@/lib/trip-map-navigation';
 import { requestDeviceLocation, SIMULATED_USER_LOCATION } from '@/lib/config/user-location';
 import { nearbyStopsFor as findNearbyStops } from '@/lib/services/assistant-intent-service';
 import { LocationConsentModal } from '@/components/home/LocationConsentModal';
@@ -469,9 +469,14 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
           ),
       );
       if (!trip) return;
-      router.push(buildTripJourneyUrl(trip, trip.origin, { boardingStopId: seed.originStopId }));
+      // Mismo criterio que el bloque línea-primero: el ETA del arribo más
+      // cercano viaja al hero de /viaje; `interno` solo si la unidad es real.
+      const arrival = seededRoutes.find((item) => item.seed.id === seed.id)?.arrival ?? undefined;
+      const state = buildTripMapState(trip, trip.origin, { boardingStopId: seed.originStopId, arrival });
+      if (arrival?.simulated) state.vehicleUnitId = undefined;
+      router.push(tripJourneyUrlFromState(state));
     },
-    [router],
+    [router, seededRoutes],
   );
 
   const today = useToday();
