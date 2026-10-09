@@ -605,6 +605,11 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                   />
                 </div>
               )}
+              {lineContext && (
+                <div className="home-rise mt-2.5" style={{ '--home-delay': '540ms' } as CSSProperties}>
+                  <ViewMapCta href={lineFirst.journeyHref} lineNumber={lineContext.line.numero} color={lineContext.line.color} />
+                </div>
+              )}
             </section>
           </>
         )}
