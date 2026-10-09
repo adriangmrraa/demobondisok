@@ -804,6 +804,7 @@ html, body {
     inset 0 0 0 1px color-mix(in srgb, var(--ink) 7%, transparent),
     inset 0 -52px 72px -52px rgba(0, 0, 0, .3);
 }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .home-rise, .home-fade, .home-chip, .home-chip.chip-halo, .home-wave, .home-live-dot, .home-eta, .home-cta, .home-cta::after, .line-orb, .line-orb::before, .line-orb::after { animation: none !important; }
