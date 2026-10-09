@@ -724,22 +724,28 @@ export default function TransportesAppPage() {
       left: 40, // LineSelectorBar (compacto)
       right: 30, // controles zoom + share (mínimo viable)
     };
-    // PBI-034 v14: cliente quiere "mucho más cerca" en mobile. Subimos a
-    // zoom 19 (casi maxZoom del source CARTO = 20) y centramos en Plaza
-    // Constitución (cabecera más compartida de Microcentro). A zoom 19 el
-    // viewport mobile portrait muestra ~28 m verticales: el pasajero ve
-    // la cabecera con detalle de manzana, no el extent completo.
-    const ZOOM_MOBILE = 19;
-    const ZOOM_MOBILE_CENTER: [number, number] = [-58.3792, -34.6288];
+    // PBI-034 v15: fitBounds con padding interno para que la UI (header pill,
+    // bottom nav, LineSelectorBar, controles) no tape los extremos del extent.
+    // El cliente quiere ver las 4 líneas juntas: fitBounds elige el zoom
+    // MÍNIMO tal que el extent quepa respetando el maxZoom como techo.
+    // El centroide queda en el centro del extent (no zoom fijo a Constitución).
     const ZOOM_DESKTOP = 20;
+    // En mobile, el viewport portrait (412x665dp post-UI) hace que el extent
+    // ~13 km quepa a zoom ~10. Forzamos un maxZoom bajo para que se vea el
+    // recorrido completo sin scrolls.
+    const ZOOM_MOBILE_MAX = 11;
     const modePrefix = isMobileViewport ? "M" : "D";
     if (isMobileViewport) {
-      // MOBILE: jumpTo al zoom/center fijos que el cliente eligió manualmente.
-      // Override del hub ponderado: el cliente quiere el extent completo visible
-      // (CABA + GBA cercano) a zoom 8.68, no el hub de Constitución.
       if (effectiveLineaIds.length === 0) {
         const b = computeLinea195Bounds(DATASET);
-        if (b) return { bounds: b, center: ZOOM_MOBILE_CENTER, nonce: `${modePrefix}-195`, zoom: ZOOM_MOBILE };
+        if (b) {
+          return {
+            bounds: b,
+            nonce: `${modePrefix}-195`,
+            padding: { top: 70, bottom: 100, left: 40, right: 30 },
+            maxZoom: ZOOM_MOBILE_MAX,
+          };
+        }
         return null;
       }
       const b =
@@ -752,9 +758,9 @@ export default function TransportesAppPage() {
         .reduce((acc, id) => acc + id.split("").reduce((a, c) => a + c.charCodeAt(0), 0), 1);
       return {
         bounds: b,
-        center: ZOOM_MOBILE_CENTER,
         nonce: `${modePrefix}-${idHash}`,
-        zoom: ZOOM_MOBILE,
+        padding: { top: 70, bottom: 100, left: 40, right: 30 },
+        maxZoom: ZOOM_MOBILE_MAX,
       };
     }
     // DESKTOP: fitBounds con maxZoom como techo.
