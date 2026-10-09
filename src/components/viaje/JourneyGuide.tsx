@@ -25,7 +25,7 @@ interface JourneyGuideProps {
 function HeroEta({ etaMinutes, etaLabel }: { etaMinutes: number | null; etaLabel: string }) {
   if (etaMinutes === null) {
     return (
-      <span aria-live="polite" className="text-base font-bold leading-snug text-canvas/80">
+      <span aria-live="polite" className="text-base font-bold leading-snug text-white/80">
         Sin seguimiento en vivo
       </span>
     );
@@ -43,9 +43,9 @@ function HeroEta({ etaMinutes, etaLabel }: { etaMinutes: number | null; etaLabel
         <span className="text-6xl font-black leading-none tracking-tight tabular-nums">
           {Math.ceil(etaMinutes)}
         </span>
-        <span className="text-xl font-black text-canvas/70">min</span>
+        <span className="text-xl font-black text-white/70">min</span>
       </span>
-      <span className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-canvas/60">
+      <span className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-white/60">
         para que llegue
       </span>
     </span>
@@ -64,10 +64,10 @@ export function JourneyGuide({ option, state, etaMinutes, onBackToOptions, userH
       </button>
       {model.hero ? (
         <div
-          className="rounded-3xl bg-ink p-5 text-canvas shadow-[0_16px_35px_-16px_rgba(0,0,0,0.65)]"
+          className="rounded-3xl bg-ink p-5 text-white shadow-[0_16px_35px_-16px_rgba(0,0,0,0.65)]"
           style={{ background: `linear-gradient(150deg, color-mix(in srgb, ${model.hero.color} 30%, #141414), #141414 72%)` }}
         >
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-canvas/65">Tu próximo colectivo</p>
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-white/65">Tu próximo colectivo</p>
           <div className="mt-3 flex items-center justify-between gap-4">
             <LineDisplay
               number={model.hero.lineNumber}
@@ -78,8 +78,8 @@ export function JourneyGuide({ option, state, etaMinutes, onBackToOptions, userH
             />
             <HeroEta etaMinutes={model.hero.etaMinutes} etaLabel={model.hero.etaLabel} />
           </div>
-          <p className="mt-4 break-words text-base font-bold leading-snug">Hacia {model.hero.direction}</p>
-          <p className="mt-1 text-sm leading-snug text-canvas/70">Esperalo en la parada indicada y seguí los pasos.</p>
+          <p className="mt-4 break-words text-base font-bold leading-snug text-white">Hacia {model.hero.direction}</p>
+          <p className="mt-1 text-sm leading-snug text-white/70">Esperalo en la parada indicada y seguí los pasos.</p>
         </div>
       ) : (
         <div className="home-surface rounded-3xl border border-hairline p-5">

@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { TransportService } from '@/lib/services/transport-service';
 import { TripPlannerService } from '@/lib/services/trip-planner-service';
-import { buildTripJourneyUrl, buildTripMapState, tripMapUrlFromState } from '@/lib/trip-map-navigation';
+import { buildTripMapState, tripJourneyUrlFromState, tripMapUrlFromState } from '@/lib/trip-map-navigation';
 import type { EstimacionLlegada } from '@/types/transport';
 import {
   defaultSelection,
@@ -101,13 +101,17 @@ export function useLineFirstSelection(catalog: CatalogLine[], positions: Vehicle
   }, [context]);
 
   // "Ir al mapa" (preview + CTA): pasa por /viaje (alternativas → guía) antes
-  // de abrir el mapa, igual que los últimos viajes. El primer arribo real viaja
-  // en la URL: el hero muestra el ETA en vivo y el mapa enfoca esa unidad.
+  // de abrir el mapa, igual que los últimos viajes. El primer arribo viaja
+  // como ETA del hero; `interno` solo si la unidad existe en el feed vivo.
   const journeyHref = useMemo(() => {
     if (!context) return '/mapas';
     if (!trip) return mapHrefFor(context);
-    const firstReal = arrivals.find((a) => !a.simulated);
-    return buildTripJourneyUrl(trip, trip.origin, { boardingStopId: context.stop.id, arrival: firstReal });
+    const state = buildTripMapState(trip, trip.origin, {
+      boardingStopId: context.stop.id,
+      arrival: arrivals[0],
+    });
+    if (arrivals[0]?.simulated) state.vehicleUnitId = undefined;
+    return tripJourneyUrlFromState(state);
   }, [context, trip, arrivals]);
 
   // Un arribo concreto abre /mapas directo en modo viaje con esa unidad
@@ -116,11 +120,10 @@ export function useLineFirstSelection(catalog: CatalogLine[], positions: Vehicle
     (arrival: EstimacionLlegada): string => {
       if (!context) return '/mapas';
       if (!trip) return mapHrefFor(context);
+      const state = buildTripMapState(trip, trip.origin, { boardingStopId: context.stop.id, arrival });
       // Unidad simulada sin interno vivo: el mapa resuelve la más cercana.
-      const live = arrival.simulated ? undefined : arrival;
-      return tripMapUrlFromState(
-        buildTripMapState(trip, trip.origin, { boardingStopId: context.stop.id, arrival: live }),
-      );
+      if (arrival.simulated) state.vehicleUnitId = undefined;
+      return tripMapUrlFromState(state);
     },
     [context, trip],
   );

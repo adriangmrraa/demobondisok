@@ -1,7 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import type { CSSProperties } from 'react';
-import { ArrowRight, Footprints } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Footprints } from 'lucide-react';
 import type { TripOption } from '@/types/trip-planner';
 
 interface JourneyOptionListProps {
@@ -13,6 +14,9 @@ interface JourneyOptionListProps {
 export function JourneyOptionList({ options, selectedOptionId, onSelect }: JourneyOptionListProps) {
   return (
     <section aria-label="Alternativas de viaje" className="space-y-3">
+      <Link href="/inicio" className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-ink hover:text-electric-blue">
+        <ArrowLeft className="size-4" /> Volver al inicio
+      </Link>
       <div>
         <h2 className="text-lg font-black text-ink">Elegí cómo viajar</h2>
         <p className="text-sm text-text-muted">Compará las opciones antes de abrir el mapa.</p>
