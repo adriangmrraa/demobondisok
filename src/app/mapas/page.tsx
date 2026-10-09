@@ -17,6 +17,8 @@ import type { VehiclePosition } from "@/lib/data-service";
 import { segmentBearing, type CameraMode } from "@/lib/map/camera-controller";
 import type { MapFocusRequest, PlannerMapPoints, PlannerMapPulse, TripRouteShade } from "@/components/map/MapCanvas";
 import { Parada } from "@/types/transport";
+import { DATASET } from "@/lib/mock/amba-data";
+import type { LineaDefinition, TransportNetworkDataset } from "@/types/transport";
 import { TripOption, LocationPoint, TransitLeg } from "@/types/trip-planner";
 import { Navigation, RotateCcw, Eye, X, Search, Layers } from "lucide-react";
 import { SIMULATED_USER_LOCATION, SIMULATED_LOCATION_LABEL, requestDeviceLocation, DeviceLocationError } from "@/lib/config/user-location";
@@ -37,6 +39,110 @@ const TRIP_PAD_EXPANDED = 514;
 /** Techo de zoom del foco por paso: un segmento corto no sobre-zoomea. */
 const STEP_FOCUS_MAX_ZOOM = 16.5;
 
+/** Padding relativo al extent: 6% a cada lado (compacto, para que el
+ *  recorrido ocupe casi todo el viewport). 12% se veía con mucho aire. */
+const LINE_FILTER_PADDING_RATIO = 0.06;
+
+/**
+ * Calcula los bounds [[minLng,minLat],[maxLng,maxLat]] que abarcan todas las
+ * coordenadas (recorridos) de las líneas pedidas. Si una línea no existe o no
+ * tiene recorridos, se ignora silenciosamente.
+ *
+ * El padding mínimo garantiza que un solo punto (cabecera) no se renderice
+ * con zoom infinito.
+ */
+function computeLineasBounds(
+  lineaIds: string[],
+  dataset: TransportNetworkDataset,
+): [[number, number], [number, number]] | null {
+  if (lineaIds.length === 0) return null;
+  const lineasById = new Map<string, LineaDefinition>(
+    dataset.lineas.map((l) => [l.id, l]),
+  );
+  let minLng = Infinity;
+  let maxLng = -Infinity;
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  let any = false;
+  for (const id of lineaIds) {
+    const linea = lineasById.get(id);
+    if (!linea) continue;
+    for (const ramal of linea.ramales) {
+      for (const rec of ramal.recorridos) {
+        for (const [lng, lat] of rec.coordenadas) {
+          if (lng < minLng) minLng = lng;
+          if (lng > maxLng) maxLng = lng;
+          if (lat < minLat) minLat = lat;
+          if (lat > maxLat) maxLat = lat;
+          any = true;
+        }
+      }
+    }
+  }
+  if (!any) return null;
+  const padLng = Math.max((maxLng - minLng) * LINE_FILTER_PADDING_RATIO, 0.002);
+  const padLat = Math.max((maxLat - minLat) * LINE_FILTER_PADDING_RATIO, 0.002);
+  return [
+    [minLng - padLng, minLat - padLat],
+    [maxLng + padLng, maxLat + padLat],
+  ];
+}
+
+/**
+ * Variante "smart" de computeLineasBounds (PBI-034 v4): en lugar de usar el
+ * extent completo de las coordenadas de los recorridos (que se sale a La Plata
+ * para la 195, Luján para la 365, etc.), toma SOLO las paradas que tienen
+ * combinaciones con subte/tren/metrobus. Eso centra la cámara en la zona
+ * "interesante" (CABA + combinaciones) y permite zoom mucho más alto, en lugar
+ * de alejarse para abarcar outliers suburbanos.
+ *
+ * Si el set no tiene paradas con combinaciones, fallback al extent completo
+ * de coordenadas (caso edge: una línea sin combinaciones, ej: interurbana).
+ */
+function computeCombinacionesBounds(
+  lineaIds: string[],
+  dataset: TransportNetworkDataset,
+): [[number, number], [number, number]] | null {
+  if (lineaIds.length === 0) return null;
+  const lineasById = new Map<string, LineaDefinition>(
+    dataset.lineas.map((l) => [l.id, l]),
+  );
+  let minLng = Infinity;
+  let maxLng = -Infinity;
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  let any = false;
+  for (const id of lineaIds) {
+    const linea = lineasById.get(id);
+    if (!linea) continue;
+    for (const ramal of linea.ramales) {
+      for (const rec of ramal.recorridos) {
+        for (const stopId of rec.paradas) {
+          const parada = dataset.paradas[stopId];
+          if (!parada) continue;
+          const tieneConexion =
+            (parada.conexiones?.subte && parada.conexiones.subte.length > 0) ||
+            (parada.conexiones?.tren && parada.conexiones.tren.length > 0) ||
+            parada.conexiones?.metrobus === true;
+          if (!tieneConexion) continue;
+          if (parada.lng < minLng) minLng = parada.lng;
+          if (parada.lng > maxLng) maxLng = parada.lng;
+          if (parada.lat < minLat) minLat = parada.lat;
+          if (parada.lat > maxLat) maxLat = parada.lat;
+          any = true;
+        }
+      }
+    }
+  }
+  if (!any) return null;
+  const padLng = Math.max((maxLng - minLng) * LINE_FILTER_PADDING_RATIO, 0.002);
+  const padLat = Math.max((maxLat - minLat) * LINE_FILTER_PADDING_RATIO, 0.002);
+  return [
+    [minLng - padLng, minLat - padLat],
+    [maxLng + padLng, maxLat + padLat],
+  ];
+}
+
 /** Clave del trip vivo: cualquier cambio invalida los pins de otro viaje. */
 function buildTripKey(
   origin: LocationPoint | null,
@@ -48,9 +154,61 @@ function buildTripKey(
   return `${o}>${d}#${tripId ?? "-"}`;
 }
 
+/**
+ * Bounds por defecto de la Línea 195 (Retiro → La Plata). Se usa como vista
+ * inicial del mapa cuando el usuario entra a /mapas sin filtros ni trip activo,
+ * para mostrar el recorrido completo CABA-La Plata (PBI-034 v7).
+ *
+ * Padding del 6% en cada lado (igual que el filtro multi-línea) para que las
+ * cabeceras no queden pegadas al borde.
+ */
+function computeLinea195Bounds(
+  dataset: TransportNetworkDataset,
+): [[number, number], [number, number]] | null {
+  const linea = dataset.lineas.find((l) => l.id === "line-195");
+  if (!linea) return null;
+  let minLng = Infinity;
+  let maxLng = -Infinity;
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  for (const ramal of linea.ramales) {
+    for (const rec of ramal.recorridos) {
+      for (const [lng, lat] of rec.coordenadas) {
+        if (lng < minLng) minLng = lng;
+        if (lng > maxLng) maxLng = lng;
+        if (lat < minLat) minLat = lat;
+        if (lat > maxLat) maxLat = lat;
+      }
+    }
+  }
+  if (minLng === Infinity) return null;
+  const padLng = Math.max((maxLng - minLng) * LINE_FILTER_PADDING_RATIO, 0.002);
+  const padLat = Math.max((maxLat - minLat) * LINE_FILTER_PADDING_RATIO, 0.002);
+  return [
+    [minLng - padLng, minLat - padLat],
+    [maxLng + padLng, maxLat + padLat],
+  ];
+}
+
 export default function TransportesAppPage() {
   const { resolvedTheme } = useTheme();
   const [mapUnavailable, setMapUnavailable] = useState(false);
+  // PBI-034 v11: en mobile (< 640dp) usamos jumpTo con zoom fijo alto (no
+  // fitBounds) para que el usuario vea las calles y combinaciones DE CERCA.
+  // fitBounds elige el zoom mínimo tal que el extent quepa, lo que aleja
+  // la cámara para extent > 5-10 km. JumpTo con zoom fijo prioriza "ver
+  // de cerca" sobre "ver extent completo". En desktop dejamos fitBounds
+  // porque el viewport es más grande y el extent cabe a zoom razonable.
+  const [isMobileViewport, setIsMobileViewport] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.innerWidth < 640;
+  });
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 639px)");
+    const onChange = () => setIsMobileViewport(mql.matches);
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
   const [isLineMenuOpen, setIsLineMenuOpen] = useState<boolean>(false);
   // Orientación breve de la entrada "Explorar mapa" (Home): coachmark
   // descartable junto al rail de líneas. No persiste ni tapa controles.
@@ -63,6 +221,10 @@ export default function TransportesAppPage() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number; heading?: number | null; accuracy?: number } | null>(null);
   const [selectedLineaId, setSelectedLineaId] = useState<string | null>(null);
   const [selectedRamalId, setSelectedRamalId] = useState<string | null>(null);
+  // Filtro multi-línea para entradas de Red Metropol (?lineas=line-65,line-109,...).
+  // Vacío = comportamiento single-line (selectedLineaId manda). Con 1+ ids, el mapa
+  // muestra el set completo: posiciones, trazas y chip de "N líneas" en el header.
+  const [lineaFilter, setLineaFilter] = useState<string[]>([]);
   const [selectedParada, setSelectedParada] = useState<Parada | null>(null);
   const [stopFocusNonce, setStopFocusNonce] = useState(0);
   const [selectedVehiculo, setSelectedVehiculo] = useState<VehiclePosition | null>(null);
@@ -192,14 +354,20 @@ export default function TransportesAppPage() {
   }, [resolvedTrip]);
 
   const regularHighlightLines = useMemo(() => {
+    // Multi-filtro desde Red Metropol manda por encima del single-line.
+    if (lineaFilter.length > 0) return lineaFilter;
     if (selectedRamalId) return [selectedRamalId];
     if (selectedLineaId) return [selectedLineaId];
     return []; // Ocultas por defecto: trazas invisibles hasta que el usuario elija línea o ramal
-  }, [selectedLineaId, selectedRamalId]);
+  }, [lineaFilter, selectedLineaId, selectedRamalId]);
 
   const filteredPositions = useMemo(() => {
     if (resolvedTrip && selectedVehiculo) {
       return positions.filter((p) => p.lineId === selectedVehiculo.lineId && p.unitId === selectedVehiculo.unitId);
+    }
+    if (lineaFilter.length > 0) {
+      const set = new Set(lineaFilter);
+      return positions.filter((p) => set.has(p.lineId));
     }
     if (selectedRamalId) {
       return positions.filter((p) => p.ramalId === selectedRamalId);
@@ -208,7 +376,7 @@ export default function TransportesAppPage() {
       return positions.filter((p) => p.lineId === selectedLineaId);
     }
     return [];
-  }, [positions, resolvedTrip, selectedVehiculo, selectedLineaId, selectedRamalId]);
+  }, [positions, resolvedTrip, selectedVehiculo, lineaFilter, selectedLineaId, selectedRamalId]);
 
   const selectedKey = useMemo(() => {
     return selectedVehiculo ? `${selectedVehiculo.lineId}-${selectedVehiculo.unitId}` : null;
@@ -530,6 +698,84 @@ export default function TransportesAppPage() {
     return regularHighlightLines;
   }, [isTripMode, tripViewVisible, selectedTrip, regularHighlightLines]);
 
+  // PBI-034: cuando hay líneas filtradas (multi-filtro de Red Metropol o
+  // single-line legacy), encuadrar la cámara al extent de sus recorridos.
+  // Si no hay líneas o estamos en modo viaje, no forzamos focus. Es un useMemo
+  // puro (no useEffect+setState) para evitar cascading renders; el nonce se
+  // deriva de la concat ordenada de los ids (suma charCode) para que un cambio
+  // del set (incluso manteniendo la misma cantidad) re-dispare el fitBounds
+  // sin necesidad de mutar refs durante render.
+  const effectiveLineaIds = useMemo(
+    () => (lineaFilter.length > 0 ? lineaFilter : selectedLineaId ? [selectedLineaId] : []),
+    [lineaFilter, selectedLineaId],
+  );
+  const lineaFilterFocus: MapFocusRequest | null = useMemo(() => {
+    if (isTripMode) return null;
+    // PBI-034 v10: el cliente quiere ver las líneas MUY DE CERCA. Subimos
+    // maxZoom a 16 (casi nivel de calle) y bajamos el padding al mínimo.
+    // Para extent chico (1 línea CABA, ~9 km) el zoom llega a 16. Para
+    // extent grande (multi con 195, ~13 km de combinaciones) llega a ~13.
+    //
+    // Sin filtros (mount): bounds = línea 195 (Retiro → La Plata).
+    // Con filtros: bounds = combinaciones (smart extent) o fallback a coords.
+    const PADDING_DEFAULT: MapFocusRequest["padding"] = {
+      top: 60, // header buscador + chip "4 líneas" (mínimo viable)
+      bottom: 100, // bottom nav (mínimo viable)
+      left: 40, // LineSelectorBar (compacto)
+      right: 30, // controles zoom + share (mínimo viable)
+    };
+    // PBI-034 v18: cliente quiere jumpTo exacto con zoom 8.49 y center
+    // Quilmes (-58.2732, -34.7983). Aplica el valor que pidió como estado
+    // final. Si después el usuario hace scroll, eso es otro tema.
+    const ZOOM_MOBILE = 8.49;
+    const ZOOM_MOBILE_CENTER: [number, number] = [-58.2732, -34.7983];
+    const ZOOM_DESKTOP = 20;
+    const modePrefix = isMobileViewport ? "M" : "D";
+    if (isMobileViewport) {
+      if (effectiveLineaIds.length === 0) {
+        const b = computeLinea195Bounds(DATASET);
+        if (b) return { bounds: b, center: ZOOM_MOBILE_CENTER, nonce: `${modePrefix}-195`, zoom: ZOOM_MOBILE };
+        return null;
+      }
+      const b =
+        computeCombinacionesBounds(effectiveLineaIds, DATASET) ??
+        computeLineasBounds(effectiveLineaIds, DATASET);
+      if (!b) return null;
+      const idHash = effectiveLineaIds
+        .slice()
+        .sort()
+        .reduce((acc, id) => acc + id.split("").reduce((a, c) => a + c.charCodeAt(0), 0), 1);
+      return {
+        bounds: b,
+        center: ZOOM_MOBILE_CENTER,
+        nonce: `${modePrefix}-${idHash}`,
+        zoom: ZOOM_MOBILE,
+      };
+    }
+    // DESKTOP: fitBounds con maxZoom como techo.
+    if (effectiveLineaIds.length === 0) {
+      const linea195Bounds = computeLinea195Bounds(DATASET);
+      if (linea195Bounds) {
+        return { bounds: linea195Bounds, nonce: `${modePrefix}-195`, padding: PADDING_DEFAULT, maxZoom: ZOOM_DESKTOP };
+      }
+      return null;
+    }
+    const bounds =
+      computeCombinacionesBounds(effectiveLineaIds, DATASET) ??
+      computeLineasBounds(effectiveLineaIds, DATASET);
+    if (!bounds) return null;
+    const idHash = effectiveLineaIds
+      .slice()
+      .sort()
+      .reduce((acc, id) => acc + id.split("").reduce((a, c) => a + c.charCodeAt(0), 0), 1);
+    return {
+      bounds,
+      nonce: `${modePrefix}-${idHash}`,
+      padding: PADDING_DEFAULT,
+      maxZoom: ZOOM_DESKTOP,
+    };
+  }, [isTripMode, effectiveLineaIds, isMobileViewport]);
+
   const plannerPoints: PlannerMapPoints | null = useMemo(() => {
     if (!isTripViewActive) return null;
     return {
@@ -600,7 +846,8 @@ export default function TransportesAppPage() {
   }, [isTripMode, selectedTrip, destinationLocation, originLocation]);
 
   const focusRequest: MapFocusRequest | null = useMemo(() => {
-    if (!isTripMode) return null;
+    // PBI-034: fuera de modo viaje, si hay líneas filtradas, encuadrar al extent.
+    if (!isTripMode) return lineaFilterFocus;
 
     if (!selectedTrip) {
       // Sin trip aún: encuadre del punto elegido (emitido por el efecto de arriba).
@@ -672,7 +919,7 @@ export default function TransportesAppPage() {
       nonce,
       bottomPadding: tripBottomPadding,
     };
-  }, [isTripMode, selectedTrip, activeStepId, originLocation, destinationLocation, selectionFocus, tripReframeNonce, tripBottomPadding, stepFocusNonce, trip3D, selectedVehiculo]);
+  }, [isTripMode, lineaFilterFocus, selectedTrip, activeStepId, originLocation, destinationLocation, selectionFocus, tripReframeNonce, tripBottomPadding, stepFocusNonce, trip3D, selectedVehiculo]);
 
   /** Selección explícita del usuario → limpia la clave de focus para que
    *  el geocoder pueda re-encuadrar (el seed de apertura no). */
@@ -1049,34 +1296,53 @@ export default function TransportesAppPage() {
   // El contrato portable (trip=1) lo maneja su propio effect: acá se ignora.
   // El setState se difiere a un rAF: así no dispara cascadas de render en el mount
   // (regla react-hooks/set-state-in-effect) y sigue corriendo post-hidratación.
+  //
+  // PBI-034: ?lineas=line-65,line-109,... activa el multi-filtro desde Red Metropol.
+  // Cualquier id que no exista en el dataset se descarta silenciosamente.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("trip") === "1") return;
     const stopId = params.get("parada");
     const lineaId = params.get("linea");
+    const lineasParam = params.get("lineas");
     const ramalId = params.get("ramal");
-    if (!stopId && !lineaId) return;
+    if (!stopId && !lineaId && !lineasParam) return;
+
+    const lineas = TransportService.getLineas();
+    const lineasOk = lineasParam
+      ? lineasParam
+          .split(",")
+          .map((id) => id.trim())
+          .filter((id) => id && lineas.some((l) => l.id === id))
+      : [];
+    const lineaOk = lineaId ? lineas.some((l) => l.id === lineaId) : false;
     const stop = stopId ? TripPlannerService.getStopById(stopId) : null;
-    const lineaOk = lineaId ? TransportService.getLineas().some((l) => l.id === lineaId) : false;
     const ramalOk = !!(
       lineaOk && ramalId &&
-      TransportService.getLineas()
+      lineas
         .find((l) => l.id === lineaId)
         ?.ramalesDetalle?.some((r) => r.id === ramalId)
     );
-    // Se conserva `linea`/`ramal` en la URL para que el refresh restaure el filtro;
+    // Se conserva `linea`/`lineas`/`ramal` en la URL para que el refresh restaure el filtro;
     // solo `parada` se consume una vez (abre el bubble).
     const url = new URL(window.location.href);
     url.searchParams.delete("parada");
     window.history.replaceState(null, "", url.pathname + url.search + url.hash);
-    if (!stop && !lineaOk) return;
-    if (stopId && lineaOk) {
-      pendingArrivalFocusRef.current = { stopId, lineaId: lineaId as string };
+    if (!stop && !lineaOk && lineasOk.length === 0) return;
+    if (stopId && (lineaOk || lineasOk.length > 0)) {
+      pendingArrivalFocusRef.current = { stopId, lineaId: (lineaOk ? lineaId : lineasOk[0]) as string };
     }
     const legacyStopCoords = stop ? { lat: stop.lat, lng: stop.lng } : null;
     const raf = window.requestAnimationFrame(() => {
       if (legacyStopCoords) setLegacyBoardingStop(legacyStopCoords);
-      if (lineaOk && lineaId) {
+      if (lineasOk.length > 0) {
+        setLineaFilter(lineasOk);
+        // Mantener compat con LineSelectorBar: la primera línea del set es la "activa"
+        // (la que se usa para ramales, color de header, camera follow, etc.).
+        setSelectedLineaId(lineasOk[0] ?? null);
+        setSelectedRamalId(null);
+      } else if (lineaOk && lineaId) {
+        setLineaFilter([lineaId]);
         setSelectedLineaId(lineaId);
         setSelectedRamalId(ramalOk && ramalId ? ramalId : null);
       }
@@ -1216,6 +1482,22 @@ export default function TransportesAppPage() {
   const mapUnavailableHref = tripSeed ? tripJourneyUrlFromState(tripSeed) : "/inicio";
   const mapUnavailableLabel = tripSeed ? "Volver a la guía del viaje" : "Volver al inicio";
 
+  // PBI-034: cuando entramos al mapa con ?lineas=line-65,line-109,... (multi-filtro
+  // desde Red Metropol) mostramos un chip arriba con la cantidad + chips de línea,
+  // y permitimos cerrarlo para volver al comportamiento single-line por defecto.
+  const lineaFilterInfo = useMemo(() => {
+    if (lineaFilter.length < 2) return null;
+    const items = lineaFilter
+      .map((id) => lineas.find((l) => l.id === id))
+      .filter((l): l is NonNullable<typeof l> => Boolean(l));
+    return { count: items.length, items };
+  }, [lineaFilter, lineas]);
+
+  const handleClearLineaFilter = useCallback(() => {
+    setLineaFilter([]);
+    // Mantener selectedLineaId con la primera para no perder la selección visual.
+  }, []);
+
   return (
     <div className="relative w-full h-full min-h-dvh overflow-hidden bg-background text-foreground select-none">
       {/* Vista de Mapa Interactivo WebGL */}
@@ -1323,6 +1605,43 @@ export default function TransportesAppPage() {
                         </span>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Chip de multi-filtro desde Red Metropol (PBI-034).
+                    Muestra las N líneas pre-seleccionadas con su color de marca
+                    y permite cerrar el filtro para volver al modo single-line. */}
+                {lineaFilterInfo && !isTripViewActive && (
+                  <div
+                    role="status"
+                    aria-label={`Mostrando ${lineaFilterInfo.count} líneas: ${lineaFilterInfo.items.map((l) => l.numero).join(", ")}`}
+                    className="animate-in fade-in slide-in-from-top-2 duration-200 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-canvas border border-hairline shadow-md pointer-events-auto max-w-full"
+                  >
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-text-muted shrink-0">
+                      {lineaFilterInfo.count} líneas
+                    </span>
+                    <div className="flex items-center gap-1 min-w-0 flex-wrap">
+                      {lineaFilterInfo.items.map((l) => (
+                        <span
+                          key={l.id}
+                          className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-black text-white shrink-0 shadow-xs"
+                          style={{ backgroundColor: l.colorHex }}
+                          title={l.nombre}
+                          aria-label={`Línea ${l.numero}`}
+                        >
+                          {l.numero}
+                        </span>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleClearLineaFilter}
+                      title="Cerrar filtro de líneas"
+                      aria-label="Cerrar filtro de líneas"
+                      className="ml-0.5 w-5 h-5 rounded-full bg-canvas-soft hover:bg-field border border-hairline flex items-center justify-center text-text-muted hover:text-ink shrink-0 transition-colors"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
                   </div>
                 )}
 

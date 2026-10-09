@@ -1,28 +1,68 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, ChevronRight, Layers, Map as MapIcon } from 'lucide-react';
+import { ArrowLeft, Bus, ChevronRight, Clock, Layers, Map as MapIcon } from 'lucide-react';
 import { BottomNav } from '@/components/ui/bottom-nav';
-import { MOCK_LINES } from '@/mock/data';
+import { MOCK_LINES, MOCK_UNITS, MOCK_ALERTS } from '@/mock/data';
 import { DATASET } from '@/lib/mock/amba-data';
 import { buildNetworkSchematic } from '@/lib/diagrama-red';
 import { NetworkSchematicView } from '@/components/diagrama/network-schematic';
 import { LineDisplay } from '@/components/ui/line-display';
 
 /**
- * Plano esquemático de la red Metropol (Prioridad 3).
+ * Catálogo de líneas de la red Metropol + plano esquemático.
  *
- * Reemplaza la lista plana de tarjetas por una vista de red: cada línea
- * operativa es un trazo del color oficial con nodos de paradas
- * significativas, cabeceras marcadas y la estación de intercambio donde
- * se cruzan. Tocar una línea (trazo o fila) abre su detalle.
+ * Layout:
+ *  1. Plano esquemático arriba (solo 65 y 194 con esquema curado; las
+ *     nuevas líneas del catálogo caen a la lista rica de abajo).
+ *  2. Catálogo de líneas (PBI-033): cada tarjeta muestra color,
+ *     terminales del ramal principal, cantidad de ramales, distancia,
+ *     frecuencia, flota activa y alertas en vivo.
  *
- * Solo se dibujan líneas con datos operativos completos (65 y 194); una
- * línea sin esquema disponible cae a la fila plana de acceso.
+ * Las líneas del catálogo vienen de `routes.json` (MOCK_LINES).
  */
+
+interface LineCardData {
+  id: string;
+  shortName: string;
+  color: string;
+  textColor: string;
+  cabeceraOrigen: string | null;
+  cabeceraDestino: string | null;
+  distanciaKm: number;
+  ramalesCount: number;
+  unidadesActivas: number;
+  frecuenciaMin: number;
+  alertasCount: number;
+  drawable: boolean;
+}
+
+function buildLineCards(drawable: Set<string>): LineCardData[] {
+  return MOCK_LINES.map((line) => {
+    const lineaData = DATASET.lineas.find((l) => l.id === line.id);
+    const ramalPrincipal = lineaData?.ramales[0];
+    const recorridoPrincipal = ramalPrincipal?.recorridos[0];
+    return {
+      id: line.id,
+      shortName: line.shortName,
+      color: line.color,
+      textColor: line.textColor ?? '#FFFFFF',
+      cabeceraOrigen: ramalPrincipal?.cabeceraOrigen ?? null,
+      cabeceraDestino: ramalPrincipal?.cabeceraDestino ?? null,
+      distanciaKm: recorridoPrincipal?.distanciaKm ?? 0,
+      ramalesCount: lineaData?.ramales.length ?? 0,
+      unidadesActivas: MOCK_UNITS[line.id]?.length ?? 0,
+      frecuenciaMin: lineaData?.frecuenciaPicoMin ?? 0,
+      alertasCount: MOCK_ALERTS.filter((a) => a.lineId === line.id).length,
+      drawable: drawable.has(line.id),
+    };
+  });
+}
+
 export default function DiagramaPage() {
   const schematic = buildNetworkSchematic();
   const drawableLines = new Set(schematic.lines.map((l) => l.lineId));
+  const cards = buildLineCards(drawableLines);
 
   return (
     <div className="h-dvh bg-canvas flex flex-col overflow-hidden">
@@ -36,7 +76,9 @@ export default function DiagramaPage() {
         </Link>
         <div className="flex-1 min-w-0">
           <h1 className="text-[22px] font-bold text-ink leading-tight">Diagrama</h1>
-          <p className="text-xs text-text-muted">Plano esquemático de la red</p>
+          <p className="text-xs text-text-muted">
+            {cards.length} líneas operativas · red Metropol AMBA
+          </p>
         </div>
       </header>
 
@@ -86,49 +128,76 @@ export default function DiagramaPage() {
           </ul>
         </section>
 
-        <section className="mt-5">
-          <h2 className="text-[20px] font-semibold text-ink">Líneas disponibles</h2>
-          <p className="mt-1 text-xs text-text-muted">Tocá una línea para ver su recorrido parada por parada</p>
+        <section className="mt-5" aria-label="Catálogo de líneas">
+          <div className="flex items-baseline justify-between gap-2">
+            <h2 className="text-[20px] font-semibold text-ink">Líneas de la red</h2>
+            <span className="text-[10px] font-bold uppercase tracking-wide text-text-muted">
+              {cards.length} operativas
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-text-muted">
+            Tocá una línea para ver su recorrido, ramales y combinaciones
+          </p>
           <div className="mt-3 flex flex-col gap-2.5">
-            {MOCK_LINES.map((line) => {
-              const lineaData = DATASET.lineas.find((l) => l.id === line.id);
-              const ramalPrincipal = lineaData?.ramales[0];
-              const ramalesCount = lineaData?.ramales.length ?? 0;
-              const drawable = drawableLines.has(line.id);
-              return (
-                <Link
-                  key={line.id}
-                  href={`/diagrama/${line.id}`}
-                  aria-label={`Ver el esquema de la línea ${line.shortName}`}
-                  className="flex items-center gap-3 bg-canvas border border-hairline rounded-2xl p-3.5 shadow-sm hover:bg-canvas-soft active:scale-[0.99] transition-all min-h-[64px]"
-                >
-                  <LineDisplay
-                    number={line.shortName}
-                    color={line.color}
-                    textColor={line.textColor}
-                    size="md"
-                    aria-label={`Línea ${line.shortName}`}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-ink leading-tight">Línea {line.shortName}</p>
-                    <p className="mt-0.5 text-xs text-text-muted break-words">
-                      {ramalPrincipal
-                        ? `${ramalPrincipal.cabeceraOrigen} → ${ramalPrincipal.cabeceraDestino}`
-                        : line.name}
-                    </p>
-                    {ramalesCount > 1 ? (
-                      <p className="mt-0.5 text-[10px] font-semibold text-text-muted uppercase tracking-wide">
-                        {ramalesCount} ramales
-                      </p>
+            {cards.map((line) => (
+              <Link
+                key={line.id}
+                href={`/diagrama/${line.id}`}
+                aria-label={`Ver el esquema de la línea ${line.shortName}`}
+                className="flex items-start gap-3 bg-canvas border border-hairline rounded-2xl p-3.5 shadow-sm hover:bg-canvas-soft active:scale-[0.99] transition-all"
+              >
+                <LineDisplay
+                  number={line.shortName}
+                  color={line.color}
+                  textColor={line.textColor}
+                  size="md"
+                  aria-label={`Línea ${line.shortName}`}
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-ink leading-tight">Línea {line.shortName}</p>
+                  <p className="mt-0.5 text-xs text-text-muted break-words">
+                    {line.cabeceraOrigen && line.cabeceraDestino
+                      ? `${line.cabeceraOrigen} → ${line.cabeceraDestino}`
+                      : 'Recorrido principal'}
+                  </p>
+                  <ul className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-semibold text-text-muted">
+                    {line.ramalesCount > 0 ? (
+                      <li className="inline-flex items-center gap-1">
+                        <Layers className="w-2.5 h-2.5" aria-hidden="true" />
+                        {line.ramalesCount} {line.ramalesCount === 1 ? 'ramal' : 'ramales'}
+                      </li>
                     ) : null}
-                  </div>
-                  <span className="shrink-0 flex items-center gap-1 text-[10px] font-bold text-electric-blue px-2 py-0.5 rounded-full bg-electric-blue/10">
-                    {drawable ? 'Ver esquema' : 'Ver detalle'}
-                    <ChevronRight className="w-3 h-3" aria-hidden="true" />
-                  </span>
-                </Link>
-              );
-            })}
+                    {line.distanciaKm > 0 ? (
+                      <li className="inline-flex items-center gap-1">
+                        <MapIcon className="w-2.5 h-2.5" aria-hidden="true" />
+                        {line.distanciaKm.toFixed(1)} km
+                      </li>
+                    ) : null}
+                    {line.frecuenciaMin > 0 ? (
+                      <li className="inline-flex items-center gap-1">
+                        <Clock className="w-2.5 h-2.5" aria-hidden="true" />
+                        cada {line.frecuenciaMin} min
+                      </li>
+                    ) : null}
+                    {line.unidadesActivas > 0 ? (
+                      <li className="inline-flex items-center gap-1">
+                        <Bus className="w-2.5 h-2.5" aria-hidden="true" />
+                        {line.unidadesActivas} coches
+                      </li>
+                    ) : null}
+                  </ul>
+                  {line.alertasCount > 0 ? (
+                    <p className="mt-2 text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                      ⚠ {line.alertasCount} {line.alertasCount === 1 ? 'alerta activa' : 'alertas activas'}
+                    </p>
+                  ) : null}
+                </div>
+                <span className="shrink-0 flex items-center gap-1 self-center text-[10px] font-bold text-electric-blue px-2 py-0.5 rounded-full bg-electric-blue/10">
+                  {line.drawable ? 'Ver esquema' : 'Ver detalle'}
+                  <ChevronRight className="w-3 h-3" aria-hidden="true" />
+                </span>
+              </Link>
+            ))}
           </div>
         </section>
 
