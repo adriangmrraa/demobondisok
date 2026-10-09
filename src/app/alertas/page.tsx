@@ -6,6 +6,7 @@
 'use client';
 
 import { useState } from 'react';
+import type React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -49,8 +50,9 @@ export default function AlertasPage() {
   const getLine = (lineId: string) => MOCK_LINES.find((l) => l.id === lineId);
 
   return (
-    <div className="h-dvh overflow-hidden bg-canvas flex flex-col">
-      <header className="flex justify-between items-center px-4 h-12 w-full shrink-0 bg-canvas pt-4 pb-2 border-b border-hairline-soft">
+    <div className="home-backdrop h-dvh overflow-hidden flex flex-col">
+      <div className="home-veil" aria-hidden />
+      <header className="home-rise flex justify-between items-center px-4 h-12 w-full shrink-0 pt-4 pb-2 border-b border-hairline-soft">
         <div className="flex items-center gap-3">
           <Bell className="w-5 h-5 text-ink" aria-hidden />
           <h1 className="text-[22px] font-bold text-ink tracking-tight">
@@ -66,7 +68,7 @@ export default function AlertasPage() {
       </header>
 
       <main className="px-4 flex flex-col gap-4 max-w-2xl mx-auto relative z-10 pt-4 pb-28 flex-1 min-h-0 overflow-y-auto overscroll-contain">
-        <section className="flex overflow-x-auto gap-2 pb-2 no-scrollbar">
+        <section className="home-rise flex overflow-x-auto gap-2 pb-2 no-scrollbar" style={{ '--home-delay': '120ms' } as React.CSSProperties}>
           {FILTERS.map((filter) => (
             <button
               key={filter.key}
@@ -83,7 +85,7 @@ export default function AlertasPage() {
         </section>
 
         <section className="flex flex-col gap-4 mt-2">
-          {alerts.map((alert) => {
+          {alerts.map((alert, index) => {
             const line = getLine(alert.lineId);
             const resolved = alert.status === 'resolved';
             const strip = resolved ? STRIP_COLOR.resolved : STRIP_COLOR[alert.type];
@@ -93,7 +95,8 @@ export default function AlertasPage() {
                 key={alert.id}
                 href={`/alerta/${alert.id}`}
                 aria-label={`Ver informe: ${alert.title}`}
-                className="bg-canvas rounded-xl border border-hairline shadow-sm p-2 relative overflow-hidden active:scale-[0.98] transition-transform duration-150 flex flex-col"
+                style={{ '--home-delay': `${220 + index * 60}ms` } as React.CSSProperties}
+                className="home-rise home-surface rounded-xl border border-hairline p-2 relative overflow-hidden active:scale-[0.98] transition-transform duration-150 flex flex-col"
               >
                 <div className={`absolute left-0 top-0 bottom-0 w-1 ${strip}`} />
 

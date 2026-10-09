@@ -1,6 +1,7 @@
 'use client';
 
 import { use, useState } from 'react';
+import type React from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, Bus, Map as MapIcon, Train, TramFront } from 'lucide-react';
@@ -78,8 +79,9 @@ export default function DiagramaLineaPage({ params }: PageProps) {
   };
 
   return (
-    <div className="h-dvh bg-canvas flex flex-col overflow-hidden">
-      <header className="px-4 pt-[calc(14px+env(safe-area-inset-top))] pb-3 bg-canvas flex items-center gap-3 shrink-0">
+    <div className="home-backdrop h-dvh flex flex-col overflow-hidden">
+      <div className="home-veil" aria-hidden />
+      <header className="home-rise px-4 pt-[calc(14px+env(safe-area-inset-top))] pb-3 flex items-center gap-3 shrink-0">
         <Link
           href="/diagrama"
           className="w-9 h-9 rounded-full bg-canvas-soft border border-hairline flex items-center justify-center text-ink hover:bg-field transition-colors active:scale-95"
@@ -102,7 +104,7 @@ export default function DiagramaLineaPage({ params }: PageProps) {
 
       <main className="px-4 flex-1 min-h-0 overflow-y-auto overscroll-contain pb-[120px]">
         {linea.ramales.length > 1 ? (
-          <section className="mt-4" aria-label="Ramales de la línea">
+          <section className="home-rise mt-4" style={{ '--home-delay': '120ms' } as React.CSSProperties} aria-label="Ramales de la línea">
             <p className="text-xs font-bold uppercase tracking-[0.12em] text-text-muted">Ramales</p>
             <div className="mt-2 flex gap-2 overflow-x-auto overscroll-contain pb-1 -mx-4 px-4" role="group" aria-label="Elegir ramal">
               {linea.ramales.map((r) => {
@@ -118,7 +120,7 @@ export default function DiagramaLineaPage({ params }: PageProps) {
                         ? 'border-transparent text-canvas'
                         : 'border-hairline bg-canvas text-ink hover:bg-canvas-soft'
                     }`}
-                    style={active ? { backgroundColor: r.color || line.color } : undefined}
+                    style={active ? { backgroundColor: line.color } : undefined}
                   >
                     {r.codigo ? `Ramal ${r.codigo}` : r.nombre}
                   </button>
@@ -129,8 +131,8 @@ export default function DiagramaLineaPage({ params }: PageProps) {
         ) : null}
 
         {paradas.length === 0 ? (
-          <section className="mt-4">
-            <div className="bg-canvas border border-hairline rounded-3xl p-5 shadow-sm flex items-start gap-3">
+          <section className="home-rise mt-4" style={{ '--home-delay': '180ms' } as React.CSSProperties}>
+            <div className="home-surface border border-hairline rounded-3xl p-5 flex items-start gap-3">
               <div className="shrink-0 w-10 h-10 rounded-2xl bg-amber-500/10 flex items-center justify-center">
                 <MapIcon className="w-5 h-5 text-amber-500" aria-hidden="true" />
               </div>
@@ -144,7 +146,7 @@ export default function DiagramaLineaPage({ params }: PageProps) {
             </div>
           </section>
         ) : (
-          <section className="mt-4">
+          <section className="home-rise mt-4" style={{ '--home-delay': '180ms' } as React.CSSProperties}>
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-text-muted">
@@ -250,10 +252,10 @@ export default function DiagramaLineaPage({ params }: PageProps) {
           </section>
         )}
 
-        <section className="mt-6 mb-2">
+        <section className="home-rise mt-6 mb-2" style={{ '--home-delay': '300ms' } as React.CSSProperties}>
           <Link
             href={`/mapas?linea=${line.id}`}
-            className="inline-flex items-center justify-center gap-2 min-h-11 w-full rounded-2xl bg-ink text-canvas text-sm font-bold transition-colors active:scale-95"
+            className="home-cta inline-flex items-center justify-center gap-2 min-h-11 w-full rounded-2xl text-white text-sm font-bold transition-all active:scale-95"
           >
             <MapIcon className="w-4 h-4" aria-hidden="true" />
             Ver en el mapa

@@ -252,6 +252,12 @@ export interface MapCanvasProps {
   tripFocus?: boolean;
   /** Parada de abordaje para el modo 'follow-trip': la cámara encuadra bondi + parada juntos. */
   followTripStop?: { lat: number; lng: number } | null;
+  /**
+   * Entrada cinematográfica sobre todo el AMBA en la primera instalación
+   * (default). Con false, la cámara arranca en el `focusRequest` vigente
+   * (mapas embebidos del Home).
+   */
+  entryAnimation?: boolean;
   /** Notifies the wrapper when MapLibre cannot finish rendering. */
   onMapReady?: () => void;
   onMapUnavailable?: () => void;
@@ -455,11 +461,14 @@ export function MapCanvas({
   tripUsedStopIds = null,
   tripFocus = false,
   followTripStop = null,
+  entryAnimation = true,
   onMapReady,
   onMapUnavailable,
   className,
 }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const entryAnimationRef = useRef(entryAnimation);
+  const focusRequestRef = useRef(focusRequest);
   // prefers-reduced-motion: la corriente se congela y el breathe baja —
   // accesibilidad Y performance en gama baja de una sola vez.
   const prefersReducedMotion = useReducedMotion() ?? false;
@@ -594,6 +603,7 @@ export function MapCanvas({
   // programa el fitBounds UNA vez. rAF: si el nonce cambia en el mismo
   // tick que el mount/seed, evita doble easeTo (parpadeo de cámara).
   useEffect(() => {
+    focusRequestRef.current = focusRequest;
     if (!focusRequest) return;
     const raf = requestAnimationFrame(() => {
       const map = mapRef.current;
@@ -603,7 +613,7 @@ export function MapCanvas({
       const z0 = map.getZoom();
       const mode = focusRequest.zoom !== undefined ? "jumpTo" : "fitBounds";
       const targetZoom = focusRequest.zoom ?? focusRequest.maxZoom ?? null;
-      // eslint-disable-next-line no-console
+       
       console.log(
         `[MapCanvas] ${mode} nonce=${focusRequest.nonce} ` +
           `from zoom=${z0.toFixed(2)} center=[${c0.lng.toFixed(4)},${c0.lat.toFixed(4)}] ` +
@@ -631,7 +641,7 @@ export function MapCanvas({
         setTimeout(() => {
           const c = map.getCenter();
           const z = map.getZoom();
-          // eslint-disable-next-line no-console
+           
           console.log(
             `[MapCanvas]   → applied zoom=${z.toFixed(2)} center=[${c.lng.toFixed(4)},${c.lat.toFixed(4)}]`,
           );
@@ -657,7 +667,7 @@ export function MapCanvas({
       setTimeout(() => {
         const c = map.getCenter();
         const z = map.getZoom();
-        // eslint-disable-next-line no-console
+         
         console.log(
           `[MapCanvas]   → applied zoom=${z.toFixed(2)} center=[${c.lng.toFixed(4)},${c.lat.toFixed(4)}]`,
         );
@@ -719,7 +729,7 @@ export function MapCanvas({
       lastDebugLog = now;
       const c = map.getCenter();
       const z = map.getZoom();
-      // eslint-disable-next-line no-console
+       
       console.log(
         `[MapCanvas] live zoom=${z.toFixed(2)} center=[${c.lng.toFixed(4)},${c.lat.toFixed(4)}]`,
       );
@@ -869,7 +879,7 @@ export function MapCanvas({
             headingIcon: `heading-${m.lineId}${dirSuffix}`,
             topDown: `top-${m.lineId}${dirSuffix}`,
             iso: isoIcon,
-            colorLight: m.direction === 'vuelta' ? '#FCA5A5' : m.direction === 'ida' ? '#7DD3FC' : (LINE_COLOR_LIGHT[m.lineId] ?? '#67E8F9'),
+            colorLight: LINE_COLOR_LIGHT[m.lineId] ?? '#67E8F9',
             heading: Math.round(pos.heading),
             isoRotate: isoBillboardRotation(pos.heading, camBearing),
             shadowRotate: shadowRotation(pos.heading),
@@ -1997,14 +2007,13 @@ export function MapCanvas({
           type: 'FeatureCollection',
           features: highlightRef.current && highlightRef.current.length > 0
             ? MOCK_STOPS.map((s) => {
-                const isVuelta = s.id.includes('stop-65-1') && s.id !== 'stop-65-01';
                 return {
                   type: 'Feature',
                   geometry: { type: 'Point', coordinates: [s.lng, s.lat] },
                   properties: {
                     id: s.id,
                     name: s.name,
-                    color: isVuelta ? '#EF4444' : '#0EA5E9',
+                    color: getLineColor(s.lineIds?.[0] ?? '', '#0EA5E9'),
                   },
                 };
               })
@@ -2613,8 +2622,22 @@ export function MapCanvas({
       // su vista y su unidad seguida.
       if (!entryDone) {
         entryDone = true;
-        const allCoords = Object.values(MOCK_ROUTES).flat();
-        if (allCoords.length > 0) {
+        const initialFocus = focusRequestRef.current;
+        const allCoords = entryAnimationRef.current ? Object.values(MOCK_ROUTES).flat() : [];
+        if (!entryAnimationRef.current && initialFocus) {
+          map.fitBounds(initialFocus.bounds, {
+            padding: clampFitPadding(map, {
+              top: initialFocus.padding?.top ?? 40,
+              bottom: initialFocus.padding?.bottom ?? 40,
+              left: initialFocus.padding?.left ?? 40,
+              right: initialFocus.padding?.right ?? 40,
+            }),
+            duration: 0,
+            ...(initialFocus.pitch !== undefined ? { pitch: initialFocus.pitch } : {}),
+            ...(initialFocus.bearing !== undefined ? { bearing: initialFocus.bearing } : {}),
+            ...(initialFocus.maxZoom !== undefined ? { maxZoom: initialFocus.maxZoom } : {}),
+          });
+        } else if (allCoords.length > 0) {
           const lons = allCoords.map((c) => c[0]);
           const lats = allCoords.map((c) => c[1]);
           map.fitBounds(

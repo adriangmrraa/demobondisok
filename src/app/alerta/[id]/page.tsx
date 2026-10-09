@@ -7,6 +7,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
+import type React from 'react';
 import {
   ArrowLeft,
   MapPin,
@@ -157,8 +158,9 @@ export default function InformePage() {
   const severity = SEVERITY_META[resolved ? 'green' : alert.severity];
 
   return (
-    <div className="h-dvh overflow-hidden bg-canvas flex flex-col">
-      <header className="bg-canvas flex items-center px-4 h-12 w-full shrink-0 z-50 border-b border-hairline-soft shadow-sm">
+    <div className="home-backdrop h-dvh overflow-hidden flex flex-col">
+      <div className="home-veil" aria-hidden />
+      <header className="home-rise flex items-center px-4 h-12 w-full shrink-0 z-50 border-b border-hairline-soft">
         <button
           onClick={() => router.back()}
           className="h-12 w-12 flex items-center justify-center text-ink hover:bg-canvas-soft transition-colors rounded-full"
@@ -172,7 +174,7 @@ export default function InformePage() {
       </header>
 
       <main className="px-4 pt-4 space-y-4 max-w-2xl mx-auto w-full flex-1 min-h-0 overflow-y-auto overscroll-contain pb-28">
-        <section className="bg-canvas rounded-2xl border border-hairline shadow-sm p-4">
+        <section className="home-rise home-surface rounded-2xl border border-hairline p-4" style={{ '--home-delay': '120ms' } as React.CSSProperties}>
           <div className="flex items-center justify-between gap-2 mb-3">
             <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold', severity.pill)}>
               <span className={cn('h-1.5 w-1.5 rounded-full', severity.dot, !resolved && 'animate-pulse')} aria-hidden />
@@ -198,7 +200,7 @@ export default function InformePage() {
           </div>
         </section>
 
-        <section className="bg-canvas rounded-2xl border border-hairline shadow-sm p-4">
+        <section className="home-rise home-surface rounded-2xl border border-hairline p-4" style={{ '--home-delay': '220ms' } as React.CSSProperties}>
           <h3 className="text-[11px] font-bold uppercase tracking-widest text-text-muted mb-2">
             {resolved ? 'Qué pasó' : 'Qué está pasando'}
           </h3>
@@ -206,7 +208,7 @@ export default function InformePage() {
         </section>
 
         {afectados.length > 0 && (
-          <section className="bg-canvas rounded-2xl border border-hairline shadow-sm p-4">
+          <section className="home-rise home-surface rounded-2xl border border-hairline p-4" style={{ '--home-delay': '320ms' } as React.CSSProperties}>
             <h3 className="text-[11px] font-bold uppercase tracking-widest text-text-muted mb-3">
               Tramos afectados
             </h3>
@@ -222,7 +224,7 @@ export default function InformePage() {
         )}
 
         {alternativas.length > 0 && (
-          <section className="bg-canvas rounded-2xl border border-hairline shadow-sm p-4">
+          <section className="home-rise home-surface rounded-2xl border border-hairline p-4" style={{ '--home-delay': '400ms' } as React.CSSProperties}>
             <h3 className="text-[11px] font-bold uppercase tracking-widest text-text-muted mb-3">
               Alternativas · combiná con
             </h3>
@@ -244,7 +246,7 @@ export default function InformePage() {
           </section>
         )}
 
-        <section className="bg-canvas rounded-2xl border border-hairline shadow-sm p-4">
+        <section className="home-rise home-surface rounded-2xl border border-hairline p-4" style={{ '--home-delay': '480ms' } as React.CSSProperties}>
           <h3 className="text-[11px] font-bold uppercase tracking-widest text-text-muted mb-3">
             Cronología
           </h3>
@@ -273,7 +275,7 @@ export default function InformePage() {
           </ol>
         </section>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="home-rise grid grid-cols-2 gap-2" style={{ '--home-delay': '560ms' } as React.CSSProperties}>
           <button
             onClick={() => router.push('/mapas')}
             className="min-h-12 rounded-xl border border-hairline text-sm font-semibold text-ink hover:bg-canvas-soft active:scale-[0.98] transition-all flex items-center justify-center gap-2"
@@ -283,7 +285,7 @@ export default function InformePage() {
           </button>
           <button
             onClick={() => router.push('/mapas')}
-            className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-ink text-sm font-bold text-canvas hover:opacity-90 active:scale-[0.98] transition-all"
+            className="home-cta flex min-h-12 items-center justify-center gap-2 rounded-xl text-sm font-bold text-white active:scale-[0.98] transition-all"
           >
             <Bus className="w-4 h-4" aria-hidden />
             Ver la línea

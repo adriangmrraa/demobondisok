@@ -7,6 +7,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Star, Bell, BellRing, CheckCircle2 } from 'lucide-react';
 import { ArrivalCard } from '@/components/ui/arrival-card';
@@ -119,8 +120,9 @@ export default function ParadaPage() {
   }
 
   return (
-    <div className="min-h-screen bg-canvas pb-28">
-      <header className="bg-canvas flex items-center px-4 h-12 w-full fixed top-0 z-50 border-b border-hairline-soft shadow-sm">
+    <div className="home-backdrop min-h-screen pb-28">
+      <div className="home-veil" aria-hidden />
+      <header className="home-rise flex items-center px-4 h-12 w-full fixed top-0 z-50 border-b border-hairline-soft bg-canvas/80 backdrop-blur-sm">
         <button
           onClick={() => router.back()}
           className="h-12 w-12 flex items-center justify-center text-ink hover:bg-canvas-soft transition-colors rounded-full"
@@ -153,7 +155,8 @@ export default function ParadaPage() {
       <main className="px-4 mt-16 space-y-4 max-w-2xl mx-auto">
         <button
           onClick={() => setLiveOnly(!liveOnly)}
-          className={`h-10 px-4 rounded-full border text-sm font-semibold transition-all active:scale-95 ${
+          style={{ '--home-delay': '120ms' } as React.CSSProperties}
+          className={`home-rise h-10 px-4 rounded-full border text-sm font-semibold transition-all active:scale-95 ${
             liveOnly
               ? 'bg-ink text-canvas border-ink'
               : 'bg-transparent text-ink border-hairline'
@@ -181,7 +184,7 @@ export default function ParadaPage() {
             ))}
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="home-rise space-y-2" style={{ '--home-delay': '220ms' } as React.CSSProperties}>
             {filtered.map((arrival, i) => (
               <ArrivalCard
                 key={`${arrival.lineId}-${i}`}
@@ -205,7 +208,8 @@ export default function ParadaPage() {
         {!notified && (
           <button
             onClick={() => setShowSheet(true)}
-            className="flex items-center justify-center gap-2 w-full rounded-lg bg-ink text-canvas p-4 text-sm font-semibold hover:opacity-90 transition-colors active:scale-[0.98] min-h-[48px]"
+            style={{ '--home-delay': '320ms' } as React.CSSProperties}
+            className="home-rise home-cta flex items-center justify-center gap-2 w-full rounded-lg text-white p-4 text-sm font-semibold transition-all active:scale-[0.98] min-h-[48px]"
           >
             <Bell className="w-4 h-4" aria-hidden />
             ¿Te avisamos cuando llegue?
@@ -267,7 +271,7 @@ export default function ParadaPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="notify-dialog-title"
-            className="relative w-full max-w-sm bg-canvas rounded-3xl p-6 shadow-2xl animate-slide-up outline-none max-h-[85dvh] overflow-y-auto border border-hairline"
+            className="home-rise relative w-full max-w-sm bg-canvas rounded-3xl p-6 shadow-2xl outline-none max-h-[85dvh] overflow-y-auto border border-hairline"
           >
             {dialogLine && (
               <div className="flex items-center gap-3 mb-4">
@@ -315,7 +319,7 @@ export default function ParadaPage() {
               </button>
               <button
                 onClick={handleNotify}
-                className="flex-1 rounded-lg bg-ink text-canvas p-3 text-sm font-semibold hover:opacity-90 transition-colors min-h-[48px] flex items-center justify-center gap-2"
+                className="home-cta flex-1 rounded-lg text-white p-3 text-sm font-semibold transition-all min-h-[48px] flex items-center justify-center gap-2"
               >
                 <BellRing className="w-4 h-4" aria-hidden />
                 Activar aviso

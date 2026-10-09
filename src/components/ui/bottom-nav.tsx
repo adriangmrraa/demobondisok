@@ -103,7 +103,7 @@ function BottomNavInner({
 }: BottomNavProps) {
   const pathname = usePathname();
 
-  const isInicio = pathname === '/inicio';
+  const isInicio = pathname === '/inicio' || pathname.startsWith('/inicio/');
   const isRedMetro = pathname === '/red-metro';
   const isComoLlego = pathname === '/como-llego';
   const isDiagrama = pathname === '/diagrama';

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import type React from 'react';
 import { ArrowLeft, Bus, ChevronRight, Clock, Layers, Map as MapIcon } from 'lucide-react';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { MOCK_LINES, MOCK_UNITS, MOCK_ALERTS } from '@/mock/data';
@@ -65,8 +66,9 @@ export default function DiagramaPage() {
   const cards = buildLineCards(drawableLines);
 
   return (
-    <div className="h-dvh bg-canvas flex flex-col overflow-hidden">
-      <header className="px-4 pt-[calc(14px+env(safe-area-inset-top))] pb-3 bg-canvas flex items-center gap-3 shrink-0">
+    <div className="home-backdrop h-dvh flex flex-col overflow-hidden">
+      <div className="home-veil" aria-hidden />
+      <header className="home-rise px-4 pt-[calc(14px+env(safe-area-inset-top))] pb-3 flex items-center gap-3 shrink-0">
         <Link
           href="/inicio"
           className="w-9 h-9 rounded-full bg-canvas-soft border border-hairline flex items-center justify-center text-ink hover:bg-field transition-colors active:scale-95"
@@ -83,8 +85,8 @@ export default function DiagramaPage() {
       </header>
 
       <main className="px-4 flex-1 min-h-0 overflow-y-auto overscroll-contain pb-[120px]">
-        <section className="mt-4">
-          <div className="bg-canvas border border-hairline rounded-2xl p-3.5 shadow-sm flex items-start gap-3">
+        <section className="home-rise mt-4" style={{ '--home-delay': '120ms' } as React.CSSProperties}>
+          <div className="home-surface border border-hairline rounded-2xl p-3.5 flex items-start gap-3">
             <div className="shrink-0 w-9 h-9 rounded-xl bg-electric-blue/10 flex items-center justify-center">
               <Layers className="w-4 h-4 text-electric-blue" aria-hidden="true" />
             </div>
@@ -100,8 +102,8 @@ export default function DiagramaPage() {
           </div>
         </section>
 
-        <section className="mt-4" aria-label="Esquema de la red">
-          <div className="bg-canvas border border-hairline rounded-3xl px-2 py-3 shadow-sm">
+        <section className="home-rise mt-4" style={{ '--home-delay': '220ms' } as React.CSSProperties} aria-label="Esquema de la red">
+          <div className="home-surface border border-hairline rounded-3xl px-2 py-3">
             <NetworkSchematicView diagram={schematic} />
           </div>
           {/* Leyenda compacta */}
@@ -128,7 +130,7 @@ export default function DiagramaPage() {
           </ul>
         </section>
 
-        <section className="mt-5" aria-label="Catálogo de líneas">
+        <section className="home-rise mt-5" style={{ '--home-delay': '340ms' } as React.CSSProperties} aria-label="Catálogo de líneas">
           <div className="flex items-baseline justify-between gap-2">
             <h2 className="text-[20px] font-semibold text-ink">Líneas de la red</h2>
             <span className="text-[10px] font-bold uppercase tracking-wide text-text-muted">
@@ -144,7 +146,7 @@ export default function DiagramaPage() {
                 key={line.id}
                 href={`/diagrama/${line.id}`}
                 aria-label={`Ver el esquema de la línea ${line.shortName}`}
-                className="flex items-start gap-3 bg-canvas border border-hairline rounded-2xl p-3.5 shadow-sm hover:bg-canvas-soft active:scale-[0.99] transition-all"
+                className="flex items-start gap-3 home-surface border border-hairline rounded-2xl p-3.5 hover:border-electric-blue/40 active:scale-[0.99] transition-all"
               >
                 <LineDisplay
                   number={line.shortName}
@@ -201,10 +203,10 @@ export default function DiagramaPage() {
           </div>
         </section>
 
-        <section className="mt-6 mb-2">
+        <section className="home-rise mt-6 mb-2" style={{ '--home-delay': '440ms' } as React.CSSProperties}>
           <Link
             href="/mapas"
-            className="inline-flex items-center justify-center gap-2 min-h-11 w-full rounded-2xl bg-ink text-canvas text-sm font-bold transition-colors active:scale-95"
+            className="home-cta inline-flex items-center justify-center gap-2 min-h-11 w-full rounded-2xl text-white text-sm font-bold transition-all active:scale-95"
           >
             <MapIcon className="w-4 h-4" aria-hidden="true" />
             Ver mapa en vivo

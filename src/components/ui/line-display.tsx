@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { cn } from '@/lib/utils';
 
 export type LineDisplaySize = 'sm' | 'md' | 'lg' | 'xl';
@@ -12,6 +13,8 @@ export interface LineDisplayProps {
   /** Tamaño: sm (32px) · md (48px) · lg (64px) · xl (96px). Default: md. */
   size?: LineDisplaySize;
   className?: string;
+  /** Orbe flotante 3D: haz de luz del color + sombra de piso + textura. */
+  floating?: boolean;
   /** Label accesible (default: "Línea {number}"). */
   'aria-label'?: string;
 }
@@ -33,6 +36,7 @@ export function LineDisplay({
   color,
   textColor = '#FFFFFF',
   size = 'md',
+  floating = false,
   className,
   'aria-label': ariaLabel,
 }: LineDisplayProps) {
@@ -45,9 +49,10 @@ export function LineDisplay({
         'inline-flex items-center justify-center rounded-full font-black text-center shadow-2xs shrink-0 tabular-nums',
         sizing.container,
         sizing.text,
+        floating && 'line-orb',
         className,
       )}
-      style={{ backgroundColor: color, color: textColor }}
+      style={{ backgroundColor: color, color: textColor, ...(floating ? ({ '--lc': color } as CSSProperties) : {}) }}
     >
       {number}
     </span>

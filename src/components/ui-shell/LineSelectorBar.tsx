@@ -75,7 +75,8 @@ export default function LineSelectorBar({
   return (
     <aside
       aria-label="Selector jerárquico de líneas y ramales"
-      className={`absolute left-2 z-25 flex flex-col items-start gap-2.5 pointer-events-auto max-h-[calc(100dvh-200px)] overflow-y-auto no-scrollbar p-2 transition-all duration-300 ease-out ${topClass}`}
+      style={{ "--home-delay": "260ms" } as React.CSSProperties}
+      className={`home-fade absolute left-2 z-25 flex flex-col items-start gap-2.5 pointer-events-auto max-h-[calc(100dvh-200px)] overflow-y-auto no-scrollbar p-2 transition-all duration-300 ease-out ${topClass}`}
     >
       {/* 2. Botón superior izquierdo (Interruptor Maestro de Doble Vía):
           - Desde estado limpio: despliega ÚNICAMENTE la lista con las líneas disponibles.
@@ -169,7 +170,7 @@ export default function LineSelectorBar({
                                 : "text-canvas"
                             }`}
                             style={{
-                              backgroundColor: isRamalSelected ? undefined : ramal.color,
+                              backgroundColor: isRamalSelected ? undefined : linea.colorHex,
                             }}
                           >
                             {letter}

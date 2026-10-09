@@ -105,7 +105,7 @@ export function FeatureTour({ show, onClose }: FeatureTourProps) {
       aria-label="Tour de features"
       className="fixed inset-0 z-[60] bg-ink/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 animate-in fade-in duration-200"
     >
-      <div className="w-full max-w-md bg-canvas rounded-3xl border border-hairline shadow-[0_24px_60px_-12px_rgba(0,0,0,0.45)] overflow-hidden">
+      <div className="home-rise w-full max-w-md bg-canvas rounded-3xl border border-hairline shadow-[0_24px_60px_-12px_rgba(0,0,0,0.45)] overflow-hidden">
         <div className="flex items-center justify-between px-5 pt-4">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-text-muted">
             Tour · {step + 1}/{STEPS.length}
