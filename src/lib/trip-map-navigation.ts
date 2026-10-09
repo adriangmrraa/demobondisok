@@ -45,24 +45,31 @@ export function buildTripMapState(
 }
 
 export function tripUrlFromState(state: TripMapNavigationState, pathname: '/mapas' | '/viaje' = '/mapas'): string {
-  const params = new URLSearchParams({
-    trip: '1',
-    origen: state.origin.name,
-    origenLat: String(state.origin.lat),
-    origenLng: String(state.origin.lng),
-    destino: state.destinationName,
-  });
-  if (state.origin.address) params.set('origenDireccion', state.origin.address);
-  if (state.origin.stopId) params.set('origenParada', state.origin.stopId);
-  if (state.boardingStopId) params.set('paradaSubida', state.boardingStopId);
-  if (state.selectedTripId) params.set('opcion', state.selectedTripId);
-  if (state.lineId) params.set('linea', state.lineId);
-  if (state.ramalId) params.set('ramal', state.ramalId);
-  if (state.vehicleUnitId) params.set('interno', state.vehicleUnitId);
-  if (state.etaReferenceMs) params.set('etaRef', String(state.etaReferenceMs));
-  if (state.etaMinutes !== undefined) params.set('etaMin', String(state.etaMinutes));
-  if (state.stepId) params.set('paso', state.stepId);
-  return `${pathname}?${params.toString()}`;
+  // Construimos los params como objeto plano y los serializamos con
+  // orden alfabético de keys para que el output sea IDÉNTICO entre
+  // Node.js (SSR) y browser (CSR). Sin esto, URLSearchParams.toString()
+  // puede reordenar las keys entre runtimes y disparar hydration mismatch
+  // en Next.js Link (que compara el href server vs client).
+  const entries: [string, string][] = [
+    ['trip', '1'],
+    ['origen', state.origin.name],
+    ['origenLat', String(state.origin.lat)],
+    ['origenLng', String(state.origin.lng)],
+    ['destino', state.destinationName],
+  ];
+  if (state.origin.address) entries.push(['origenDireccion', state.origin.address]);
+  if (state.origin.stopId) entries.push(['origenParada', state.origin.stopId]);
+  if (state.boardingStopId) entries.push(['paradaSubida', state.boardingStopId]);
+  if (state.selectedTripId) entries.push(['opcion', state.selectedTripId]);
+  if (state.lineId) entries.push(['linea', state.lineId]);
+  if (state.ramalId) entries.push(['ramal', state.ramalId]);
+  if (state.vehicleUnitId) entries.push(['interno', state.vehicleUnitId]);
+  if (state.etaReferenceMs) entries.push(['etaRef', String(state.etaReferenceMs)]);
+  if (state.etaMinutes !== undefined) entries.push(['etaMin', String(state.etaMinutes)]);
+  if (state.stepId) entries.push(['paso', state.stepId]);
+  entries.sort(([a], [b]) => a.localeCompare(b));
+  const query = entries.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
+  return `${pathname}?${query}`;
 }
 
 export function tripMapUrlFromState(state: TripMapNavigationState): string {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { TransportService } from '@/lib/services/transport-service';
 import { TripPlannerService } from '@/lib/services/trip-planner-service';
 import { buildTripMapState, tripJourneyUrlFromState, tripMapUrlFromState } from '@/lib/trip-map-navigation';
@@ -103,25 +103,50 @@ export function useLineFirstSelection(catalog: CatalogLine[], positions: Vehicle
   // "Ir al mapa" (preview + CTA): pasa por /viaje (alternativas → guía) antes
   // de abrir el mapa, igual que los últimos viajes. El primer arribo viaja
   // como ETA del hero; `interno` solo si la unidad existe en el feed vivo.
-  const journeyHref = useMemo(() => {
+  //
+  // SSR-safe: arrancamos con el href base (sin etaRef para evitar que
+  // Date.now() — que difiere entre Node.js y browser — produzca un href
+  // distinto en server vs client y dispare hydration mismatch en el <Link>.
+  // El href final con etaRef se calcula en useEffect (client-only).
+  const [journeyHref, setJourneyHref] = useState<string>(() => {
     if (!context) return '/mapas';
     if (!trip) return mapHrefFor(context);
+    return tripJourneyUrlFromState(
+      buildTripMapState(trip, trip.origin, {
+        boardingStopId: context.stop.id,
+      }),
+    );
+  });
+
+  useEffect(() => {
+    if (!context) {
+      setJourneyHref('/mapas');
+      return;
+    }
+    if (!trip) {
+      setJourneyHref(mapHrefFor(context));
+      return;
+    }
     const state = buildTripMapState(trip, trip.origin, {
       boardingStopId: context.stop.id,
       arrival: arrivals[0],
     });
     if (arrivals[0]?.simulated) state.vehicleUnitId = undefined;
-    return tripJourneyUrlFromState(state);
+    setJourneyHref(tripJourneyUrlFromState(state));
   }, [context, trip, arrivals]);
 
   // Un arribo concreto abre /mapas directo en modo viaje con esa unidad
   // enfocada (?interno=), como ya hace el flujo de viaje.
+  //
+  // SSR-safe: SIEMPRE retorna el href sin `etaReferenceMs` para que sea
+  // determinístico entre server y client. El mapa en /mapas tiene su propio
+  // tick GPS que actualiza el countdown en vivo (no necesita el timestamp
+  // capturado en el href).
   const arrivalHref = useCallback(
     (arrival: EstimacionLlegada): string => {
       if (!context) return '/mapas';
       if (!trip) return mapHrefFor(context);
-      const state = buildTripMapState(trip, trip.origin, { boardingStopId: context.stop.id, arrival });
-      // Unidad simulada sin interno vivo: el mapa resuelve la más cercana.
+      const state = buildTripMapState(trip, trip.origin, { boardingStopId: context.stop.id });
       if (arrival.simulated) state.vehicleUnitId = undefined;
       return tripMapUrlFromState(state);
     },

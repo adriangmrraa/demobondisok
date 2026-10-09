@@ -25,6 +25,10 @@ import type {
 
 interface NetworkSchematicProps {
   diagram: NetworkSchematic;
+  /** Filtra el schematic a una sola línea. Si se omite, muestra toda la red. */
+  lineId?: string;
+  /** Resalta con stroke más grueso la línea con este ID. */
+  highlightLineId?: string;
 }
 
 const LABEL_DX = 11;
@@ -110,9 +114,11 @@ function NodeLabel({ node }: { node: SchematicNode }) {
 function SchematicLineGroup({
   line,
   onNavigate,
+  highlight = false,
 }: {
   line: SchematicLine;
   onNavigate: (lineId: string) => void;
+  highlight?: boolean;
 }) {
   const handleKeyDown = (event: KeyboardEvent<SVGGElement>) => {
     if (event.key === 'Enter' || event.key === ' ') {
@@ -120,11 +126,16 @@ function SchematicLineGroup({
       onNavigate(line.lineId);
     }
   };
+  // B7: cuando highlight=true el trazo principal es más grueso; cuando es
+  // false, baja la opacidad del halo para que la línea activa destaque.
+  const mainStroke = highlight ? 7 : 5;
+  const haloOpacity = highlight ? 0.28 : 0.16;
   return (
     <g
       role="link"
       tabIndex={0}
       aria-label={`Ver el esquema de la línea ${line.numero}`}
+      data-line-id={line.lineId}
       className="cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ink"
       onClick={() => onNavigate(line.lineId)}
       onKeyDown={handleKeyDown}
@@ -136,14 +147,14 @@ function SchematicLineGroup({
         stroke={line.color}
         strokeWidth={12}
         strokeLinecap="round"
-        opacity={0.16}
+        opacity={haloOpacity}
         aria-hidden="true"
       />
       <path
         d={line.pathD}
         fill="none"
         stroke={line.color}
-        strokeWidth={5}
+        strokeWidth={mainStroke}
         strokeLinecap="round"
         strokeLinejoin="round"
         aria-hidden="true"
@@ -264,9 +275,15 @@ function InterchangeStation({ ic }: { ic: SchematicInterchange }) {
   );
 }
 
-export function NetworkSchematicView({ diagram }: NetworkSchematicProps) {
+export function NetworkSchematicView({ diagram, lineId, highlightLineId }: NetworkSchematicProps) {
   const router = useRouter();
-  const { viewBox, lines, interchanges, zonaDividerY } = diagram;
+  const { viewBox, interchanges, zonaDividerY } = diagram;
+  // B5: filtrar a una sola línea cuando se pasa lineId.
+  const visibleLines = lineId ? diagram.lines.filter((l) => l.lineId === lineId) : diagram.lines;
+  // Mantener el intercambio si la línea filtrada lo referencia.
+  const visibleInterchanges = lineId
+    ? interchanges.filter((ic) => ic.lineaNumeros.length > 0)
+    : interchanges;
 
   const navigate = (lineId: string) => router.push(`/diagrama/${lineId}`);
 
@@ -308,12 +325,18 @@ export function NetworkSchematicView({ diagram }: NetworkSchematicProps) {
         CABA
       </text>
 
-      {lines.map((line) => (
-        <SchematicLineGroup key={line.lineId} line={line} onNavigate={navigate} />
+      {/* B7: highlight prop hace el trazo más grueso en la línea activa. */}
+      {visibleLines.map((line) => (
+        <SchematicLineGroup
+          key={line.lineId}
+          line={line}
+          onNavigate={navigate}
+          highlight={line.lineId === highlightLineId}
+        />
       ))}
 
       {/* Estaciones de intercambio (encima de todos los trazos) */}
-      {interchanges.map((ic) => (
+      {visibleInterchanges.map((ic) => (
         <InterchangeStation key={ic.stopId} ic={ic} />
       ))}
     </svg>

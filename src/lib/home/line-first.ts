@@ -145,10 +145,15 @@ export function switchRamal(selection: LineFirstSelection, ramalId: string): Lin
 
 /** Deep link existente de /mapas (?linea&ramal&parada). El ramal solo viaja si la línea tiene varios. */
 export function mapHrefFor(ctx: LineFirstContext): string {
-  const params = new URLSearchParams({ linea: ctx.line.id });
-  if (ctx.line.ramales.length > 1) params.set('ramal', ctx.ramal.id);
-  params.set('parada', ctx.stop.id);
-  return `/mapas?${params.toString()}`;
+  // Serialización manual con orden alfabético para evitar hydration mismatch:
+  // URLSearchParams.toString() puede reordenar keys entre Node.js SSR y
+  // browser CSR. Mantener keys en orden fijo elimina la divergencia.
+  const entries: [string, string][] = [['linea', ctx.line.id]];
+  if (ctx.line.ramales.length > 1) entries.push(['ramal', ctx.ramal.id]);
+  entries.push(['parada', ctx.stop.id]);
+  entries.sort(([a], [b]) => a.localeCompare(b));
+  const query = entries.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
+  return `/mapas?${query}`;
 }
 
 function boundsOf(points: { lat: number; lng: number }[]): Bounds {
