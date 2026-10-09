@@ -39,34 +39,9 @@ const TRIP_PAD_EXPANDED = 514;
 /** Techo de zoom del foco por paso: un segmento corto no sobre-zoomea. */
 const STEP_FOCUS_MAX_ZOOM = 16.5;
 
-/** Padding relativo al extent: 12% a cada lado para que las líneas no queden
- *  pegadas al borde del canvas ni a la barra del bottom nav. */
-const LINE_FILTER_PADDING_RATIO = 0.12;
-
-/** Estrategia híbrida (PBI-034 v5): prioriza "ver el recorrido completo" sobre
- *  "ver de cerca". El usuario quiere ver el RECORRIDO de las líneas, no un
- *  punto del centroide. Entonces:
- *  - Si el extent es chico (< 8 km, 1 línea CABA), jumpTo con zoom 15.5 →
- *    cabe todo y se ven las calles.
- *  - Si el extent es medio/grande, fitBounds con maxZoom adaptativo. MapLibre
- *    elige el zoom MÍNIMO tal que el extent quepa respetando maxZoom como
- *    techo. Resultado: se ve TODO el recorrido aunque sea un poco lejos.
- *  - Tiers de maxZoom: 8-18 km → 13, 18-35 km → 11.5, ≥ 35 km → 10.5. */
-const ZOOM_TIER_BREAKPOINTS_KM = [8, 18, 35] as const;
-const ZOOM_TIER_MAX_VALUES = [15.5, 13, 11.5, 10.5] as const;
-
-/** extentKm < 8 km → jumpTo zoom 15.5 (caso 1 línea, cabe todo). */
-const SINGLE_LINE_ZOOM = 15.5;
-
-/** Devuelve el maxZoom para fitBounds según el extent. Si el extent es < 8 km,
- *  el caller debería usar jumpTo zoom 15.5 en su lugar (esta función no se
- *  usa en ese caso). */
-function pickMaxZoomForExtent(extentKm: number): number {
-  for (let i = 0; i < ZOOM_TIER_BREAKPOINTS_KM.length; i++) {
-    if (extentKm < ZOOM_TIER_BREAKPOINTS_KM[i]) return ZOOM_TIER_MAX_VALUES[i];
-  }
-  return ZOOM_TIER_MAX_VALUES[ZOOM_TIER_MAX_VALUES.length - 1];
-}
+/** Padding relativo al extent: 6% a cada lado (compacto, para que el
+ *  recorrido ocupe casi todo el viewport). 12% se veía con mucho aire. */
+const LINE_FILTER_PADDING_RATIO = 0.06;
 
 /**
  * Calcula los bounds [[minLng,minLat],[maxLng,maxLat]] que abarcan todas las
@@ -179,9 +154,61 @@ function buildTripKey(
   return `${o}>${d}#${tripId ?? "-"}`;
 }
 
+/**
+ * Bounds por defecto de la Línea 195 (Retiro → La Plata). Se usa como vista
+ * inicial del mapa cuando el usuario entra a /mapas sin filtros ni trip activo,
+ * para mostrar el recorrido completo CABA-La Plata (PBI-034 v7).
+ *
+ * Padding del 6% en cada lado (igual que el filtro multi-línea) para que las
+ * cabeceras no queden pegadas al borde.
+ */
+function computeLinea195Bounds(
+  dataset: TransportNetworkDataset,
+): [[number, number], [number, number]] | null {
+  const linea = dataset.lineas.find((l) => l.id === "line-195");
+  if (!linea) return null;
+  let minLng = Infinity;
+  let maxLng = -Infinity;
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  for (const ramal of linea.ramales) {
+    for (const rec of ramal.recorridos) {
+      for (const [lng, lat] of rec.coordenadas) {
+        if (lng < minLng) minLng = lng;
+        if (lng > maxLng) maxLng = lng;
+        if (lat < minLat) minLat = lat;
+        if (lat > maxLat) maxLat = lat;
+      }
+    }
+  }
+  if (minLng === Infinity) return null;
+  const padLng = Math.max((maxLng - minLng) * LINE_FILTER_PADDING_RATIO, 0.002);
+  const padLat = Math.max((maxLat - minLat) * LINE_FILTER_PADDING_RATIO, 0.002);
+  return [
+    [minLng - padLng, minLat - padLat],
+    [maxLng + padLng, maxLat + padLat],
+  ];
+}
+
 export default function TransportesAppPage() {
   const { resolvedTheme } = useTheme();
   const [mapUnavailable, setMapUnavailable] = useState(false);
+  // PBI-034 v11: en mobile (< 640dp) usamos jumpTo con zoom fijo alto (no
+  // fitBounds) para que el usuario vea las calles y combinaciones DE CERCA.
+  // fitBounds elige el zoom mínimo tal que el extent quepa, lo que aleja
+  // la cámara para extent > 5-10 km. JumpTo con zoom fijo prioriza "ver
+  // de cerca" sobre "ver extent completo". En desktop dejamos fitBounds
+  // porque el viewport es más grande y el extent cabe a zoom razonable.
+  const [isMobileViewport, setIsMobileViewport] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.innerWidth < 640;
+  });
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 639px)");
+    const onChange = () => setIsMobileViewport(mql.matches);
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
   const [isLineMenuOpen, setIsLineMenuOpen] = useState<boolean>(false);
   // Orientación breve de la entrada "Explorar mapa" (Home): coachmark
   // descartable junto al rail de líneas. No persiste ni tapa controles.
@@ -683,35 +710,75 @@ export default function TransportesAppPage() {
     [lineaFilter, selectedLineaId],
   );
   const lineaFilterFocus: MapFocusRequest | null = useMemo(() => {
-    if (isTripMode || effectiveLineaIds.length === 0) return null;
-    // PBI-034 v5: smart extent (combinaciones) + estrategia híbrida:
-    //   - extent < 8 km (1 línea CABA): jumpTo zoom 15.5 → cabe todo + se ven
-    //     las calles.
-    //   - extent ≥ 8 km: fitBounds con maxZoom adaptativo → MapLibre elige el
-    //     zoom MÍNIMO tal que el extent quepa, respetando maxZoom como techo.
-    //     El usuario ve el RECORRIDO completo, no un punto del centroide.
+    if (isTripMode) return null;
+    // PBI-034 v10: el cliente quiere ver las líneas MUY DE CERCA. Subimos
+    // maxZoom a 16 (casi nivel de calle) y bajamos el padding al mínimo.
+    // Para extent chico (1 línea CABA, ~9 km) el zoom llega a 16. Para
+    // extent grande (multi con 195, ~13 km de combinaciones) llega a ~13.
+    //
+    // Sin filtros (mount): bounds = línea 195 (Retiro → La Plata).
+    // Con filtros: bounds = combinaciones (smart extent) o fallback a coords.
+    const PADDING_DEFAULT: MapFocusRequest["padding"] = {
+      top: 60, // header buscador + chip "4 líneas" (mínimo viable)
+      bottom: 100, // bottom nav (mínimo viable)
+      left: 40, // LineSelectorBar (compacto)
+      right: 30, // controles zoom + share (mínimo viable)
+    };
+    // PBI-034 v13: cliente eligió manualmente el zoom/center exactos para
+    // el fitBounds mobile multi-línea. La vista que pidió cubre desde
+    // Quilmes hasta Vicente López (extent CABA + corredor sur GBA), con un
+    // zoom 8.76 que muestra el recorrido completo de las 4 líneas de Microcentro.
+    const ZOOM_MOBILE = 8.68;
+    const ZOOM_MOBILE_CENTER: [number, number] = [-58.2466, -34.8099];
+    const ZOOM_DESKTOP = 20;
+    const modePrefix = isMobileViewport ? "M" : "D";
+    if (isMobileViewport) {
+      // MOBILE: jumpTo al zoom/center fijos que el cliente eligió manualmente.
+      // Override del hub ponderado: el cliente quiere el extent completo visible
+      // (CABA + GBA cercano) a zoom 8.68, no el hub de Constitución.
+      if (effectiveLineaIds.length === 0) {
+        const b = computeLinea195Bounds(DATASET);
+        if (b) return { bounds: b, center: ZOOM_MOBILE_CENTER, nonce: `${modePrefix}-195`, zoom: ZOOM_MOBILE };
+        return null;
+      }
+      const b =
+        computeCombinacionesBounds(effectiveLineaIds, DATASET) ??
+        computeLineasBounds(effectiveLineaIds, DATASET);
+      if (!b) return null;
+      const idHash = effectiveLineaIds
+        .slice()
+        .sort()
+        .reduce((acc, id) => acc + id.split("").reduce((a, c) => a + c.charCodeAt(0), 0), 1);
+      return {
+        bounds: b,
+        center: ZOOM_MOBILE_CENTER,
+        nonce: `${modePrefix}-${idHash}`,
+        zoom: ZOOM_MOBILE,
+      };
+    }
+    // DESKTOP: fitBounds con maxZoom como techo.
+    if (effectiveLineaIds.length === 0) {
+      const linea195Bounds = computeLinea195Bounds(DATASET);
+      if (linea195Bounds) {
+        return { bounds: linea195Bounds, nonce: `${modePrefix}-195`, padding: PADDING_DEFAULT, maxZoom: ZOOM_DESKTOP };
+      }
+      return null;
+    }
     const bounds =
       computeCombinacionesBounds(effectiveLineaIds, DATASET) ??
       computeLineasBounds(effectiveLineaIds, DATASET);
     if (!bounds) return null;
-    // Nonce determinístico basado en los ids ordenados: cambios en el set (o en
-    // el orden) re-disparan el fitBounds; ids repetidos lo mantienen estable.
-    const nonce = effectiveLineaIds
+    const idHash = effectiveLineaIds
       .slice()
       .sort()
       .reduce((acc, id) => acc + id.split("").reduce((a, c) => a + c.charCodeAt(0), 0), 1);
-    // Decidir modo: jumpTo (zoom fijo) o fitBounds (maxZoom adaptativo).
-    const widthDeg = bounds[1][0] - bounds[0][0];
-    const heightDeg = bounds[1][1] - bounds[0][1];
-    const midLat = (bounds[0][1] + bounds[1][1]) / 2;
-    const widthKm = widthDeg * 111 * Math.cos((midLat * Math.PI) / 180);
-    const heightKm = heightDeg * 111;
-    const extentKm = Math.max(widthKm, heightKm);
-    if (extentKm < 8) {
-      return { bounds, nonce, zoom: SINGLE_LINE_ZOOM };
-    }
-    return { bounds, nonce, maxZoom: pickMaxZoomForExtent(extentKm) };
-  }, [isTripMode, effectiveLineaIds]);
+    return {
+      bounds,
+      nonce: `${modePrefix}-${idHash}`,
+      padding: PADDING_DEFAULT,
+      maxZoom: ZOOM_DESKTOP,
+    };
+  }, [isTripMode, effectiveLineaIds, isMobileViewport]);
 
   const plannerPoints: PlannerMapPoints | null = useMemo(() => {
     if (!isTripViewActive) return null;

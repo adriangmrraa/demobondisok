@@ -72,9 +72,19 @@ type RawPoi = {
 /** Petición de encuadre (Fase 3): el nonce re-dispara el fitBounds. */
 export interface MapFocusRequest {
   bounds: [[number, number], [number, number]];
-  nonce: number;
-  /** Aire inferior para que el sheet no tape el viaje. */
-  bottomPadding?: number;
+  /** Center opcional [lng, lat]. Si está definido y zoom está definido, el
+   *  easeTo usa este center en vez del centroide del bounds. Útil para
+   *  centrar en un punto específico (ej: hub de transbordo ponderado). */
+  center?: [number, number];
+  /** Identificador único del focus. El MapCanvas re-dispara el fitBounds/jumpTo
+   *  cuando este valor cambia. Puede ser number o string (ej: "M-195" para
+   *  mobile + linea 195 default). */
+  nonce: number | string;
+  /** Padding interno del fitBounds (en pixeles). El caller setea los 4 lados
+   *  para que la UI (header pill, bottom nav, LineSelectorBar, controles) no
+   *  tape los extremos del recorrido. Si no se setean, MapCanvas usa defaults
+   *  sensatos. */
+  padding?: { top?: number; bottom?: number; left?: number; right?: number };
   /** Inclinación a forzar en el fitBounds (3D=52, 2D=0). */
   pitch?: number;
   /** Rumbo a forzar en el fitBounds; sin él MapLibre resetea al norte. */
@@ -588,11 +598,24 @@ export function MapCanvas({
     const raf = requestAnimationFrame(() => {
       const map = mapRef.current;
       if (!map || !focusRequest) return;
-      // Modo "zoom fijo": easeTo al centroide del extent con un zoom dado.
+      // DEBUG: log de encuadre para ver en DevTools qué se está aplicando.
+      const c0 = map.getCenter();
+      const z0 = map.getZoom();
+      const mode = focusRequest.zoom !== undefined ? "jumpTo" : "fitBounds";
+      const targetZoom = focusRequest.zoom ?? focusRequest.maxZoom ?? null;
+      // eslint-disable-next-line no-console
+      console.log(
+        `[MapCanvas] ${mode} nonce=${focusRequest.nonce} ` +
+          `from zoom=${z0.toFixed(2)} center=[${c0.lng.toFixed(4)},${c0.lat.toFixed(4)}] ` +
+          `→ targetZoom=${targetZoom}`,
+      );
+      // Modo "zoom fijo": easeTo al center con un zoom dado.
       // Se usa cuando queremos "zoom responsivo" sin importar el tamaño del
       // extent (fitBounds elegiría el zoom mínimo tal que el extent quepa).
       if (focusRequest.zoom !== undefined) {
-        const center: [number, number] = [
+        // Si el caller pasa un center explícito, lo usamos. Si no,
+        // calculamos el centroide del bounds.
+        const center: [number, number] = focusRequest.center ?? [
           (focusRequest.bounds[0][0] + focusRequest.bounds[1][0]) / 2,
           (focusRequest.bounds[0][1] + focusRequest.bounds[1][1]) / 2,
         ];
@@ -604,14 +627,25 @@ export function MapCanvas({
           ...(focusRequest.pitch !== undefined ? { pitch: focusRequest.pitch } : {}),
           ...(focusRequest.bearing !== undefined ? { bearing: focusRequest.bearing } : {}),
         });
+        // Log post-easeTo (después de la animación) para ver el resultado final.
+        setTimeout(() => {
+          const c = map.getCenter();
+          const z = map.getZoom();
+          // eslint-disable-next-line no-console
+          console.log(
+            `[MapCanvas]   → applied zoom=${z.toFixed(2)} center=[${c.lng.toFixed(4)},${c.lat.toFixed(4)}]`,
+          );
+        }, 1100);
         return;
       }
       map.fitBounds(focusRequest.bounds, {
         padding: clampFitPadding(map, {
-          top: 130,
-          bottom: (focusRequest.bottomPadding ?? cameraBottomPadding) + 48,
-          left: 60,
-          right: 60,
+          // Si el focusRequest setea padding, lo respetamos; sino defaults
+          // (header pill arriba, bottom nav abajo, LineSelectorBar izq).
+          top: focusRequest.padding?.top ?? 130,
+          bottom: focusRequest.padding?.bottom ?? cameraBottomPadding + 48,
+          left: focusRequest.padding?.left ?? 60,
+          right: focusRequest.padding?.right ?? 60,
         }),
         duration: 900,
         essential: true,
@@ -619,6 +653,15 @@ export function MapCanvas({
         ...(focusRequest.bearing !== undefined ? { bearing: focusRequest.bearing } : {}),
         ...(focusRequest.maxZoom !== undefined ? { maxZoom: focusRequest.maxZoom } : {}),
       });
+      // Log post-fitBounds (después de la animación) para ver el resultado final.
+      setTimeout(() => {
+        const c = map.getCenter();
+        const z = map.getZoom();
+        // eslint-disable-next-line no-console
+        console.log(
+          `[MapCanvas]   → applied zoom=${z.toFixed(2)} center=[${c.lng.toFixed(4)},${c.lat.toFixed(4)}]`,
+        );
+      }, 1100);
     });
     return () => cancelAnimationFrame(raf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -645,6 +688,9 @@ export function MapCanvas({
         // Cámara nativa en mobile: panning con inercia suave, pinch-zoom
         // alrededor del centro del gesto (no del viewport) y sin snap
         // sorpresa al norte cuando rotás poco.
+        // Scroll wheel zoom habilitado alrededor del centro (default MapLibre).
+        // PBI-034: el cliente quiere que ctrl+rueda cambie el zoom en mobile.
+        scrollZoom: { around: 'center' },
         maxPitch: 65,
         bearingSnap: 0,
         dragPan: { linearity: 0.3 },
@@ -662,6 +708,24 @@ export function MapCanvas({
     // error + follow-user. Un solo dueño del flujo de ubicación.
     map.addControl(new maplibregl.ScaleControl({ maxWidth: 96 }), 'bottom-left');
     mapRef.current = map;
+
+    // DEBUG en vivo: log de zoom/center al usar la rueda del mouse o hacer
+    // pan. Throttle 150ms para no spammear. El usuario lo usa para tunear el
+    // zoom objetivo y mandarme los números exactos.
+    let lastDebugLog = 0;
+    const onMove = () => {
+      const now = performance.now();
+      if (now - lastDebugLog < 150) return;
+      lastDebugLog = now;
+      const c = map.getCenter();
+      const z = map.getZoom();
+      // eslint-disable-next-line no-console
+      console.log(
+        `[MapCanvas] live zoom=${z.toFixed(2)} center=[${c.lng.toFixed(4)},${c.lat.toFixed(4)}]`,
+      );
+    };
+    map.on("zoom", onMove);
+    map.on("move", onMove);
 
     // ResizeObserver → map.resize() SIN guard: si el callback re-dispara
     // el propio resize (o el teclado/búsqueda oscilan el contenedor),
