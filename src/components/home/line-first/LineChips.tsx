@@ -142,9 +142,9 @@ function Chip({
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue focus-visible:ring-offset-2 focus-visible:ring-offset-canvas',
         fill ? 'aspect-square w-full' : 'size-16',
         selected
-          ? 'text-white'
+          ? 'chip-halo text-white'
           : line.operational
-            ? 'border border-hairline bg-canvas text-ink hover:bg-canvas-soft'
+            ? 'chip-orb border border-hairline bg-canvas/60 text-ink shadow-[inset_0_1px_0_rgba(255,255,255,.18),inset_0_-6px_12px_rgba(0,0,0,.12),0_6px_16px_-12px_rgba(0,0,0,.6)] hover:bg-canvas-soft'
             : 'border border-dashed border-hairline bg-transparent text-text-muted hover:text-ink',
       )}
     >

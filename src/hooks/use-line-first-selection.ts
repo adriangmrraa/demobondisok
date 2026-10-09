@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { TransportService } from '@/lib/services/transport-service';
 import { TripPlannerService } from '@/lib/services/trip-planner-service';
 import { buildTripMapState, tripJourneyUrlFromState, tripMapUrlFromState } from '@/lib/trip-map-navigation';
@@ -104,35 +104,20 @@ export function useLineFirstSelection(catalog: CatalogLine[], positions: Vehicle
   // de abrir el mapa, igual que los últimos viajes. El primer arribo viaja
   // como ETA del hero; `interno` solo si la unidad existe en el feed vivo.
   //
-  // SSR-safe: arrancamos con el href base (sin etaRef para evitar que
-  // Date.now() — que difiere entre Node.js y browser — produzca un href
-  // distinto en server vs client y dispare hydration mismatch en el <Link>.
-  // El href final con etaRef se calcula en useEffect (client-only).
-  const [journeyHref, setJourneyHref] = useState<string>(() => {
+  // SSR-safe: `arrivals` arranca [] en server y client (positions = [] hasta
+  // que suscribe el feed), así el href es idéntico en ambos renders. El único
+  // campo no determinístico era `etaReferenceMs` (Date.now()): se omite —
+  // /viaje muestra etaMin tal cual y el mapa recalcula en vivo.
+  const journeyHref = useMemo(() => {
     if (!context) return '/mapas';
     if (!trip) return mapHrefFor(context);
-    return tripJourneyUrlFromState(
-      buildTripMapState(trip, trip.origin, {
-        boardingStopId: context.stop.id,
-      }),
-    );
-  });
-
-  useEffect(() => {
-    if (!context) {
-      setJourneyHref('/mapas');
-      return;
-    }
-    if (!trip) {
-      setJourneyHref(mapHrefFor(context));
-      return;
-    }
     const state = buildTripMapState(trip, trip.origin, {
       boardingStopId: context.stop.id,
       arrival: arrivals[0],
     });
     if (arrivals[0]?.simulated) state.vehicleUnitId = undefined;
-    setJourneyHref(tripJourneyUrlFromState(state));
+    state.etaReferenceMs = undefined;
+    return tripJourneyUrlFromState(state);
   }, [context, trip, arrivals]);
 
   // Un arribo concreto abre /mapas directo en modo viaje con esa unidad
@@ -146,8 +131,12 @@ export function useLineFirstSelection(catalog: CatalogLine[], positions: Vehicle
     (arrival: EstimacionLlegada): string => {
       if (!context) return '/mapas';
       if (!trip) return mapHrefFor(context);
-      const state = buildTripMapState(trip, trip.origin, { boardingStopId: context.stop.id });
+      const state = buildTripMapState(trip, trip.origin, { boardingStopId: context.stop.id, arrival });
       if (arrival.simulated) state.vehicleUnitId = undefined;
+      // ETA/etaRef dependen del tick (no determinísticos server vs client):
+      // se omiten del href; el mapa los recalcula en vivo con su propio GPS.
+      state.etaMinutes = undefined;
+      state.etaReferenceMs = undefined;
       return tripMapUrlFromState(state);
     },
     [context, trip],

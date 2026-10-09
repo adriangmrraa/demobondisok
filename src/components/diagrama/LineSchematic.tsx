@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useLayoutEffect, useMemo, useRef } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type TouchEvent, type WheelEvent } from 'react';
 import { cn } from '@/lib/utils';
 
 interface LineSchematicStop {
@@ -18,17 +18,10 @@ interface LineSchematicProps {
   className?: string;
 }
 
-/**
- * Ancho fijo por parada (w-32 = 128px en Tailwind). El `paddingInline: calc(50% - 64px)`
- * del scroller depende de este valor: padding = (viewport - stopWidth) / 2.
- * Si cambiás STOP_W_CLASSES, actualizá también el `-64px` del padding.
- */
-const STOP_W_CLASSES = 'w-32 sm:w-32';
-const STOP_W_PX = 128;
-const STOP_W_HALF_PX = STOP_W_PX / 2;
-
-/** Tamaño del dot para paradas cabecera (inicio/fin). Intermedias usan 12px. */
-const DOT_SIZE_HEAD = 14;
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 4;
+const ZOOM_STEP = 0.25;
+const LABEL_MAX_CHARS = 14;
 
 /**
  * Diagrama Lineal Horizontal de UNA línea.
@@ -65,8 +58,37 @@ export function LineSchematic({
   // de cambios posteriores (smooth). Evita el "salto" visual en la carga.
   const isFirstScrollRef = useRef(true);
 
-  const firstStopName = stops[0]?.nombre ?? '';
-  const lastStopName = stops[stops.length - 1]?.nombre ?? '';
+  // ── ViewBox dimensionado por N ─────────────────────────────────────────────
+  // 52px por parada garantiza que labels de 14 chars a 11.5px NO se superpongan.
+  // Para 25 paradas → viewW ≈ 1324px → scroll horizontal natural.
+  const minPerStop = 52;
+  const viewW = Math.max(360, stops.length * minPerStop + 24);
+  const viewH = 220;
+  const padX = 14;
+  const headerY = 22;
+  const trackY = 120;
+  const labelNameY = trackY + 26;
+  const labelTipoY = trackY + 44;
+
+  // Labels en dos filas alternadas (pares arriba, impares abajo): con el pitch
+  // de 52px una sola fila superpone nombres vecinos; la segunda fila duplica
+  // el ancho disponible por label a ~104px.
+  const LABEL_ROW_B = 34;
+  const labelNameYB = labelNameY + LABEL_ROW_B;
+  const labelTipoYB = labelTipoY + LABEL_ROW_B;
+
+  const trackX1 = padX;
+  const trackX2 = viewW - padX;
+  const span = trackX2 - trackX1;
+
+  // Font base generoso: empieza en 13px (legible), escala a 10.5 si hay muchas.
+  const labelNameFontSize =
+    stops.length <= 6 ? 13
+      : stops.length <= 10 ? 12
+        : stops.length <= 16 ? 11
+          : stops.length <= 22 ? 10.5
+            : 10;
+  const labelTipoFontSize = 9;
 
   // ── Stop activo (memo para no recalcular en cada render) ────────────────
   const activeIndex = useMemo(
@@ -121,12 +143,10 @@ export function LineSchematic({
     });
   };
 
-  // Mount: centrado instantáneo (sin parpadeo en la carga inicial).
-  useLayoutEffect(() => {
-    if (!highlightStopId) return;
-    centerActiveStop(false);
-    isFirstScrollRef.current = false;
-  }, [highlightStopId]);
+  const lastTouchXRef = useRef<number | null>(null);
+  const lastPinchDistRef = useRef<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
 
   // Cambios posteriores: scroll suave para feedback visual.
   useEffect(() => {
@@ -135,12 +155,72 @@ export function LineSchematic({
     centerActiveStop(true);
   }, [highlightStopId]);
 
-  // Cambios posteriores: scroll suave para feedback visual.
-  useEffect(() => {
-    if (isFirstScrollRef.current) return; // ya lo manejó useLayoutEffect
-    if (!highlightStopId) return;
-    centerActiveStop(true);
-  }, [highlightStopId]);
+  // Si el contenido entra en el contenedor, el pan se ignora (derivado en
+  // render — no hace falta resetear el state con un efecto).
+  const renderPanX = effectiveW <= containerWidth ? 0 : panX;
+
+  // ── Handlers touch ───────────────────────────────────────────────────────
+  const getTouchDist = (touches: React.TouchList): number => {
+    const dx = touches[0]!.clientX - touches[1]!.clientX;
+    const dy = touches[0]!.clientY - touches[1]!.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  const onTouchStart = (event: TouchEvent<HTMLDivElement>) => {
+    if (event.touches.length === 1) {
+      lastTouchXRef.current = event.touches[0]!.clientX;
+      setIsDragging(true);
+    } else if (event.touches.length === 2) {
+      setIsDragging(true);
+      lastPinchDistRef.current = getTouchDist(event.touches);
+    }
+  };
+
+  const onTouchMove = (event: TouchEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    if (event.touches.length === 1 && lastTouchXRef.current !== null) {
+      const dx = event.touches[0]!.clientX - lastTouchXRef.current;
+      lastTouchXRef.current = event.touches[0]!.clientX;
+      setPanX((prev) => clampPan(prev + dx));
+    } else if (event.touches.length === 2 && lastPinchDistRef.current !== null) {
+      const newDist = getTouchDist(event.touches);
+      const ratio = newDist / lastPinchDistRef.current;
+      lastPinchDistRef.current = newDist;
+      setZoom((prev) => clampZoom(prev * ratio));
+    }
+  };
+
+  const onTouchEnd = () => {
+    lastTouchXRef.current = null;
+    lastPinchDistRef.current = null;
+    setIsDragging(false);
+  };
+
+  const onWheel = (event: WheelEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const delta = event.deltaY < 0 ? 1 : -1;
+    setZoom((prev) => clampZoom(prev + delta * ZOOM_STEP));
+  };
+
+  // ── Handlers botones ──────────────────────────────────────────────────────
+  const zoomIn = () => setZoom((prev) => clampZoom(prev + ZOOM_STEP));
+  const zoomOut = () => setZoom((prev) => clampZoom(prev - ZOOM_STEP));
+  const reset = () => {
+    setZoom(1);
+    setPanX(0);
+  };
+
+  const isModified = zoom !== 1 || renderPanX !== 0;
+
+  // ── Render ───────────────────────────────────────────────────────────────
+  const transformStyle: CSSProperties = {
+    transform: `translateX(${renderPanX}px) scale(${zoom})`,
+    transformOrigin: '0 0',
+    transition: isDragging ? 'none' : 'transform 200ms ease-out',
+  };
+
+  const firstStopName = stops[0]?.nombre ?? '';
+  const lastStopName = stops[stops.length - 1]?.nombre ?? '';
 
   return (
     <div
@@ -315,6 +395,93 @@ export function LineSchematic({
             background: color,
           }}
         />
+
+        {/* Paradas */}
+        {stops.map((stop, i) => {
+          const x = positions[i]!;
+          const isFirst = i === 0;
+          const isLast = i === stops.length - 1;
+          const isHead = isFirst || isLast || stop.tipo === 'CABECERA';
+          const isHighlight = highlightStopId === stop.id;
+          const dotSize = isHead ? 6 : 4;
+          const nameY = i % 2 === 0 ? labelNameY : labelNameYB;
+          const tipoY = i % 2 === 0 ? labelTipoY : labelTipoYB;
+
+          return (
+            <g key={`${stop.id}-${reactId}`}>
+              {/* Halo del dot destacado */}
+              {isHighlight && (
+                <circle cx={x} cy={trackY} r={dotSize + 5} fill={color} opacity={0.35} aria-hidden="true" />
+              )}
+
+              {/* Dot: cabeceras más grandes + ring interior; intermedias hollow */}
+              {isHead ? (
+                <>
+                  <circle cx={x} cy={trackY} r={dotSize} fill={color} aria-hidden="true" />
+                  <circle cx={x} cy={trackY} r={dotSize - 2.2} fill="white" aria-hidden="true" />
+                </>
+              ) : (
+                <circle
+                  cx={x}
+                  cy={trackY}
+                  r={dotSize}
+                  fill="white"
+                  stroke={color}
+                  strokeWidth={isHighlight ? 2.5 : 2}
+                  aria-hidden="true"
+                />
+              )}
+
+              {/* Ring del highlight */}
+              {isHighlight && (
+                <circle
+                  cx={x}
+                  cy={trackY}
+                  r={dotSize + 3}
+                  fill="none"
+                  stroke="white"
+                  strokeWidth={1.5}
+                  aria-hidden="true"
+                />
+              )}
+
+              {/* Label nombre — SIEMPRE visible */}
+              <text
+                x={x}
+                y={nameY}
+                textAnchor="middle"
+                className="fill-canvas"
+                style={{ fontSize: labelNameFontSize, fontWeight: isHead ? 700 : 600 }}
+              >
+                {truncate(stop.nombre, LABEL_MAX_CHARS)}
+              </text>
+              {/* Label tipo (entre paréntesis, debajo del nombre) */}
+              {stop.tipo && (
+                <text
+                  x={x}
+                  y={tipoY}
+                  textAnchor="middle"
+                  className="fill-text-muted"
+                  style={{ fontSize: labelTipoFontSize, fontWeight: 600, letterSpacing: '0.04em' }}
+                >
+                  {stop.tipo}
+                </text>
+              )}
+
+              {/* Hit area invisible para tooltip on long-press */}
+              <circle cx={x} cy={trackY} r={12} fill="transparent" style={{ cursor: 'pointer' }}>
+                <title>{stop.nombre}{stop.tipo ? ` (${stop.tipo})` : ''}</title>
+              </circle>
+            </g>
+          );
+        })}
+      </svg>
+
+      {/* Marcadores de inicio/fin abajo (esquina del SVG) — más legibles
+          que los labels pequeños */}
+      <div className="pointer-events-none absolute bottom-2 left-3 right-3 flex items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-text-muted">
+        <span className="truncate">◤ {truncate(firstStopName, 16)}</span>
+        <span className="truncate text-right">{truncate(lastStopName, 16)} ◢</span>
       </div>
 
       {/* ── Footer: ◤ origin / last ◢ ────────────────────────────── */}

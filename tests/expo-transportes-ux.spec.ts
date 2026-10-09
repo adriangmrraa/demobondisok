@@ -5,7 +5,9 @@ const journeyUrl =
 
 test('Home offers the four accessible discovery flows', async ({ page }) => {
   // El Inicio monta el mapa embebido (docs/HOME-LINEA-FIRST.md): cada goto('/inicio') carga MapLibre.
+  // Son 4 gotos sobre WebGL (SwiftShader sin GPU): el ×3 de slow (90s) no alcanza.
   test.slow();
+  test.setTimeout(240_000);
   await page.goto('/inicio');
 
   const line = page.getByRole('button', { name: /buscar línea/i });
@@ -16,7 +18,13 @@ test('Home offers the four accessible discovery flows', async ({ page }) => {
 
   await line.focus();
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('dialog', { name: /buscar por línea/i })).toBeVisible();
+  const lookupDialog = page.getByRole('dialog', { name: /buscar por línea/i });
+  await expect(lookupDialog).toBeVisible();
+  // home-rise anima la entrada del sheet: si el click cae mientras el diálogo
+  // se desplaza, pega en el backdrop y lo cierra sin navegar.
+  await lookupDialog.evaluate((el) =>
+    Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished)),
+  );
   await page.getByRole('textbox', { name: /número o nombre de línea/i }).fill('65');
   const lineResult = page.getByRole('button', { name: /ver el diagrama de la línea 65/i });
   await expect(lineResult).toBeVisible();
@@ -60,7 +68,7 @@ test('Cómo llego plans a trip without showing the location modal on entry', asy
   await page.getByRole('button', { name: /barrancas de belgrano/i }).first().click();
   await page.getByRole('button', { name: /buscar cómo llegar/i }).click();
 
-  await expect(page).toHaveURL(/\/viaje\?trip=1/);
+  await expect(page).toHaveURL(/\/viaje\?.*trip=1/);
   await expect(page.getByRole('region', { name: /alternativas de viaje/i })).toBeVisible();
   await page.getByRole('region', { name: /alternativas de viaje/i }).getByRole('button').first().click();
 
@@ -168,6 +176,6 @@ test('Map rendering failure keeps the matching text journey available', async ({
   const returnToGuide = page.getByRole('link', { name: /volver a la guía del viaje/i });
   await expect(returnToGuide).toBeVisible();
   await returnToGuide.click();
-  await expect(page).toHaveURL(/\/viaje\?trip=1/);
+  await expect(page).toHaveURL(/\/viaje\?.*trip=1/);
   await expect(page.getByRole('region', { name: /alternativas de viaje/i })).toBeVisible();
 });

@@ -48,9 +48,10 @@ test.describe('Inicio A (/inicio)', () => {
   });
 
   test('sin scroll se ve la línea por defecto, su parada y los próximos arribos', async ({ page }) => {
+    test.slow(); // Página con mapa WebGL: goto + teardown compiten por GPU (SwiftShader).
     await page.goto('/inicio');
 
-    await expect(page.getByRole('button', { name: `Línea ${line65.numero}`, exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('button', { name: new RegExp(`^Línea ${line65.numero}\\.`) })).toHaveAttribute('aria-pressed', 'true');
     const card = lineCard(page);
     await expect(card).toContainText(`Línea 65 · ${shortName(stopName('stop-65-05'))}`);
     await expect(card).not.toContainText('→');
@@ -69,7 +70,7 @@ test.describe('Inicio A (/inicio)', () => {
     await page.goto('/inicio');
     const card = lineCard(page);
 
-    await page.getByRole('button', { name: `Línea ${line194.numero}`, exact: true }).click();
+    await page.getByRole('button', { name: new RegExp(`^Línea ${line194.numero}\\.`) }).click();
     await expect(card).toContainText(`Línea 194 · ${shortName(stopName('stop-194-once'))}`);
 
     await card.getByRole('button', { name: /^Cambiar parada/ }).click();
@@ -84,12 +85,13 @@ test.describe('Inicio A (/inicio)', () => {
   });
 
   test('una línea del catálogo sin recorrido avisa y no rompe la selección', async ({ page }) => {
+    test.slow(); // Página con mapa WebGL: el goto compite por GPU (SwiftShader).
     await page.goto('/inicio');
     await page.getByRole('button', { name: new RegExp(`^Línea ${upcomingNumber},`) }).click();
     await expect(
       page.getByRole('status').filter({ hasText: `La línea ${upcomingNumber} todavía no tiene recorrido cargado` }),
     ).toBeVisible();
-    await expect(page.getByRole('button', { name: `Línea ${line65.numero}`, exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('button', { name: new RegExp(`^Línea ${line65.numero}\\.`) })).toHaveAttribute('aria-pressed', 'true');
   });
 
   test('el mapa embebido pinta y "ir al mapa" pasa por /viaje antes de abrir /mapas', async ({ page }) => {
@@ -98,9 +100,9 @@ test.describe('Inicio A (/inicio)', () => {
     await expectMapPainted(page);
 
     const cta = page.getByRole('link', { name: 'Ver la línea 65 en el mapa en vivo', exact: true });
-    await expect(cta).toHaveAttribute('href', /^\/viaje\?trip=1&/);
+    await expect(cta).toHaveAttribute('href', /^\/viaje\?.*trip=1/);
     await cta.click();
-    await expect(page).toHaveURL(/\/viaje\?trip=1/);
+    await expect(page).toHaveURL(/\/viaje\?.*trip=1/);
     await expect(page.getByRole('region', { name: /alternativas de viaje/i })).toBeVisible();
   });
 
@@ -109,18 +111,18 @@ test.describe('Inicio A (/inicio)', () => {
     await page.goto('/inicio');
     const card = lineCard(page);
     const arrival = card.getByRole('link', { name: /^Seguir el colectivo / }).first();
-    await expect(arrival).toHaveAttribute('href', /\/mapas\?trip=1&/);
+    await expect(arrival).toHaveAttribute('href', /\/mapas\?.*trip=1/);
     await expect(arrival).toHaveAttribute('href', /interno=/);
     await expect(arrival).toHaveAttribute('href', /linea=line-65/);
     await arrival.click();
-    await expect(page).toHaveURL(/\/mapas\?trip=1/);
+    await expect(page).toHaveURL(/\/mapas\?.*trip=1/);
     await expect(page).toHaveURL(/interno=/);
   });
 
   test('un viaje reciente inicia el mismo flujo de viaje de siempre', async ({ page }) => {
     await page.goto('/inicio');
     await page.getByRole('button', { name: /Iniciar viaje en la línea 65 desde Parque Centenario/ }).click();
-    await expect(page).toHaveURL(/\/viaje\?trip=1/);
+    await expect(page).toHaveURL(/\/viaje\?.*trip=1/);
     await expect(page.getByRole('region', { name: /alternativas de viaje/i })).toBeVisible();
   });
 });
@@ -141,7 +143,7 @@ test.describe('Inicio B (/inicio/b)', () => {
     await page.getByRole('button', { name: 'Ver todas' }).click();
     await expect(page.getByText('Próximamente', { exact: true })).toBeVisible();
     const catalogSize = new Set([...operationalNumbers, ...metropol.lines.map((l) => l.number).filter(Boolean)]).size;
-    await expect(page.getByRole('button', { name: /^Línea \d+(,|$)/ })).toHaveCount(catalogSize);
+    await expect(page.getByRole('button', { name: /^Línea \d+/ })).toHaveCount(catalogSize);
     expect(errors, errors.join('\n')).toEqual([]);
   });
 
