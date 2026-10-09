@@ -724,12 +724,13 @@ export default function TransportesAppPage() {
       left: 40, // LineSelectorBar (compacto)
       right: 30, // controles zoom + share (mínimo viable)
     };
-    // PBI-034 v13: cliente eligió manualmente el zoom/center exactos para
-    // el fitBounds mobile multi-línea. La vista que pidió cubre desde
-    // Quilmes hasta Vicente López (extent CABA + corredor sur GBA), con un
-    // zoom 8.76 que muestra el recorrido completo de las 4 líneas de Microcentro.
-    const ZOOM_MOBILE = 8.68;
-    const ZOOM_MOBILE_CENTER: [number, number] = [-58.2466, -34.8099];
+    // PBI-034 v14: cliente quiere "mucho más cerca" en mobile. Subimos a
+    // zoom 19 (casi maxZoom del source CARTO = 20) y centramos en Plaza
+    // Constitución (cabecera más compartida de Microcentro). A zoom 19 el
+    // viewport mobile portrait muestra ~28 m verticales: el pasajero ve
+    // la cabecera con detalle de manzana, no el extent completo.
+    const ZOOM_MOBILE = 19;
+    const ZOOM_MOBILE_CENTER: [number, number] = [-58.3792, -34.6288];
     const ZOOM_DESKTOP = 20;
     const modePrefix = isMobileViewport ? "M" : "D";
     if (isMobileViewport) {
