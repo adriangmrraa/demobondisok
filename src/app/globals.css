@@ -564,10 +564,11 @@ html, body {
   0%, 100% { transform: translateY(0) rotate(0deg); }
   50% { transform: translateY(-7px) rotate(-1.2deg); }
 }
-/* Sombra de piso: se contrae y aclara cuando el objeto sube. */
+/* Sombra de piso: respira como el halo del CTA — crece y se aleja cuando el
+   objeto sube (misma cadencia 5.4s que home-cta-breathe). */
 @keyframes home-orb-shadow {
-  0%, 100% { transform: scaleX(1); opacity: .55; }
-  50% { transform: scaleX(.78); opacity: .3; }
+  0%, 100% { transform: scaleX(1) translateY(0); opacity: .55; }
+  50% { transform: scaleX(1.18) translateY(3px); opacity: .34; }
 }
 /* Haz de luz: respiración sutil del halo del color de línea. */
 @keyframes home-beam {
@@ -713,7 +714,7 @@ html, body {
     inset 0 2px 4px rgba(255, 255, 255, .42),
     inset 0 -9px 16px rgba(0, 0, 0, .3),
     0 24px 38px -14px color-mix(in srgb, var(--lc, var(--electric-blue)) 72%, transparent);
-  animation: home-levitate 4.6s ease-in-out infinite;
+  animation: home-levitate 5.4s ease-in-out infinite;
 }
 .line-orb::before {
   content: '';
@@ -727,7 +728,7 @@ html, body {
     radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, .5), transparent 72%),
     radial-gradient(50% 46% at 50% 50%, color-mix(in srgb, var(--lc, var(--electric-blue)) 38%, transparent), transparent 78%);
   filter: blur(2px);
-  animation: home-orb-shadow 4.6s ease-in-out infinite;
+  animation: home-orb-shadow 5.4s ease-in-out infinite;
 }
 /* En oscuro el negro no contrasta: el piso recibe un charco de luz del color
    de la línea (reflejo) sobre una base apenas más profunda. */
@@ -749,12 +750,44 @@ html, body {
     radial-gradient(34% 30% at 50% 34%, color-mix(in srgb, var(--lc, var(--electric-blue)) 78%, #ffffff 12%), transparent 72%),
     radial-gradient(58% 52% at 50% 46%, color-mix(in srgb, var(--lc, var(--electric-blue)) 46%, transparent), transparent 74%);
   filter: blur(10px);
-  animation: home-beam 4.6s ease-in-out infinite;
+  animation: home-beam 5.4s ease-in-out infinite;
 }
 .dark .line-orb::after {
   background:
     radial-gradient(34% 30% at 50% 34%, color-mix(in srgb, var(--lc, var(--electric-blue)) 88%, #ffffff 14%), transparent 72%),
     radial-gradient(58% 52% at 50% 46%, color-mix(in srgb, var(--lc, var(--electric-blue)) 58%, transparent), transparent 74%);
+}
+
+/* Profundidad tipo orbe en chips no seleccionados: luz cenital + micro grano
+   sobre el fondo (background-image se apoya sobre el background-color). */
+.chip-orb {
+  background-image:
+    radial-gradient(56% 44% at 32% 18%, rgba(255, 255, 255, .22), transparent 62%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='96' height='96' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E");
+}
+/* Halo del chip seleccionado: respira con la misma cadencia del CTA y del
+   orbe (5.4s). --lc = color de la línea. Solo anima la sombra: el chip no se
+   mueve, el objetivo táctil queda estable. */
+@keyframes chip-halo {
+  0%, 100% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, .34),
+      inset 0 -7px 12px rgba(0, 0, 0, .26),
+      0 0 0 1px color-mix(in srgb, var(--lc, var(--electric-blue)) 42%, transparent),
+      0 10px 22px -10px color-mix(in srgb, var(--lc, var(--electric-blue)) 68%, transparent);
+  }
+  50% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, .4),
+      inset 0 -7px 12px rgba(0, 0, 0, .26),
+      0 0 0 1.5px color-mix(in srgb, var(--lc, var(--electric-blue)) 52%, transparent),
+      0 17px 30px -9px color-mix(in srgb, var(--lc, var(--electric-blue)) 88%, transparent);
+  }
+}
+.home-chip.chip-halo {
+  animation:
+    home-chip-pop 560ms cubic-bezier(.2, 1.2, .34, 1) calc(var(--i, 0) * 38ms + 180ms) both,
+    chip-halo 5.4s ease-in-out calc(var(--i, 0) * 38ms + 1.2s) infinite;
 }
 
 /* Borde de vidrio + viñeta inferior sobre el preview: textura encima del canvas,
@@ -774,6 +807,6 @@ html, body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .home-rise, .home-fade, .home-chip, .home-wave, .home-live-dot, .home-eta, .home-cta, .home-cta::after, .line-orb, .line-orb::before, .line-orb::after { animation: none !important; }
+  .home-rise, .home-fade, .home-chip, .home-chip.chip-halo, .home-wave, .home-live-dot, .home-eta, .home-cta, .home-cta::after, .line-orb, .line-orb::before, .line-orb::after { animation: none !important; }
   .home-veil { display: none; }
 }

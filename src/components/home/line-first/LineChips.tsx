@@ -39,20 +39,21 @@ function Chip({
           '--i': index,
           ...(selected
             ? {
-                background: `linear-gradient(150deg, color-mix(in srgb, ${color} 72%, white), ${color} 55%)`,
-                boxShadow: `inset 0 1px 0 rgba(255,255,255,.32), inset 0 -1px 0 rgba(0,0,0,.14), 0 0 0 1px color-mix(in srgb, ${color} 42%, transparent), 0 12px 26px -10px ${color}`,
+                '--lc': color,
+                background: `radial-gradient(56% 44% at 32% 18%, rgba(255,255,255,.42), transparent 62%), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='96' height='96' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E"), linear-gradient(150deg, color-mix(in srgb, ${color} 72%, white), ${color} 55%)`,
+                boxShadow: `inset 0 1px 0 rgba(255,255,255,.34), inset 0 -7px 12px rgba(0,0,0,.26), 0 0 0 1px color-mix(in srgb, ${color} 42%, transparent), 0 10px 22px -10px ${color}`,
               }
             : {}),
         } as CSSProperties
       }
       className={cn(
-        'home-chip shrink-0 rounded-full text-[17px] font-bold tabular-nums transition-[background-color,color,box-shadow] duration-200 active:scale-95',
+        'home-chip shrink-0 rounded-full text-[17px] font-black italic tabular-nums transition-[background-color,color,box-shadow] duration-200 active:scale-95',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue focus-visible:ring-offset-2 focus-visible:ring-offset-canvas',
         fill ? 'aspect-square w-full' : 'size-16',
         selected
-          ? 'text-white'
+          ? 'chip-halo text-white'
           : line.operational
-            ? 'border border-hairline bg-canvas/60 text-ink shadow-[0_6px_16px_-12px_rgba(0,0,0,.6)] hover:bg-canvas-soft'
+            ? 'chip-orb border border-hairline bg-canvas/60 text-ink shadow-[inset_0_1px_0_rgba(255,255,255,.18),inset_0_-6px_12px_rgba(0,0,0,.12),0_6px_16px_-12px_rgba(0,0,0,.6)] hover:bg-canvas-soft'
             : 'border border-dashed border-hairline bg-transparent text-text-muted hover:text-ink',
       )}
     >
