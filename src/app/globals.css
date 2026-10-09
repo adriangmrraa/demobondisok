@@ -523,3 +523,148 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .arrival-energy-spectrum { display: none; }
 }
+
+/* ─── Home "línea primero": entrada cinematográfica y acabados premium ───
+   Patrón de entrada (referencia open-source: transitions.dev texts-reveal,
+   Magic UI/Aceternity "Blur Fade", easings.net expo-out): opacity + translateY
+   + scale + blur juntos — cada propiedad sola se ve plana. Stagger de sección
+   ~90-110 ms y de ítem ~30-40 ms, easing expo-out cubic-bezier(.16, 1, .3, 1).
+   REGLA DURA (docs/INCIDENTE-MAPA-iOS-SAFARI.md): el contenedor del mapa y sus
+   ancestros SOLO animan opacity — transform/filter/will-change sobre un ancestro
+   del canvas WebGL lo deja en negro en WebKit. */
+@keyframes home-rise {
+  from { opacity: 0; transform: translateY(26px) scale(.965); filter: blur(10px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes home-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes home-chip-pop {
+  from { opacity: 0; transform: translateY(14px) scale(.84); filter: blur(6px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes home-wave { 0%, 60%, 100% { transform: none; } 10%, 30% { transform: rotate(14deg); } 20% { transform: rotate(-8deg); } 40% { transform: rotate(-4deg); } 50% { transform: rotate(10deg); } }
+@keyframes home-live-dot {
+  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, .5); }
+  50% { opacity: .5; transform: scale(.62); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+}
+@keyframes home-eta-in {
+  from { opacity: 0; transform: translateY(8px) scale(.92); filter: blur(4px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes home-veil-out { to { opacity: 0; visibility: hidden; } }
+@keyframes home-veil-bloom {
+  from { opacity: 1; transform: scale(.5); }
+  to { opacity: 0; transform: scale(1.45); }
+}
+@keyframes home-sheen {
+  0% { transform: translateX(-130%) skewX(-18deg); }
+  42%, 100% { transform: translateX(130%) skewX(-18deg); }
+}
+
+@layer components {
+.home-rise { animation: home-rise 780ms cubic-bezier(.16, 1, .3, 1) var(--home-delay, 0ms) both; }
+.home-fade { animation: home-fade 900ms cubic-bezier(.3, .7, .3, 1) var(--home-delay, 0ms) both; }
+.home-chip { animation: home-chip-pop 560ms cubic-bezier(.2, 1.2, .34, 1) calc(var(--i, 0) * 38ms + 180ms) both; }
+.home-wave { display: inline-block; transform-origin: 70% 75%; animation: home-wave 1.9s ease-in-out 700ms 1 both; }
+.home-live-dot { animation: home-live-dot 1.9s ease-in-out infinite; }
+.home-eta { animation: home-eta-in 520ms cubic-bezier(.16, 1, .3, 1) both; }
+
+/* Velo de apertura: cubre el primer paint con el canvas y se disuelve con un
+   bloom de luz mientras las secciones entran desenfocadas desde abajo. */
+.home-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  pointer-events: none;
+  background: var(--canvas);
+  animation: home-veil-out 720ms cubic-bezier(.33, .7, .3, 1) 140ms forwards;
+}
+.home-veil::before {
+  content: '';
+  position: absolute;
+  inset: -18%;
+  background: radial-gradient(46% 30% at 50% 22%, color-mix(in srgb, var(--electric-blue) 30%, transparent), transparent 72%);
+  animation: home-veil-bloom 980ms cubic-bezier(.16, 1, .3, 1) both;
+}
+
+.home-backdrop {
+  position: relative;
+  background:
+    radial-gradient(115% 55% at -8% -6%, color-mix(in srgb, var(--electric-blue) 13%, transparent), transparent 62%),
+    radial-gradient(90% 48% at 108% 14%, color-mix(in srgb, #dc2626 6%, transparent), transparent 60%),
+    radial-gradient(75% 42% at 50% 110%, color-mix(in srgb, var(--electric-blue) 8%, transparent), transparent 66%),
+    var(--canvas);
+}
+/* Grano de film: ruido SVG fractal a muy baja intensidad sobre el home. */
+.home-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: .045;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.dark .home-backdrop::after { opacity: .06; }
+
+.home-surface {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--canvas-soft) 90%, var(--electric-blue) 8%), var(--canvas) 72%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .55),
+    inset 0 0 0 1px rgba(255, 255, 255, .06),
+    0 1px 2px rgba(0, 24, 80, .05),
+    0 24px 48px -28px rgba(0, 40, 120, .5);
+}
+.dark .home-surface {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .07),
+    inset 0 0 0 1px rgba(255, 255, 255, .03),
+    0 1px 2px rgba(0, 0, 0, .45),
+    0 24px 48px -28px rgba(0, 0, 0, .75);
+}
+.home-well {
+  background: color-mix(in srgb, var(--canvas-soft) 86%, transparent);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, .07), inset 0 -1px 0 rgba(255, 255, 255, .4);
+}
+.dark .home-well {
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, .4), inset 0 -1px 0 rgba(255, 255, 255, .04);
+}
+.home-cta {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #3d8bff 0%, var(--electric-blue) 45%, #0047c2 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .28),
+    inset 0 -1px 0 rgba(0, 0, 0, .18),
+    0 16px 36px -14px rgba(0, 92, 255, .75);
+}
+.home-cta::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 34%, rgba(255, 255, 255, .3) 48%, transparent 60%);
+  transform: translateX(-130%);
+  animation: home-sheen 5.2s cubic-bezier(.4, 0, .2, 1) 1.6s infinite;
+}
+
+/* Borde de vidrio + viñeta inferior sobre el preview: textura encima del canvas,
+   debajo del overlay-link (z-10) y sin tocar el render WebGL. */
+.home-map-frame::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .22),
+    inset 0 0 0 1px color-mix(in srgb, var(--ink) 7%, transparent),
+    inset 0 -52px 72px -52px rgba(0, 0, 0, .3);
+}
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-rise, .home-fade, .home-chip, .home-wave, .home-live-dot, .home-eta, .home-cta::after { animation: none !important; }
+  .home-veil { display: none; }
+}

@@ -4,6 +4,8 @@ const journeyUrl =
   '/viaje?trip=1&origen=Parque%20Centenario&origenLat=-34.609&origenLng=-58.435&origenParada=stop-65-05&paradaSubida=stop-65-05&destino=Barrancas%20de%20Belgrano';
 
 test('Home offers the four accessible discovery flows', async ({ page }) => {
+  // El Inicio monta el mapa embebido (docs/HOME-LINEA-FIRST.md): cada goto('/inicio') carga MapLibre.
+  test.slow();
   await page.goto('/inicio');
 
   const line = page.getByRole('button', { name: /buscar línea/i });

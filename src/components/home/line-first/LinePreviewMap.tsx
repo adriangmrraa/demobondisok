@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
+import { Expand } from 'lucide-react';
 import DynamicMap from '@/components/map/DynamicMap';
 import { useTheme } from '@/components/theme/ThemeProvider';
 import { cn } from '@/lib/utils';
@@ -60,9 +61,10 @@ export function LinePreviewMap({
   const pulse = useMemo(() => ({ lat: stop.lat, lng: stop.lng, color }), [stop.lat, stop.lng, color]);
 
   return (
+    // Solo opacity en la entrada: nada de transform sobre el canvas (incidente WebKit).
     <div
       className={cn(
-        'relative isolate overflow-hidden rounded-2xl border border-hairline bg-canvas-soft',
+        'home-fade home-map-frame relative isolate overflow-hidden rounded-3xl border border-hairline bg-canvas-soft shadow-[0_24px_48px_-26px_rgba(0,40,120,.6)]',
         '[&_.maplibregl-ctrl-top-right]:hidden! [&_.maplibregl-ctrl-bottom-left]:hidden!',
         className,
       )}
@@ -80,7 +82,16 @@ export function LinePreviewMap({
         onMapReady={() => setReadyCount((count) => count + 1)}
         className="h-full w-full"
       />
-      <Link href={href} aria-label={ariaLabel} className="absolute inset-0 z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-electric-blue" />
+      <Link
+        href={href}
+        aria-label={ariaLabel}
+        className="group absolute inset-0 z-10 flex items-end bg-[linear-gradient(to_top,rgba(0,0,0,.28),transparent_38%)] p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-electric-blue"
+      >
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-canvas/95 px-3 py-1.5 text-xs font-semibold text-ink shadow-[0_6px_16px_-8px_rgba(0,0,0,.6)] transition-colors group-hover:bg-canvas">
+          <Expand className="h-3.5 w-3.5" aria-hidden="true" />
+          Ver en vivo
+        </span>
+      </Link>
     </div>
   );
 }

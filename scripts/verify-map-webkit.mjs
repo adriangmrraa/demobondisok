@@ -12,8 +12,11 @@ const iPhone = devices['iPhone 11'] ?? {
 };
 console.log('device:', iPhone.viewport?.width + 'x' + iPhone.viewport?.height, 'dpr=' + iPhone.deviceScaleFactor);
 
+const colorScheme = process.argv.includes('--dark') ? 'dark' : 'light';
+console.log('colorScheme:', colorScheme);
+
 const browser = await webkit.launch({ headless: true });
-const ctx = await browser.newContext({ ...iPhone });
+const ctx = await browser.newContext({ ...iPhone, colorScheme });
 const page = await ctx.newPage();
 const errors = [];
 page.on('console', (m) => {

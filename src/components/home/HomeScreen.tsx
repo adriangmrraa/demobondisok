@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -75,6 +75,18 @@ const ALERT_BADGE_LABEL: Record<string, string> = {
 function activeAlertLabelForLine(lineId: string): string | null {
   const alert = ACTIVE_ALERTS.find((a) => a.lineId === lineId && a.disrupcion);
   return alert ? (ALERT_BADGE_LABEL[alert.type] ?? 'ALERTA') : null;
+}
+
+const subscribeToNothing = () => () => {};
+const formatToday = () =>
+  new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+/**
+ * La fecha se resuelve solo en el cliente: la página se prerenderiza en el
+ * build y una fecha de servidor no coincide con la del dispositivo (React #418).
+ */
+function useToday(): string | null {
+  return useSyncExternalStore(subscribeToNothing, formatToday, () => null);
 }
 
 interface HomeScreenProps {
@@ -461,25 +473,21 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
     [router],
   );
 
-  const today = new Date().toLocaleDateString('es-AR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  });
+  const today = useToday();
 
   return (
-    <div className="h-dvh bg-canvas flex flex-col overflow-hidden">
-      <header className="px-4 pt-6 pb-2 bg-canvas flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2.5">
-          <MetropolRose className="h-6 w-auto" />
-          <div>
-            <h1 className="text-[22px] font-bold text-ink leading-tight">
-              Hola 👋
-            </h1>
-            <p className="text-sm font-semibold text-text-muted capitalize">
-              {today}
-            </p>
-          </div>
+    <div className="home-backdrop h-dvh flex flex-col overflow-hidden">
+      {/* Velo de apertura: cubre el primer paint y se disuelve mientras las
+          secciones entran. pointer-events-none y se apaga con reduced-motion. */}
+      <div className="home-veil" aria-hidden="true" />
+      <header className="home-rise px-4 pt-6 pb-3 flex items-center gap-3 shrink-0">
+        <MetropolRose className="h-9 w-auto shrink-0" />
+        <div className="min-w-0">
+          <h1 className="text-[22px] font-bold leading-tight tracking-tight text-ink">
+            Hola <span className="home-wave" aria-hidden="true">👋</span>{' '}
+            <span className="font-black italic">Elegí tu línea</span>
+          </h1>
+          <p className="mt-0.5 min-h-5 text-sm font-light capitalize text-text-muted">{today ?? ''}</p>
         </div>
       </header>
 
@@ -487,48 +495,48 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
         {variant === 'a' ? (
           <>
             {/* Variante A (imagen 1): Elegí tu línea → mapa del tramo → arribos → Ver mapa → últimos viajes */}
-            <section aria-labelledby="line-first-title" className="mt-1 rounded-3xl border border-hairline bg-canvas-soft/60 p-3">
-              <div className="flex items-center gap-3">
-                <MetropolRose className="h-9 w-auto shrink-0" />
-                <div>
-                  <h2 id="line-first-title" className="text-[20px] font-bold leading-tight text-ink">Elegí tu línea</h2>
-                  <p className="text-sm text-text-muted">Consultá cuándo llega tu colectivo</p>
-                </div>
-              </div>
-              <div className="mt-3">
-                <LineChips lines={catalog} selectedLineId={lineFirst.selection?.lineId ?? null} onSelect={lineFirst.selectLine} />
-              </div>
+            <section aria-label="Elegí tu línea" className="flex flex-col gap-3">
+              <LineChips lines={catalog} selectedLineId={lineFirst.selection?.lineId ?? null} onSelect={lineFirst.selectLine} />
               {lineFirst.notice && (
-                <p role="status" className="mt-2 rounded-xl bg-canvas px-3 py-2 text-sm text-text-muted">{lineFirst.notice}</p>
+                <p role="status" className="home-fade rounded-2xl border border-hairline bg-canvas-soft px-3 py-2 text-sm text-text-muted">
+                  {lineFirst.notice}
+                </p>
               )}
               {lineContext && previewBounds && (
-                <LinePreviewMap
-                  recorridoId={lineContext.recorrido.id}
-                  stop={lineContext.stop}
-                  color={lineContext.line.color}
-                  positions={lineFirst.linePositions}
-                  bounds={previewBounds}
-                  href={lineFirst.mapHref}
-                  ariaLabel={`Ver la línea ${lineContext.line.numero} en el mapa en vivo, parada ${lineContext.stop.nombre}`}
-                  className="mt-3 h-[200px]"
-                />
+                <div style={{ '--home-delay': '260ms' } as CSSProperties}>
+                  <LinePreviewMap
+                    recorridoId={lineContext.recorrido.id}
+                    stop={lineContext.stop}
+                    color={lineContext.line.color}
+                    positions={lineFirst.linePositions}
+                    bounds={previewBounds}
+                    href={lineFirst.mapHref}
+                    ariaLabel={`Ver la línea ${lineContext.line.numero} en el mapa en vivo, parada ${lineContext.stop.nombre}`}
+                    className="h-[210px]"
+                  />
+                </div>
               )}
               {lineContext && (
-                <LineArrivalsCard
-                  context={lineContext}
-                  arrivals={lineFirst.arrivals}
-                  frequencyMin={lineFirst.frequencyMin}
-                  perHour={lineFirst.perHour}
-                  onToggleDirection={lineFirst.toggleDirection}
-                  onOpenStopPicker={() => setStopPickerOpen(true)}
-                  className="mt-3"
-                />
+                <div className="home-rise" style={{ '--home-delay': '400ms' } as CSSProperties}>
+                  <LineArrivalsCard
+                    context={lineContext}
+                    arrivals={lineFirst.arrivals}
+                    frequencyMin={lineFirst.frequencyMin}
+                    perHour={lineFirst.perHour}
+                    onToggleDirection={lineFirst.toggleDirection}
+                    onOpenStopPicker={() => setStopPickerOpen(true)}
+                  />
+                </div>
               )}
             </section>
 
-            {lineContext && <ViewMapCta href={lineFirst.mapHref} lineNumber={lineContext.line.numero} />}
+            {lineContext && (
+              <div className="home-rise" style={{ '--home-delay': '540ms' } as CSSProperties}>
+                <ViewMapCta href={lineFirst.mapHref} lineNumber={lineContext.line.numero} />
+              </div>
+            )}
 
-            <RecentTrips items={seededRoutes} onStart={startSeededTrip} />
+            <RecentTrips items={seededRoutes} onStart={startSeededTrip} revealOffset={620} />
           </>
         ) : (
           <>
@@ -537,30 +545,34 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
               <RecentTrips items={seededRoutes} onStart={startSeededTrip} />
             </div>
 
-            <section aria-labelledby="line-first-title">
-              <div className="mb-2 flex items-center justify-between">
-                <h2 id="line-first-title" className="text-[20px] font-bold text-ink">Elegí una línea</h2>
-                <button
-                  type="button"
-                  onClick={() => setShowAllLines((value) => !value)}
-                  aria-expanded={showAllLines}
-                  className="inline-flex items-center gap-0.5 text-sm font-semibold text-electric-blue"
-                >
-                  {showAllLines ? 'Ver menos' : 'Ver todas'}
-                  <ChevronRight className={`h-4 w-4 transition-transform ${showAllLines ? '-rotate-90' : ''}`} aria-hidden="true" />
-                </button>
-              </div>
+            {/* Sin transform en la sección: es ancestro del mapa (incidente WebKit).
+                Sin encabezado: "Elegí tu línea" ya vive en el header unificado;
+                el carrusel arranca directo bajo las tarjetas de últimos viajes. */}
+            <section aria-label="Elegí una línea">
               <LineChips
                 lines={catalog}
                 selectedLineId={lineFirst.selection?.lineId ?? null}
                 onSelect={lineFirst.selectLine}
                 layout={showAllLines ? 'grid' : 'row'}
+                trailing={(
+                  <button
+                    type="button"
+                    onClick={() => setShowAllLines((value) => !value)}
+                    aria-expanded={showAllLines}
+                    className="inline-flex shrink-0 items-center gap-0.5 self-center text-sm font-semibold text-electric-blue"
+                  >
+                    {showAllLines ? 'Ver menos' : 'Ver todas'}
+                    <ChevronRight className={`h-4 w-4 transition-transform ${showAllLines ? '-rotate-90' : ''}`} aria-hidden="true" />
+                  </button>
+                )}
               />
               {lineFirst.notice && (
-                <p role="status" className="mt-2 rounded-xl bg-canvas-soft px-3 py-2 text-sm text-text-muted">{lineFirst.notice}</p>
+                <p role="status" className="home-fade mt-2 rounded-2xl border border-hairline bg-canvas-soft px-3 py-2 text-sm text-text-muted">
+                  {lineFirst.notice}
+                </p>
               )}
               {lineContext && (
-                <div className="mt-3 overflow-hidden rounded-2xl border border-hairline bg-canvas">
+                <div className="home-fade home-surface mt-3 overflow-hidden rounded-3xl border border-hairline" style={{ '--home-delay': '360ms' } as CSSProperties}>
                   {previewBounds && (
                     <LinePreviewMap
                       recorridoId={lineContext.recorrido.id}
@@ -570,7 +582,7 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                       bounds={previewBounds}
                       href={lineFirst.mapHref}
                       ariaLabel={`Ver la línea ${lineContext.line.numero} en el mapa en vivo, parada ${lineContext.stop.nombre}`}
-                      className="h-[300px] rounded-none border-0"
+                      className="h-[300px] rounded-none border-0 shadow-none"
                     />
                   )}
                   <LineArrivalsCard
@@ -580,7 +592,7 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                     perHour={lineFirst.perHour}
                     onToggleDirection={lineFirst.toggleDirection}
                     onOpenStopPicker={() => setStopPickerOpen(true)}
-                    className="rounded-none border-0"
+                    className="rounded-none border-0 bg-none shadow-none"
                   />
                 </div>
               )}
@@ -589,14 +601,16 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
         )}
 
         {/* Debajo del pliegue: todo lo que no figura en los bocetos sigue disponible */}
-        <section className="mt-2">
+        <section className="home-rise mt-2" style={{ '--home-delay': '720ms' } as CSSProperties}>
           <p className="text-sm font-semibold text-text-muted">Planificá tu viaje</p>
           <div className="mt-2">
             <AssistantBar onSubmit={handleDestinationSearch} />
           </div>
         </section>
 
-        <ClassicTripActions onSelect={handleClassicTripAction} />
+        <div className="home-rise" style={{ '--home-delay': '800ms' } as CSSProperties}>
+          <ClassicTripActions onSelect={handleClassicTripAction} />
+        </div>
 
         {/* Alertas — primer incidente activo del catálogo */}
         {(() => {
@@ -607,7 +621,7 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
           const AlertIcon =
             firstAlert?.type === 'route_change' ? Route : AlertTriangle;
           return (
-            <section className="mt-1 mb-6">
+            <section className="home-rise mt-1 mb-6" style={{ '--home-delay': '880ms' } as CSSProperties}>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-[20px] font-semibold text-ink">
                   Alertas

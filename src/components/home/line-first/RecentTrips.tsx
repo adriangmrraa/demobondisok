@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { Bus, ChevronRight } from 'lucide-react';
 import { shortStopName } from '@/lib/home/line-first';
 import type { SeededRoute } from '@/lib/home/seeded-routes';
@@ -19,6 +19,8 @@ export interface RecentTripItem {
 interface RecentTripsProps {
   items: RecentTripItem[];
   onStart: (seed: SeededRoute) => void;
+  /** Delay base de la entrada escalonada (la variante A lo usa más tarde). */
+  revealOffset?: number;
 }
 
 const COLLAPSED_COUNT = 2;
@@ -31,7 +33,7 @@ function etaText(arrival: EstimacionLlegada | null): string {
 }
 
 /** "Tus últimos viajes": cada tarjeta inicia ese viaje (mismo flujo que el historial anterior). */
-export function RecentTrips({ items, onStart }: RecentTripsProps) {
+export function RecentTrips({ items, onStart, revealOffset = 80 }: RecentTripsProps) {
   const [expanded, setExpanded] = useState(false);
   const visible = expanded ? items : items.slice(0, COLLAPSED_COUNT);
 
@@ -54,17 +56,21 @@ export function RecentTrips({ items, onStart }: RecentTripsProps) {
         )}
       </div>
       <div className="grid grid-cols-2 gap-2.5">
-        {visible.map(({ seed, origin, destination, line, arrival, alertLabel }) => (
+        {visible.map(({ seed, origin, destination, line, arrival, alertLabel }, index) => (
           <button
             key={seed.id}
             type="button"
             onClick={() => onStart(seed)}
             aria-label={`Iniciar viaje en la línea ${line.shortName} desde ${origin.name} hacia ${destination.name}. ${etaText(arrival)}${alertLabel ? `. Alerta: ${alertLabel}` : ''}`}
-            className="flex min-h-[76px] items-center gap-2 rounded-2xl border border-hairline bg-canvas p-2.5 text-left transition-all hover:bg-canvas-soft active:scale-[0.99]"
+            style={{ '--home-delay': `${revealOffset + index * 60}ms` } as CSSProperties}
+            className="home-rise home-surface flex min-h-[80px] items-center gap-2.5 rounded-2xl border border-hairline p-3 text-left transition-[box-shadow,transform] duration-200 hover:shadow-[0_18px_36px_-22px_rgba(0,40,120,.6)] active:scale-[0.98]"
           >
             <span
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-base font-black tabular-nums text-white"
-              style={{ backgroundColor: line.color }}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-base font-black tabular-nums text-white"
+              style={{
+                background: `linear-gradient(150deg, color-mix(in srgb, ${line.color} 70%, white), ${line.color} 58%)`,
+                boxShadow: `inset 0 1px 0 rgba(255,255,255,.3), 0 8px 18px -10px ${line.color}`,
+              }}
               aria-hidden="true"
             >
               {line.shortName}
