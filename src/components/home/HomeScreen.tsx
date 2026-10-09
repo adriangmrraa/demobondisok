@@ -13,11 +13,14 @@
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 import {
   AlertTriangle,
   Route,
   CheckCircle2,
   ChevronRight,
+  Layers,
+  MapPin,
 } from 'lucide-react';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { AssistantBar } from '@/components/home/AssistantBar';
@@ -39,8 +42,9 @@ import { LineArrivalsCard } from '@/components/home/line-first/LineArrivalsCard'
 import { StopPickerSheet } from '@/components/home/line-first/StopPickerSheet';
 import { RecentTrips } from '@/components/home/line-first/RecentTrips';
 import { ViewMapCta } from '@/components/home/line-first/ViewMapCta';
+import { LineSchematic } from '@/components/diagrama/LineSchematic';
 import { useLineFirstSelection } from '@/hooks/use-line-first-selection';
-import { stopAreaBounds, type CatalogLine } from '@/lib/home/line-first';
+import { stopAreaBounds, getStop, type CatalogLine } from '@/lib/home/line-first';
 import { SEEDED_ROUTES, type SeededRoute } from '@/lib/home/seeded-routes';
 import { MOCK_STOPS, MOCK_LINES, MOCK_ALERTS } from '@/mock/data';
 import { subscribeToPositions } from '@/mock/live';
@@ -78,16 +82,21 @@ function activeAlertLabelForLine(lineId: string): string | null {
   return alert ? (ALERT_BADGE_LABEL[alert.type] ?? 'ALERTA') : null;
 }
 
-const subscribeToNothing = () => () => {};
 const formatToday = () =>
   new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
 
 /**
- * La fecha se resuelve solo en el cliente: la página se prerenderiza en el
- * build y una fecha de servidor no coincide con la del dispositivo (React #418).
+ * La fecha se resuelve SOLO en el cliente (useEffect): la página se prerenderiza
+ * en el build y una fecha de servidor no coincide con la del dispositivo (React #418).
+ * Initial state = null → server y client renderizan null → no hay hydration
+ * mismatch. useEffect setea la fecha real después del mount.
  */
 function useToday(): string | null {
-  return useSyncExternalStore(subscribeToNothing, formatToday, () => null);
+  const [today, setToday] = useState<string | null>(null);
+  useEffect(() => {
+    setToday(formatToday());
+  }, []);
+  return today;
 }
 
 interface HomeScreenProps {
@@ -443,6 +452,35 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
   const { context: lineContext, selectStop } = lineFirst;
   const [stopPickerOpen, setStopPickerOpen] = useState(false);
   const [showAllLines, setShowAllLines] = useState(false);
+  // sdd/feat-diagrama-toggle: alterna entre mapa (LinePreviewMap) y el diagrama
+  // esquemático horizontal de la línea seleccionada en el slot debajo de los chips.
+  const [showLinearDiagram, setShowLinearDiagram] = useState<boolean>(false);
+  // Confirmación de ruta por doble tap: muestra el toast "Ruta confirmada:
+  // /diagrama/line-XX" durante 2.5s Y navega al detalle de la línea.
+  const [confirmedRoute, setConfirmedRoute] = useState<string | null>(null);
+  const handleLineConfirmed = useCallback((lineId: string) => {
+    setConfirmedRoute(`/diagrama/${lineId}`);
+    router.push(`/diagrama/${lineId}`);
+  }, [router]);
+  useEffect(() => {
+    if (!confirmedRoute) return;
+    const timeout = window.setTimeout(() => setConfirmedRoute(null), 2500);
+    return () => window.clearTimeout(timeout);
+  }, [confirmedRoute]);
+  // B10: atajo de teclado Esc cierra el diagrama cuando está abierto.
+  // El listener solo se monta cuando showLinearDiagram === true; usa
+  // stopPropagation para no interferir con handlers de sheets/modales.
+  useEffect(() => {
+    if (!showLinearDiagram) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        setShowLinearDiagram(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [showLinearDiagram]);
   const closeStopPicker = useCallback(() => setStopPickerOpen(false), []);
   const handlePickStop = useCallback(
     (stopId: string) => {
@@ -503,14 +541,65 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
           <>
             {/* Variante A (imagen 1): Elegí tu línea → mapa del tramo → arribos → Ver mapa → últimos viajes */}
             <section aria-label="Elegí tu línea" className="flex flex-col gap-2.5">
-              <LineChips lines={catalog} selectedLineId={lineFirst.selection?.lineId ?? null} onSelect={lineFirst.selectLine} />
+              <LineChips lines={catalog} selectedLineId={lineFirst.selection?.lineId ?? null} onSelect={lineFirst.selectLine} onDoubleClickLine={handleLineConfirmed} />
               {lineFirst.notice && (
                 <p role="status" className="home-fade rounded-2xl border border-hairline bg-canvas-soft px-3 py-2 text-sm text-text-muted">
                   {lineFirst.notice}
                 </p>
               )}
-              {lineContext && previewBounds && (
-                <div style={{ '--home-delay': '260ms' } as CSSProperties}>
+              {/* Wrapper SIEMPRE renderizado: el botón está siempre visible (B4
+                  discoverability), aunque deshabilitado hasta que haya
+                  lineContext. La altura del slot se mantiene para que el
+                  layout no salte cuando aparece el mapa. */}
+              <div className="relative" style={{ '--home-delay': '260ms' } as CSSProperties}>
+                {showLinearDiagram ? (
+                  lineContext ? (
+                    (() => {
+                      const originName = getStop(lineContext.recorrido.origen)?.nombre ?? lineContext.line.numero;
+                      const destinationName = getStop(lineContext.recorrido.destino)?.nombre ?? '';
+                      const originLabel = destinationName
+                        ? `${originName} hacia ${destinationName}`
+                        : originName;
+                      const etaText = (() => {
+                        const next = lineFirst.arrivals[0];
+                        if (!next) return undefined;
+                        if (next.displayStatus === 'en-parada' || next.minutos === 0) return 'En la parada';
+                        if (next.displayStatus === 'arribando') return 'Llegando';
+                        return `Llega en ${next.minutos} min`;
+                      })();
+                      return (
+                        <div className="space-y-0">
+                          {/* Diagrama con scroll horizontal cuando hay muchas paradas.
+                              Sin cabecera extra: la cabecera (origen/destino) vive DENTRO del SVG. */}
+                          <div className="home-rise overflow-x-auto overflow-y-hidden rounded-3xl border border-hairline bg-[#121418] p-3">
+                            <LineSchematic
+                              origin={originLabel}
+                              eta={etaText}
+                              color={lineContext.line.color}
+                              stops={lineContext.stops.map((stop) => {
+                                const isCab = stop.id === lineContext.recorrido.origen
+                                  || stop.id === lineContext.recorrido.destino;
+                                return {
+                                  id: stop.id,
+                                  nombre: stop.nombre,
+                                  tipo: isCab ? 'CABECERA' : undefined,
+                                };
+                              })}
+                              highlightStopId={lineContext.stop.id}
+                              className="h-[220px] min-w-full"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    <div className="home-rise flex h-[220px] items-center justify-center rounded-3xl border border-dashed border-hairline bg-canvas-soft px-4 text-center">
+                      <p className="text-xs font-medium text-text-muted">
+                        Seleccioná una línea para ver su diagrama lineal.
+                      </p>
+                    </div>
+                  )
+                ) : lineContext && previewBounds ? (
                   <LinePreviewMap
                     recorridoId={lineContext.recorrido.id}
                     stop={lineContext.stop}
@@ -521,8 +610,47 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                     ariaLabel={`Ver la línea ${lineContext.line.numero} en el mapa en vivo, parada ${lineContext.stop.nombre}`}
                     className="h-[176px]"
                   />
-                </div>
-              )}
+                ) : (
+                  <div className="h-[176px] rounded-3xl border border-hairline home-surface" aria-hidden="true" />
+                )}
+                {/* Toggle incorporado dentro del contenedor del mapa (estilo
+                    controles nativos de mapas: glass + absolute, no "botón suelto").
+                    B4: disabled cuando no hay línea seleccionada. */}
+                <button
+                  type="button"
+                  onClick={() => setShowLinearDiagram((value) => !value)}
+                  disabled={!lineContext}
+                  aria-pressed={showLinearDiagram}
+                  aria-disabled={!lineContext}
+                  aria-label={showLinearDiagram ? 'Volver al mapa en vivo' : 'Ver diagrama lineal.'}
+                  title={
+                    !lineContext
+                      ? 'Seleccioná una línea para ver el diagrama'
+                      : showLinearDiagram
+                        ? 'Volver al mapa'
+                        : 'Ver diagrama lineal.'
+                  }
+                  className={cn(
+                    'absolute right-3 top-3 z-10 inline-flex h-8 items-center gap-1.5 rounded-full border border-hairline/60 bg-canvas/90 px-3 text-[13px] font-medium text-ink backdrop-blur-md transition-all hover:bg-canvas active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue focus-visible:ring-offset-1 focus-visible:ring-offset-canvas disabled:cursor-not-allowed disabled:opacity-50',
+                  )}
+                >
+                  <span>{showLinearDiagram ? 'Ver mapa en vivo' : 'Ver diagrama lineal.'}</span>
+                  <svg
+                    width="14"
+                    height="10"
+                    viewBox="0 0 14 10"
+                    fill="none"
+                    aria-hidden="true"
+                    className="text-ink/70"
+                  >
+                    <rect x="0" y="0" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1" />
+                    <line x1="2" y1="3" x2="12" y2="3" stroke="currentColor" strokeWidth="0.8" />
+                    <line x1="2" y1="6.5" x2="9" y2="6.5" stroke="currentColor" strokeWidth="0.8" />
+                    <circle cx="3" cy="3" r="1" fill="currentColor" />
+                    <circle cx="7" cy="6.5" r="1" fill="currentColor" />
+                  </svg>
+                </button>
+              </div>
               {lineContext && (
                 <div className="home-rise" style={{ '--home-delay': '400ms' } as CSSProperties}>
                   <LineArrivalsCard
@@ -563,6 +691,7 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                 lines={catalog}
                 selectedLineId={lineFirst.selection?.lineId ?? null}
                 onSelect={lineFirst.selectLine}
+                onDoubleClickLine={handleLineConfirmed}
                 layout={showAllLines ? 'grid' : 'row'}
                 trailing={(
                   <button
@@ -581,8 +710,31 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                   {lineFirst.notice}
                 </p>
               )}
-              {lineContext && previewBounds && (
-                <div className="mt-2.5" style={{ '--home-delay': '360ms' } as CSSProperties}>
+              {/* B4: wrapper siempre renderizado; botón siempre visible (disabled sin línea). */}
+              <div className="relative mt-2.5" style={{ '--home-delay': '360ms' } as CSSProperties}>
+                {showLinearDiagram ? (
+                  lineContext ? (
+                    <div className="home-rise overflow-hidden rounded-3xl border border-hairline home-surface p-2">
+                      <LineSchematic
+                        lineNumber={lineContext.line.numero}
+                        color={lineContext.line.color}
+                        stops={lineContext.stops.map((stop) => ({
+                          id: stop.id,
+                          nombre: stop.nombre,
+                          isCabecera: stop.id === lineContext.recorrido.origen || stop.id === lineContext.recorrido.destino,
+                        }))}
+                        highlightStopId={lineContext.stop.id}
+                        className="h-[240px]"
+                      />
+                    </div>
+                  ) : (
+                    <div className="home-rise flex h-[240px] items-center justify-center rounded-3xl border border-dashed border-hairline bg-canvas-soft px-4 text-center">
+                      <p className="text-xs font-medium text-text-muted">
+                        Seleccioná una línea para ver su diagrama lineal.
+                      </p>
+                    </div>
+                  )
+                ) : lineContext && previewBounds ? (
                   <LinePreviewMap
                     recorridoId={lineContext.recorrido.id}
                     stop={lineContext.stop}
@@ -593,8 +745,44 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                     ariaLabel={`Ver la línea ${lineContext.line.numero} en el mapa en vivo, parada ${lineContext.stop.nombre}`}
                     className="h-[176px]"
                   />
-                </div>
-              )}
+                ) : (
+                  <div className="h-[176px] rounded-3xl border border-hairline home-surface" aria-hidden="true" />
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowLinearDiagram((value) => !value)}
+                  disabled={!lineContext}
+                  aria-pressed={showLinearDiagram}
+                  aria-disabled={!lineContext}
+                  aria-label={showLinearDiagram ? 'Volver al mapa en vivo' : 'Ver diagrama lineal.'}
+                  title={
+                    !lineContext
+                      ? 'Seleccioná una línea para ver el diagrama'
+                      : showLinearDiagram
+                        ? 'Volver al mapa'
+                        : 'Ver diagrama lineal.'
+                  }
+                  className={cn(
+                    'absolute right-3 top-3 z-10 inline-flex h-8 items-center gap-1.5 rounded-full border border-hairline/60 bg-canvas/90 px-3 text-[13px] font-medium text-ink backdrop-blur-md transition-all hover:bg-canvas active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue focus-visible:ring-offset-1 focus-visible:ring-offset-canvas disabled:cursor-not-allowed disabled:opacity-50',
+                  )}
+                >
+                  <span>{showLinearDiagram ? 'Ver mapa en vivo' : 'Ver diagrama lineal.'}</span>
+                  <svg
+                    width="14"
+                    height="10"
+                    viewBox="0 0 14 10"
+                    fill="none"
+                    aria-hidden="true"
+                    className="text-ink/70"
+                  >
+                    <rect x="0" y="0" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1" />
+                    <line x1="2" y1="3" x2="12" y2="3" stroke="currentColor" strokeWidth="0.8" />
+                    <line x1="2" y1="6.5" x2="9" y2="6.5" stroke="currentColor" strokeWidth="0.8" />
+                    <circle cx="3" cy="3" r="1" fill="currentColor" />
+                    <circle cx="7" cy="6.5" r="1" fill="currentColor" />
+                  </svg>
+                </button>
+              </div>
               {lineContext && (
                 <div className="home-rise mt-2.5" style={{ '--home-delay': '400ms' } as CSSProperties}>
                   <LineArrivalsCard
@@ -750,6 +938,21 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
       <div className="shrink-0 fixed bottom-0 left-0 right-0 z-40">
         <BottomNav />
       </div>
+
+      {/* Toast de confirmación de ruta por doble tap (role=status para
+          lectores de pantalla; se autodestruye a los 2.5s). */}
+      {confirmedRoute && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="pointer-events-none fixed left-1/2 top-[calc(max(14px,env(safe-area-inset-top))+14px)] z-50 -translate-x-1/2"
+        >
+          <div className="inline-flex items-center gap-2 rounded-full border border-hairline/70 bg-canvas/95 px-4 py-2 text-xs font-semibold text-ink backdrop-blur-md">
+            <CheckCircle2 className="h-3.5 w-3.5 text-electric-blue" aria-hidden="true" />
+            <span>Ruta confirmada: {confirmedRoute}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
