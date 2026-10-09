@@ -81,6 +81,8 @@ export interface MapFocusRequest {
   bearing?: number;
   /** Techo de zoom para que un segmento corto no sobre-zoomee. */
   maxZoom?: number;
+  /** Padding explícito (mapas embebidos chicos); sin él se usa el del header de /mapas. */
+  padding?: { top: number; bottom: number; left: number; right: number };
 }
 
 /** Borrador del planner (Fase 4): marcadores de origen y destino. */
@@ -234,6 +236,12 @@ export interface MapCanvasProps {
   tripFocus?: boolean;
   /** Parada de abordaje para el modo 'follow-trip': la cámara encuadra bondi + parada juntos. */
   followTripStop?: { lat: number; lng: number } | null;
+  /**
+   * Entrada cinematográfica sobre todo el AMBA en la primera instalación
+   * (default). Con false, la cámara arranca en el `focusRequest` vigente
+   * (mapas embebidos del Home).
+   */
+  entryAnimation?: boolean;
   /** Notifies the wrapper when MapLibre cannot finish rendering. */
   onMapReady?: () => void;
   onMapUnavailable?: () => void;
@@ -437,11 +445,14 @@ export function MapCanvas({
   tripUsedStopIds = null,
   tripFocus = false,
   followTripStop = null,
+  entryAnimation = true,
   onMapReady,
   onMapUnavailable,
   className,
 }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const entryAnimationRef = useRef(entryAnimation);
+  const focusRequestRef = useRef(focusRequest);
   // prefers-reduced-motion: la corriente se congela y el breathe baja —
   // accesibilidad Y performance en gama baja de una sola vez.
   const prefersReducedMotion = useReducedMotion() ?? false;
@@ -576,12 +587,13 @@ export function MapCanvas({
   // programa el fitBounds UNA vez. rAF: si el nonce cambia en el mismo
   // tick que el mount/seed, evita doble easeTo (parpadeo de cámara).
   useEffect(() => {
+    focusRequestRef.current = focusRequest;
     if (!focusRequest) return;
     const raf = requestAnimationFrame(() => {
       const map = mapRef.current;
       if (!map || !focusRequest) return;
       map.fitBounds(focusRequest.bounds, {
-        padding: clampFitPadding(map, {
+        padding: clampFitPadding(map, focusRequest.padding ?? {
           top: 130,
           bottom: (focusRequest.bottomPadding ?? cameraBottomPadding) + 48,
           left: 60,
@@ -2523,8 +2535,17 @@ export function MapCanvas({
       // su vista y su unidad seguida.
       if (!entryDone) {
         entryDone = true;
-        const allCoords = Object.values(MOCK_ROUTES).flat();
-        if (allCoords.length > 0) {
+        const initialFocus = focusRequestRef.current;
+        const allCoords = entryAnimationRef.current ? Object.values(MOCK_ROUTES).flat() : [];
+        if (!entryAnimationRef.current && initialFocus) {
+          map.fitBounds(initialFocus.bounds, {
+            padding: clampFitPadding(map, initialFocus.padding ?? { top: 40, bottom: 40, left: 40, right: 40 }),
+            duration: 0,
+            ...(initialFocus.pitch !== undefined ? { pitch: initialFocus.pitch } : {}),
+            ...(initialFocus.bearing !== undefined ? { bearing: initialFocus.bearing } : {}),
+            ...(initialFocus.maxZoom !== undefined ? { maxZoom: initialFocus.maxZoom } : {}),
+          });
+        } else if (allCoords.length > 0) {
           const lons = allCoords.map((c) => c[0]);
           const lats = allCoords.map((c) => c[1]);
           map.fitBounds(
