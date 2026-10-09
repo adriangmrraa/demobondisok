@@ -32,6 +32,7 @@ import { FeatureTour, hasSeenFeatureTour } from '@/components/onboarding/Feature
 import { PlaceSelector } from '@/components/home/PlaceSelector';
 import { AssistantWizard } from '@/components/home/AssistantWizard';
 import { MetropolRose } from '@/components/brand/metropol-logo';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { LineChips } from '@/components/home/line-first/LineChips';
 import { LinePreviewMap } from '@/components/home/line-first/LinePreviewMap';
 import { LineArrivalsCard } from '@/components/home/line-first/LineArrivalsCard';
@@ -482,13 +483,14 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
       <div className="home-veil" aria-hidden="true" />
       <header className="home-rise px-4 pt-4 pb-2 flex items-center gap-3 shrink-0">
         <MetropolRose className="h-9 w-auto shrink-0" />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h1 className="text-[22px] font-bold leading-tight tracking-tight text-ink">
             Hola <span className="home-wave" aria-hidden="true">👋</span>{' '}
             <span className="font-black italic">Elegí tu línea</span>
           </h1>
           <p className="mt-0.5 min-h-5 text-sm font-light capitalize text-text-muted">{today ?? ''}</p>
         </div>
+        <ThemeToggle className="shrink-0" />
       </header>
 
       <main className="px-4 flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto overscroll-contain pb-[104px]">

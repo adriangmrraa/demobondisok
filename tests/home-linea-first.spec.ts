@@ -37,7 +37,8 @@ test.describe('Inicio A (/inicio)', () => {
 
     const header = page.locator('header').first();
     await expect(header.getByRole('heading', { level: 1 })).toHaveText(/^Hola\s*👋?\s*Elegí tu línea$/);
-    await expect(header.locator('svg')).toHaveCount(1);
+    await expect(header.getByRole('img', { name: 'Metropol' })).toHaveCount(1);
+    await expect(header.getByRole('button', { name: /Cambiar a modo (claro|oscuro)/ })).toBeVisible();
 
     const today = await page.evaluate(() =>
       new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' }),
