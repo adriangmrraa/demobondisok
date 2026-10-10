@@ -84,6 +84,41 @@ test.describe('Inicio A (/inicio)', () => {
     await expect(pick.getByRole('button', { name: 'Desplazar líneas a la izquierda' })).toBeVisible();
   });
 
+  test('arrastrar la banda del carrusel hace scroll sin cambiar de línea', async ({ page }) => {
+    test.slow();
+    await page.goto('/inicio');
+    const row = page.getByRole('region', { name: 'Elegí tu línea' }).locator('[aria-label="Líneas"]');
+    const before = await row.evaluate((el) => el.scrollLeft);
+    const box = (await row.boundingBox())!;
+    const y = box.y + box.height / 2;
+    await page.mouse.move(box.x + box.width * 0.55, y);
+    await page.mouse.down();
+    for (let i = 1; i <= 12; i += 1) await page.mouse.move(box.x + box.width * 0.55 - i * 14, y);
+    await page.mouse.up();
+    await expect.poll(() => row.evaluate((el) => el.scrollLeft)).toBeGreaterThan(before + 60);
+    await expect(page.getByRole('button', { name: new RegExp(`^Línea ${line65.numero}\\.`) })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('swipe sobre el bloque de arribos cambia de línea (reflejado en el carrusel)', async ({ page }) => {
+    test.slow();
+    await page.goto('/inicio');
+    const box = (await lineCard(page).boundingBox())!;
+    const y = box.y + box.height / 2;
+    const swipe = async (dir: 'left' | 'right') => {
+      const from = dir === 'left' ? box.x + box.width - 16 : box.x + 16;
+      const to = dir === 'left' ? from - 120 : from + 120;
+      await page.mouse.move(from, y);
+      await page.mouse.down();
+      for (let i = 1; i <= 12; i += 1) await page.mouse.move(from + ((to - from) * i) / 12, y);
+      await page.mouse.up();
+      await page.waitForTimeout(150);
+    };
+    await swipe('left');
+    await expect(page.getByRole('button', { name: new RegExp(`^Línea ${line194.numero}\\.`) })).toHaveAttribute('aria-pressed', 'true');
+    await swipe('right');
+    await expect(page.getByRole('button', { name: new RegExp(`^Línea ${line65.numero}\\.`) })).toHaveAttribute('aria-pressed', 'true');
+  });
+
   test('cambiar de línea y de parada actualiza la card con datos reales', async ({ page }) => {
     test.slow(); // Muchas interacciones sobre la página con mapa WebGL (SwiftShader en CI).
     await page.goto('/inicio');
