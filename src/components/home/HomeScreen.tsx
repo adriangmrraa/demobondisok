@@ -42,6 +42,7 @@ import { RecentTrips } from '@/components/home/line-first/RecentTrips';
 import { ViewMapCta } from '@/components/home/line-first/ViewMapCta';
 import { LineSchematic } from '@/components/diagrama/LineSchematic';
 import { useLineFirstSelection } from '@/hooks/use-line-first-selection';
+import { useIdlePulse } from '@/hooks/use-idle-pulse';
 import { stopAreaBounds, type CatalogLine } from '@/lib/home/line-first';
 import { SEEDED_ROUTES, type SeededRoute } from '@/lib/home/seeded-routes';
 import { MOCK_STOPS, MOCK_LINES, MOCK_ALERTS } from '@/mock/data';
@@ -446,6 +447,11 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
   const lineFirst = useLineFirstSelection(catalog, positions);
   const { context: lineContext, selectStop } = lineFirst;
   const [stopPickerOpen, setStopPickerOpen] = useState(false);
+  // El picker se abre una sola vez en la sesión: ese primer gesto apaga el
+  // bounce del chevron de "Tu parada" en el loop idle compartido.
+  const [stopPickerOpenedOnce, setStopPickerOpenedOnce] = useState(false);
+  // Loop idle único (carrusel + chevron): pulsa al montar y cada ~8s.
+  const idlePulse = useIdlePulse();
   const [showAllLines, setShowAllLines] = useState(false);
   // sdd/feat-diagrama-toggle: alterna entre mapa (LinePreviewMap) y el diagrama
   // esquemático horizontal de la línea seleccionada en el slot debajo de los chips.
@@ -477,6 +483,10 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [showLinearDiagram]);
   const closeStopPicker = useCallback(() => setStopPickerOpen(false), []);
+  const openStopPicker = useCallback(() => {
+    setStopPickerOpen(true);
+    setStopPickerOpenedOnce(true);
+  }, []);
   const handlePickStop = useCallback(
     (stopId: string) => {
       selectStop(stopId);
@@ -536,7 +546,7 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
           <>
             {/* Variante A (imagen 1): Elegí tu línea → mapa del tramo → arribos → Ver mapa → últimos viajes */}
             <section aria-label="Elegí tu línea" className="flex flex-col gap-2.5">
-              <LineChips lines={catalog} selectedLineId={lineFirst.selection?.lineId ?? null} onSelect={lineFirst.selectLine} onDoubleClickLine={handleLineConfirmed} />
+              <LineChips lines={catalog} selectedLineId={lineFirst.selection?.lineId ?? null} onSelect={lineFirst.selectLine} onDoubleClickLine={handleLineConfirmed} idlePulse={idlePulse} />
               {lineFirst.notice && (
                 <p role="status" className="home-fade rounded-2xl border border-hairline bg-canvas-soft px-3 py-2 text-sm text-text-muted">
                   {lineFirst.notice}
@@ -650,8 +660,10 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                     frequencyMin={lineFirst.frequencyMin}
                     perHour={lineFirst.perHour}
                     onToggleDirection={lineFirst.toggleDirection}
-                    onOpenStopPicker={() => setStopPickerOpen(true)}
+                    onOpenStopPicker={openStopPicker}
                     arrivalHref={lineFirst.arrivalHref}
+                    idlePulse={idlePulse}
+                    chevronBounce={!stopPickerOpenedOnce}
                     bare
                     hideDirectionRow
                   />
@@ -683,6 +695,7 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                 selectedLineId={lineFirst.selection?.lineId ?? null}
                 onSelect={lineFirst.selectLine}
                 onDoubleClickLine={handleLineConfirmed}
+                idlePulse={idlePulse}
                 layout={showAllLines ? 'grid' : 'row'}
                 trailing={(
                   <button
@@ -783,8 +796,10 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                     frequencyMin={lineFirst.frequencyMin}
                     perHour={lineFirst.perHour}
                     onToggleDirection={lineFirst.toggleDirection}
-                    onOpenStopPicker={() => setStopPickerOpen(true)}
+                    onOpenStopPicker={openStopPicker}
                     arrivalHref={lineFirst.arrivalHref}
+                    idlePulse={idlePulse}
+                    chevronBounce={!stopPickerOpenedOnce}
                     bare
                     hideDirectionRow
                   />
