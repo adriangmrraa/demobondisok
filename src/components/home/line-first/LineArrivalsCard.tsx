@@ -19,6 +19,10 @@ interface LineArrivalsCardProps {
   bare?: boolean;
   /** Sin fila de dirección (texto origen→destino + botón Cambiar): arribos directo. */
   hideDirectionRow?: boolean;
+  /** Pulso del loop idle compartido del Home: cada incremento reintenta el bounce del chevron. */
+  idlePulse?: number;
+  /** Habilita el bounce del chevron; el Home lo apaga al abrir el picker por primera vez. */
+  chevronBounce?: boolean;
   className?: string;
 }
 
@@ -55,6 +59,8 @@ export function LineArrivalsCard({
   arrivalHref,
   bare = false,
   hideDirectionRow = false,
+  idlePulse = 0,
+  chevronBounce = false,
   className,
 }: LineArrivalsCardProps) {
   const { line, recorrido, stop, canSwitchDirection } = context;
@@ -66,17 +72,6 @@ export function LineArrivalsCard({
       className={cn(bare ? 'px-1 py-0' : 'home-surface rounded-3xl border border-hairline p-3', className)}
     >
       <div className="flex items-center gap-3">
-        <span
-          className={cn('inline-flex shrink-0 items-center justify-center rounded-full px-3 text-center font-bold uppercase leading-tight tracking-[0.08em]', bare ? 'h-11 text-[9px]' : 'h-12 text-[10px]')}
-          style={{
-            background: `linear-gradient(150deg, color-mix(in srgb, ${line.color} 70%, white), ${line.color} 58%)`,
-            color: line.textColor,
-            boxShadow: `inset 0 1px 0 rgba(255,255,255,.3), 0 10px 20px -12px ${line.color}`,
-          }}
-          aria-hidden="true"
-        >
-          Todas las paradas
-        </span>
         <button
           type="button"
           onClick={onOpenStopPicker}
@@ -84,13 +79,33 @@ export function LineArrivalsCard({
           className="group min-w-0 flex-1 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue"
         >
           <span className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">Tu parada</span>
-          <span className="mt-0.5 block text-[17px] font-bold leading-tight text-ink break-words">
-            {stopLabel}
+          <span className="mt-0.5 flex min-w-0 items-center gap-1 text-[17px] font-bold leading-tight text-ink">
+            <span className="truncate">{stopLabel}</span>
             <ChevronDown
-              className="ml-1 inline h-4 w-4 align-[-2px] text-text-muted transition-colors group-hover:text-ink"
+              key={chevronBounce ? idlePulse : 'static'}
+              className={cn(
+                'inline-block h-4 w-4 shrink-0 align-[-2px] text-text-muted transition-colors group-hover:text-ink',
+                chevronBounce && 'home-chevron-bounce',
+              )}
               aria-hidden="true"
             />
           </span>
+        </button>
+        <button
+          type="button"
+          onClick={onOpenStopPicker}
+          aria-label="Ver todas las paradas"
+          className={cn(
+            'inline-flex max-w-[42%] shrink items-center justify-center rounded-full px-3 py-1.5 text-center font-bold uppercase leading-tight tracking-[0.08em]',
+            bare ? 'min-h-11 text-[9px]' : 'min-h-12 text-[10px]',
+          )}
+          style={{
+            background: `linear-gradient(150deg, color-mix(in srgb, ${line.color} 70%, white), ${line.color} 58%)`,
+            color: line.textColor,
+            boxShadow: `inset 0 1px 0 rgba(255,255,255,.3), 0 10px 20px -12px ${line.color}`,
+          }}
+        >
+          Todas las paradas
         </button>
       </div>
 
