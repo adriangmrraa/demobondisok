@@ -611,6 +611,23 @@ html, body {
 .home-eta { animation: home-eta-in 520ms cubic-bezier(.16, 1, .3, 1) both; }
 .home-chevron-bounce { animation: home-chevron-bounce 900ms cubic-bezier(.34, 1.56, .64, 1) both; }
 
+/* Carrusel de líneas: desvanecido en los extremos cuando hay más contenido en
+   esa dirección. Es solo máscara: los chips se difuminan al borde y las
+   flechas (hermanas, fuera del scroll) caen dentro de la zona transparente,
+   así no tapan ningún número. */
+.carousel-fade-left {
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--carousel-fade, 48px));
+  mask-image: linear-gradient(to right, transparent 0, #000 var(--carousel-fade, 48px));
+}
+.carousel-fade-right {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - var(--carousel-fade, 48px)), transparent 100%);
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--carousel-fade, 48px)), transparent 100%);
+}
+.carousel-fade-left.carousel-fade-right {
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--carousel-fade, 48px), #000 calc(100% - var(--carousel-fade, 48px)), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 var(--carousel-fade, 48px), #000 calc(100% - var(--carousel-fade, 48px)), transparent 100%);
+}
+
 /* Velo de apertura: cubre el primer paint con el canvas y se disuelve con un
    bloom de luz mientras las secciones entran desenfocadas desde abajo. */
 .home-veil {

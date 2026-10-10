@@ -159,7 +159,9 @@ function RowCarousel({ idlePulse, trailing, lineCount, children }: { idlePulse: 
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     interactedRef.current = true;
-    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    // Touch: dejamos que el navegador haga el scroll horizontal NATIVO (fluido,
+    // con inercia y bloqueo de eje propio). El JS solo panea con mouse.
+    if (event.pointerType !== 'mouse' || event.button !== 0) return;
     const el = rowRef.current;
     if (!el) return;
     dragRef.current = {
@@ -217,7 +219,11 @@ function RowCarousel({ idlePulse, trailing, lineCount, children }: { idlePulse: 
       <div
         ref={rowRef}
         aria-label="Líneas"
-        className="flex touch-pan-y items-center gap-2 overflow-x-auto px-4 py-4 select-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className={cn(
+          'flex touch-pan-x touch-pan-y items-center gap-2 overflow-x-auto px-4 py-4 select-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+          edges.left && 'carousel-fade-left',
+          edges.right && 'carousel-fade-right',
+        )}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={endDrag}
