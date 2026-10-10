@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test:smoke": "playwright test",
+    "pretest:smoke": "node ./scripts/ensure-port-free.mjs 3000",
     "predev": "node ./scripts/copy-maplibre-worker.mjs",
     "prebuild": "node ./scripts/copy-maplibre-worker.mjs"
   },
