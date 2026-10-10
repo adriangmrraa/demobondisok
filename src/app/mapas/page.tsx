@@ -39,6 +39,10 @@ const TRIP_PAD_EXPANDED = 514;
 /** Techo de zoom del foco por paso: un segmento corto no sobre-zoomea. */
 const STEP_FOCUS_MAX_ZOOM = 16.5;
 
+/** Techo de zoom del encuadre por línea/ramal: mismo nivel casi-calle que el
+ *  foco por paso, para que una línea corta no sobre-zoomee con fitBounds. */
+const LINE_FOCUS_MAX_ZOOM = 16.5;
+
 /** Padding relativo al extent: 6% a cada lado (compacto, para que el
  *  recorrido ocupe casi todo el viewport). 12% se veía con mucho aire. */
 const LINE_FILTER_PADDING_RATIO = 0.06;
@@ -89,18 +93,15 @@ function computeLineasBounds(
 }
 
 /**
- * Variante "smart" de computeLineasBounds (PBI-034 v4): en lugar de usar el
- * extent completo de las coordenadas de los recorridos (que se sale a La Plata
- * para la 195, Luján para la 365, etc.), toma SOLO las paradas que tienen
- * combinaciones con subte/tren/metrobus. Eso centra la cámara en la zona
- * "interesante" (CABA + combinaciones) y permite zoom mucho más alto, en lugar
- * de alejarse para abarcar outliers suburbanos.
- *
- * Si el set no tiene paradas con combinaciones, fallback al extent completo
- * de coordenadas (caso edge: una línea sin combinaciones, ej: interurbana).
+ * Extent [[minLng,minLat],[maxLng,maxLat]] de los recorridos de UN ramal
+ * puntual (linea.ramales -> recorridos -> coordenadas). Deja que elegir un
+ * ramal re-encuadre la cámara a SU recorrido COMPLETO, no al de toda la línea.
+ * Si el ramal no existe o no tiene coordenadas devuelve null y el caller cae al
+ * extent de la línea como fallback.
  */
-function computeCombinacionesBounds(
+function computeRamalBounds(
   lineaIds: string[],
+  ramalId: string,
   dataset: TransportNetworkDataset,
 ): [[number, number], [number, number]] | null {
   if (lineaIds.length === 0) return null;
@@ -116,19 +117,13 @@ function computeCombinacionesBounds(
     const linea = lineasById.get(id);
     if (!linea) continue;
     for (const ramal of linea.ramales) {
+      if (ramal.id !== ramalId) continue;
       for (const rec of ramal.recorridos) {
-        for (const stopId of rec.paradas) {
-          const parada = dataset.paradas[stopId];
-          if (!parada) continue;
-          const tieneConexion =
-            (parada.conexiones?.subte && parada.conexiones.subte.length > 0) ||
-            (parada.conexiones?.tren && parada.conexiones.tren.length > 0) ||
-            parada.conexiones?.metrobus === true;
-          if (!tieneConexion) continue;
-          if (parada.lng < minLng) minLng = parada.lng;
-          if (parada.lng > maxLng) maxLng = parada.lng;
-          if (parada.lat < minLat) minLat = parada.lat;
-          if (parada.lat > maxLat) maxLat = parada.lat;
+        for (const [lng, lat] of rec.coordenadas) {
+          if (lng < minLng) minLng = lng;
+          if (lng > maxLng) maxLng = lng;
+          if (lat < minLat) minLat = lat;
+          if (lat > maxLat) maxLat = lat;
           any = true;
         }
       }
@@ -193,22 +188,6 @@ function computeLinea195Bounds(
 export default function TransportesAppPage() {
   const { resolvedTheme } = useTheme();
   const [mapUnavailable, setMapUnavailable] = useState(false);
-  // PBI-034 v11: en mobile (< 640dp) usamos jumpTo con zoom fijo alto (no
-  // fitBounds) para que el usuario vea las calles y combinaciones DE CERCA.
-  // fitBounds elige el zoom mínimo tal que el extent quepa, lo que aleja
-  // la cámara para extent > 5-10 km. JumpTo con zoom fijo prioriza "ver
-  // de cerca" sobre "ver extent completo". En desktop dejamos fitBounds
-  // porque el viewport es más grande y el extent cabe a zoom razonable.
-  const [isMobileViewport, setIsMobileViewport] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return window.innerWidth < 640;
-  });
-  useEffect(() => {
-    const mql = window.matchMedia("(max-width: 639px)");
-    const onChange = () => setIsMobileViewport(mql.matches);
-    mql.addEventListener("change", onChange);
-    return () => mql.removeEventListener("change", onChange);
-  }, []);
   const [isLineMenuOpen, setIsLineMenuOpen] = useState<boolean>(false);
   // Orientación breve de la entrada "Explorar mapa" (Home): coachmark
   // descartable junto al rail de líneas. No persiste ni tapa controles.
@@ -699,82 +678,58 @@ export default function TransportesAppPage() {
   }, [isTripMode, tripViewVisible, selectedTrip, regularHighlightLines]);
 
   // PBI-034: cuando hay líneas filtradas (multi-filtro de Red Metropol o
-  // single-line legacy), encuadrar la cámara al extent de sus recorridos.
-  // Si no hay líneas o estamos en modo viaje, no forzamos focus. Es un useMemo
-  // puro (no useEffect+setState) para evitar cascading renders; el nonce se
-  // deriva de la concat ordenada de los ids (suma charCode) para que un cambio
-  // del set (incluso manteniendo la misma cantidad) re-dispare el fitBounds
-  // sin necesidad de mutar refs durante render.
+  // single-line legacy) o un ramal elegido, encuadrar la cámara al extent
+  // COMPLETO de sus recorridos. Si no hay scope o estamos en modo viaje, no
+  // forzamos focus. Es un useMemo puro (no useEffect+setState) para evitar
+  // cascading renders; el nonce se deriva de los ids ordenados (suma charCode)
+  // + el ramal elegido, para que un cambio de set O de ramal re-dispare el
+  // fitBounds sin necesidad de mutar refs durante render.
   const effectiveLineaIds = useMemo(
     () => (lineaFilter.length > 0 ? lineaFilter : selectedLineaId ? [selectedLineaId] : []),
     [lineaFilter, selectedLineaId],
   );
   const lineaFilterFocus: MapFocusRequest | null = useMemo(() => {
     if (isTripMode) return null;
-    // PBI-034 v10: el cliente quiere ver las líneas MUY DE CERCA. Subimos
-    // maxZoom a 16 (casi nivel de calle) y bajamos el padding al mínimo.
-    // Para extent chico (1 línea CABA, ~9 km) el zoom llega a 16. Para
-    // extent grande (multi con 195, ~13 km de combinaciones) llega a ~13.
-    //
-    // Sin filtros (mount): bounds = línea 195 (Retiro → La Plata).
-    // Con filtros: bounds = combinaciones (smart extent) o fallback a coords.
+    // Encuadre unificado mobile/desktop con fitBounds al extent completo del
+    // scope (sin fijos de centro/zoom). LINE_FOCUS_MAX_ZOOM topa el zoom para
+    // que un recorrido corto no sobre-zoomee; el padding mínimo del bounds
+    // evita zoom infinito con una sola coordenada.
     const PADDING_DEFAULT: MapFocusRequest["padding"] = {
-      top: 60, // header buscador + chip "4 líneas" (mínimo viable)
+      top: 60, // header buscador + chip "N líneas" (mínimo viable)
       bottom: 100, // bottom nav (mínimo viable)
       left: 40, // LineSelectorBar (compacto)
       right: 30, // controles zoom + share (mínimo viable)
     };
-    // PBI-034 v18: cliente quiere jumpTo exacto con zoom 8.49 y center
-    // Quilmes (-58.2732, -34.7983). Aplica el valor que pidió como estado
-    // final. Si después el usuario hace scroll, eso es otro tema.
-    const ZOOM_MOBILE = 8.49;
-    const ZOOM_MOBILE_CENTER: [number, number] = [-58.2732, -34.7983];
-    const ZOOM_DESKTOP = 20;
-    const modePrefix = isMobileViewport ? "M" : "D";
-    if (isMobileViewport) {
-      if (effectiveLineaIds.length === 0) {
-        const b = computeLinea195Bounds(DATASET);
-        if (b) return { bounds: b, center: ZOOM_MOBILE_CENTER, nonce: `${modePrefix}-195`, zoom: ZOOM_MOBILE };
-        return null;
-      }
-      const b =
-        computeCombinacionesBounds(effectiveLineaIds, DATASET) ??
-        computeLineasBounds(effectiveLineaIds, DATASET);
-      if (!b) return null;
-      const idHash = effectiveLineaIds
-        .slice()
-        .sort()
-        .reduce((acc, id) => acc + id.split("").reduce((a, c) => a + c.charCodeAt(0), 0), 1);
-      return {
-        bounds: b,
-        center: ZOOM_MOBILE_CENTER,
-        nonce: `${modePrefix}-${idHash}`,
-        zoom: ZOOM_MOBILE,
-      };
-    }
-    // DESKTOP: fitBounds con maxZoom como techo.
+    // Sin scope (mount): bounds = línea 195 (Retiro → La Plata).
     if (effectiveLineaIds.length === 0) {
       const linea195Bounds = computeLinea195Bounds(DATASET);
-      if (linea195Bounds) {
-        return { bounds: linea195Bounds, nonce: `${modePrefix}-195`, padding: PADDING_DEFAULT, maxZoom: ZOOM_DESKTOP };
-      }
-      return null;
+      if (!linea195Bounds) return null;
+      return {
+        bounds: linea195Bounds,
+        nonce: "L-195",
+        padding: PADDING_DEFAULT,
+        maxZoom: LINE_FOCUS_MAX_ZOOM,
+      };
     }
-    const bounds =
-      computeCombinacionesBounds(effectiveLineaIds, DATASET) ??
-      computeLineasBounds(effectiveLineaIds, DATASET);
+    // Ramal elegido: extent SOLO de sus recorridos (fallback a la línea entera).
+    const bounds = selectedRamalId
+      ? computeRamalBounds(effectiveLineaIds, selectedRamalId, DATASET) ??
+        computeLineasBounds(effectiveLineaIds, DATASET)
+      : computeLineasBounds(effectiveLineaIds, DATASET);
     if (!bounds) return null;
     const idHash = effectiveLineaIds
       .slice()
       .sort()
       .reduce((acc, id) => acc + id.split("").reduce((a, c) => a + c.charCodeAt(0), 0), 1);
+    // El ramal entra en el nonce: cambiar de ramal dentro de la misma línea
+    // re-dispara el encuadre (mismo idHash, distinto sufijo).
     return {
       bounds,
-      nonce: `${modePrefix}-${idHash}`,
+      nonce: `L-${idHash}-${selectedRamalId ?? "all"}`,
       padding: PADDING_DEFAULT,
-      maxZoom: ZOOM_DESKTOP,
+      maxZoom: LINE_FOCUS_MAX_ZOOM,
     };
-  }, [isTripMode, effectiveLineaIds, isMobileViewport]);
+  }, [isTripMode, effectiveLineaIds, selectedRamalId]);
 
   const plannerPoints: PlannerMapPoints | null = useMemo(() => {
     if (!isTripViewActive) return null;
