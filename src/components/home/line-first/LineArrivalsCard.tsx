@@ -67,7 +67,7 @@ export function LineArrivalsCard({
     >
       <div className="flex items-center gap-3">
         <span
-          className={cn('flex shrink-0 items-center justify-center rounded-full font-black tabular-nums', bare ? 'size-11 text-lg' : 'size-12 text-xl')}
+          className={cn('inline-flex shrink-0 items-center justify-center rounded-full px-3 text-center font-bold uppercase leading-tight tracking-[0.08em]', bare ? 'h-11 text-[9px]' : 'h-12 text-[10px]')}
           style={{
             background: `linear-gradient(150deg, color-mix(in srgb, ${line.color} 70%, white), ${line.color} 58%)`,
             color: line.textColor,
@@ -75,7 +75,7 @@ export function LineArrivalsCard({
           }}
           aria-hidden="true"
         >
-          {line.numero}
+          Todas las paradas
         </span>
         <button
           type="button"
@@ -85,7 +85,7 @@ export function LineArrivalsCard({
         >
           <span className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">Tu parada</span>
           <span className="mt-0.5 block text-[17px] font-bold leading-tight text-ink break-words">
-            Línea {line.numero} · {stopLabel}
+            {stopLabel}
             <ChevronDown
               className="ml-1 inline h-4 w-4 align-[-2px] text-text-muted transition-colors group-hover:text-ink"
               aria-hidden="true"

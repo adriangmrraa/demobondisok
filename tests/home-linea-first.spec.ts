@@ -53,7 +53,8 @@ test.describe('Inicio A (/inicio)', () => {
 
     await expect(page.getByRole('button', { name: new RegExp(`^Línea ${line65.numero}\\.`) })).toHaveAttribute('aria-pressed', 'true');
     const card = lineCard(page);
-    await expect(card).toContainText(`Línea 65 · ${shortName(stopName('stop-65-05'))}`);
+    await expect(card).toContainText('Todas las paradas');
+    await expect(card).toContainText(shortName(stopName('stop-65-05')));
     await expect(card).not.toContainText('→');
     await expect(card).not.toContainText('Cambiar dirección');
     await expect(card).toContainText(`Pasa cada ~${line65.frecuenciaPicoMin} min`);
@@ -71,7 +72,7 @@ test.describe('Inicio A (/inicio)', () => {
     const card = lineCard(page);
 
     await page.getByRole('button', { name: new RegExp(`^Línea ${line194.numero}\\.`) }).click();
-    await expect(card).toContainText(`Línea 194 · ${shortName(stopName('stop-194-once'))}`);
+    await expect(card).toContainText(shortName(stopName('stop-194-once')));
 
     await card.getByRole('button', { name: /^Cambiar parada/ }).click();
     const picker = page.getByRole('dialog', { name: /Elegí tu parada/ });

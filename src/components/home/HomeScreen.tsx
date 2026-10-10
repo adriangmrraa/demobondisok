@@ -42,7 +42,7 @@ import { RecentTrips } from '@/components/home/line-first/RecentTrips';
 import { ViewMapCta } from '@/components/home/line-first/ViewMapCta';
 import { LineSchematic } from '@/components/diagrama/LineSchematic';
 import { useLineFirstSelection } from '@/hooks/use-line-first-selection';
-import { stopAreaBounds, getStop, type CatalogLine } from '@/lib/home/line-first';
+import { stopAreaBounds, type CatalogLine } from '@/lib/home/line-first';
 import { SEEDED_ROUTES, type SeededRoute } from '@/lib/home/seeded-routes';
 import { MOCK_STOPS, MOCK_LINES, MOCK_ALERTS } from '@/mock/data';
 import { subscribeToPositions } from '@/mock/live';
@@ -550,8 +550,8 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                 {showLinearDiagram ? (
                   lineContext ? (
                     (() => {
-                      const originName = getStop(lineContext.recorrido.origen)?.nombre ?? lineContext.line.numero;
-                      const destinationName = getStop(lineContext.recorrido.destino)?.nombre ?? '';
+                      const originName = lineContext.recorrido.origen;
+                      const destinationName = lineContext.recorrido.destino;
                       const originLabel = destinationName
                         ? `${originName} hacia ${destinationName}`
                         : originName;
@@ -571,15 +571,11 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                               origin={originLabel}
                               eta={etaText}
                               color={lineContext.line.color}
-                              stops={lineContext.stops.map((stop) => {
-                                const isCab = stop.id === lineContext.recorrido.origen
-                                  || stop.id === lineContext.recorrido.destino;
-                                return {
-                                  id: stop.id,
-                                  nombre: stop.nombre,
-                                  tipo: isCab ? 'CABECERA' : undefined,
-                                };
-                              })}
+                              stops={lineContext.stops.map((stop, i) => ({
+                                id: stop.id,
+                                nombre: stop.nombre,
+                                tipo: i === 0 || i === lineContext.stops.length - 1 ? 'CABECERA' : undefined,
+                              }))}
                               highlightStopId={lineContext.stop.id}
                               className="min-w-full"
                             />
@@ -711,13 +707,13 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                   lineContext ? (
                     <div className="home-rise h-[176px] overflow-x-auto overflow-y-hidden rounded-3xl border border-hairline bg-[#121418] p-3">
                       <LineSchematic
-                        origin={`${getStop(lineContext.recorrido.origen)?.nombre ?? lineContext.line.numero} hacia ${getStop(lineContext.recorrido.destino)?.nombre ?? ''}`}
+                        origin={`${lineContext.recorrido.origen} hacia ${lineContext.recorrido.destino}`}
                         eta={lineFirst.arrivals[0] ? (lineFirst.arrivals[0].displayStatus === 'en-parada' || lineFirst.arrivals[0].minutos === 0 ? 'En la parada' : lineFirst.arrivals[0].displayStatus === 'arribando' ? 'Llegando' : `Llega en ${lineFirst.arrivals[0].minutos} min`) : undefined}
                         color={lineContext.line.color}
-                        stops={lineContext.stops.map((stop) => ({
+                        stops={lineContext.stops.map((stop, i) => ({
                           id: stop.id,
                           nombre: stop.nombre,
-                          tipo: stop.id === lineContext.recorrido.origen || stop.id === lineContext.recorrido.destino ? 'CABECERA' : undefined,
+                          tipo: i === 0 || i === lineContext.stops.length - 1 ? 'CABECERA' : undefined,
                         }))}
                         highlightStopId={lineContext.stop.id}
                         className="min-w-full"
