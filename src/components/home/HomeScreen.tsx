@@ -566,7 +566,7 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                         <div className="space-y-0">
                           {/* Diagrama con scroll horizontal cuando hay muchas paradas.
                               Sin cabecera extra: la cabecera (origen/destino) vive DENTRO del SVG. */}
-                          <div className="home-rise overflow-x-auto overflow-y-hidden rounded-3xl border border-hairline bg-[#121418] p-3">
+                          <div className="home-rise h-[176px] overflow-x-auto overflow-y-hidden rounded-3xl border border-hairline bg-[#121418] p-3">
                             <LineSchematic
                               origin={originLabel}
                               eta={etaText}
@@ -581,14 +581,14 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                                 };
                               })}
                               highlightStopId={lineContext.stop.id}
-                              className="h-[220px] min-w-full"
+                              className="min-w-full"
                             />
                           </div>
                         </div>
                       );
                     })()
                   ) : (
-                    <div className="home-rise flex h-[220px] items-center justify-center rounded-3xl border border-dashed border-hairline bg-canvas-soft px-4 text-center">
+                    <div className="home-rise flex h-[176px] items-center justify-center rounded-3xl border border-dashed border-hairline bg-canvas-soft px-4 text-center">
                       <p className="text-xs font-medium text-text-muted">
                         Seleccioná una línea para ver su diagrama lineal.
                       </p>
@@ -709,7 +709,7 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
               <div className="relative mt-2.5" style={{ '--home-delay': '360ms' } as CSSProperties}>
                 {showLinearDiagram ? (
                   lineContext ? (
-                    <div className="home-rise overflow-x-auto overflow-y-hidden rounded-3xl border border-hairline bg-[#121418] p-3">
+                    <div className="home-rise h-[176px] overflow-x-auto overflow-y-hidden rounded-3xl border border-hairline bg-[#121418] p-3">
                       <LineSchematic
                         origin={`${getStop(lineContext.recorrido.origen)?.nombre ?? lineContext.line.numero} hacia ${getStop(lineContext.recorrido.destino)?.nombre ?? ''}`}
                         eta={lineFirst.arrivals[0] ? (lineFirst.arrivals[0].displayStatus === 'en-parada' || lineFirst.arrivals[0].minutos === 0 ? 'En la parada' : lineFirst.arrivals[0].displayStatus === 'arribando' ? 'Llegando' : `Llega en ${lineFirst.arrivals[0].minutos} min`) : undefined}
@@ -720,11 +720,11 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                           tipo: stop.id === lineContext.recorrido.origen || stop.id === lineContext.recorrido.destino ? 'CABECERA' : undefined,
                         }))}
                         highlightStopId={lineContext.stop.id}
-                        className="h-[240px] min-w-full"
+                        className="min-w-full"
                       />
                     </div>
                   ) : (
-                    <div className="home-rise flex h-[240px] items-center justify-center rounded-3xl border border-dashed border-hairline bg-canvas-soft px-4 text-center">
+                    <div className="home-rise flex h-[176px] items-center justify-center rounded-3xl border border-dashed border-hairline bg-canvas-soft px-4 text-center">
                       <p className="text-xs font-medium text-text-muted">
                         Seleccioná una línea para ver su diagrama lineal.
                       </p>

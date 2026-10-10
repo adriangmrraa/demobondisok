@@ -55,15 +55,18 @@ test.describe('Home diagram toggle', () => {
     expect(await stops.count()).toBeGreaterThan(3);
   });
 
-  test('diagram container is taller than the map (h-[240px])', async ({ page }) => {
+  test('diagram slot matches the map slot height (h-[176px])', async ({ page }) => {
     await page.goto('/inicio');
     await page.getByRole('button', { name: chip65 }).click();
     await page.getByRole('button', { name: 'Ver diagrama lineal.' }).click();
-    const diagram = page.locator(diagramSel);
-    const box = await diagram.boundingBox();
-    expect(box).not.toBeNull();
-    // El diagrama debe ocupar al menos 200px de alto (vs 176px del mapa viejo).
-    expect(box!.height).toBeGreaterThanOrEqual(200);
+    // El contenedor del diagrama es el padre del role="application":
+    // debe medir lo mismo que el slot del mapa (176px) para no empujar
+    // el contenido de abajo al alternar.
+    const slot = page.locator(diagramSel).locator('xpath=..');
+    // offsetHeight ignora el transform de la animación home-rise (boundingBox
+    // mediría un valor intermedio mientras anima).
+    const height = await slot.evaluate((el: HTMLElement) => el.offsetHeight);
+    expect(height).toBe(176);
   });
 
   test('labels do not overlap when line has many stops', async ({ page }) => {
