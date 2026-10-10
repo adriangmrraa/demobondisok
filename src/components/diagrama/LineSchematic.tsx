@@ -135,13 +135,6 @@ export function LineSchematic({
     centerActiveStop(true);
   }, [highlightStopId]);
 
-  // Cambios posteriores: scroll suave para feedback visual.
-  useEffect(() => {
-    if (isFirstScrollRef.current) return; // ya lo manejó useLayoutEffect
-    if (!highlightStopId) return;
-    centerActiveStop(true);
-  }, [highlightStopId]);
-
   return (
     <div
       className={cn(

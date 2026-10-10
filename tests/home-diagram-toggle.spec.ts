@@ -9,7 +9,7 @@ import { test, expect } from '@playwright/test';
  * el toggle está habilitado desde el primer render.
  */
 
-const svgSel = 'svg[role="img"][aria-label*="Diagrama lineal"]';
+const diagramSel = '[role="application"][aria-label*="Diagrama lineal"]';
 const chip65 = /^Línea 65\./;
 
 test.describe('Home diagram toggle', () => {
@@ -37,30 +37,30 @@ test.describe('Home diagram toggle', () => {
     await expect(btn).toBeEnabled();
   });
 
-  test('opening the diagram swaps the map for an SVG schematic', async ({ page }) => {
+  test('opening the diagram swaps the map for a linear schematic', async ({ page }) => {
     await page.goto('/inicio');
     await page.getByRole('button', { name: chip65 }).click();
     await page.getByRole('button', { name: 'Ver diagrama lineal.' }).click();
-    await expect(page.locator(svgSel)).toBeVisible();
+    await expect(page.locator(diagramSel)).toBeVisible();
   });
 
-  test('diagram SVG renders horizontally with multiple stops', async ({ page }) => {
+  test('diagram renders horizontally with multiple stops', async ({ page }) => {
     await page.goto('/inicio');
     await page.getByRole('button', { name: chip65 }).click();
     await page.getByRole('button', { name: 'Ver diagrama lineal.' }).click();
-    const svg = page.locator(svgSel);
-    await expect(svg).toBeVisible();
-    // Más de 3 círculos = varias paradas dibujadas
-    const circles = svg.locator('circle');
-    await expect(circles).not.toHaveCount(0);
+    const diagram = page.locator(diagramSel);
+    await expect(diagram).toBeVisible();
+    // Más de 3 paradas = varios <li> dibujados
+    const stops = diagram.locator('li[data-stop-id]');
+    expect(await stops.count()).toBeGreaterThan(3);
   });
 
   test('diagram container is taller than the map (h-[240px])', async ({ page }) => {
     await page.goto('/inicio');
     await page.getByRole('button', { name: chip65 }).click();
     await page.getByRole('button', { name: 'Ver diagrama lineal.' }).click();
-    const svg = page.locator(svgSel);
-    const box = await svg.boundingBox();
+    const diagram = page.locator(diagramSel);
+    const box = await diagram.boundingBox();
     expect(box).not.toBeNull();
     // El diagrama debe ocupar al menos 200px de alto (vs 176px del mapa viejo).
     expect(box!.height).toBeGreaterThanOrEqual(200);
@@ -70,10 +70,10 @@ test.describe('Home diagram toggle', () => {
     await page.goto('/inicio');
     await page.getByRole('button', { name: chip65 }).click();
     await page.getByRole('button', { name: 'Ver diagrama lineal.' }).click();
-    const svg = page.locator(svgSel);
-    // Obtener todos los <text> visibles y verificar que ninguno se superpone
-    // en X con otro label (mismo y ±fontHeight).
-    const labels = await svg.locator('text').all();
+    const diagram = page.locator(diagramSel);
+    // Obtener todos los labels de parada visibles y verificar que ninguno
+    // se superpone en X con otro label (mismo y ±fontHeight).
+    const labels = await diagram.locator('li[data-stop-id] p[title]').all();
     const boxes = await Promise.all(labels.map((l) => l.boundingBox()));
     const visible = boxes.filter((b): b is NonNullable<typeof b> => b !== null);
     for (let i = 0; i < visible.length; i += 1) {
@@ -102,11 +102,11 @@ test.describe('Home diagram toggle', () => {
     // submit / select a result (scoped al diálogo: los <li> de arribos quedan detrás del overlay)
     await picker.getByRole('listitem').first().click();
     await page.getByRole('button', { name: 'Ver diagrama lineal.' }).click();
-    const svg = page.locator(svgSel);
-    await expect(svg).toBeVisible();
-    // Hay al menos un dot con halo (highlight)
-    const haloedDots = svg.locator('circle[opacity="0.35"]');
-    await expect(haloedDots).not.toHaveCount(0);
+    const diagram = page.locator(diagramSel);
+    await expect(diagram).toBeVisible();
+    // La parada activa queda marcada con scale-105 en el <li>
+    const highlighted = diagram.locator('li[data-stop-id].scale-105');
+    await expect(highlighted).toHaveCount(1);
   });
 
   test('double-tap chip opens the full diagram of that line', async ({ page }) => {
@@ -121,11 +121,11 @@ test.describe('Home diagram toggle', () => {
     await page.goto('/inicio');
     await page.getByRole('button', { name: chip65 }).click();
     await page.getByRole('button', { name: 'Ver diagrama lineal.' }).click();
-    const svg = page.locator(svgSel);
+    const diagram = page.locator(diagramSel);
     // El track principal del diagrama usa el color de la línea seleccionada.
-    const track = svg.locator('line[stroke-width="2.5"]');
+    const track = diagram.locator('div[style*="height: 2.5px"]');
     await expect(track).toHaveCount(1);
-    await expect(track).toHaveAttribute('stroke', /./);
+    await expect(track).toHaveCSS('background-color', /rgb/);
   });
 
   test('Esc closes the diagram and returns to the map', async ({ page }) => {
