@@ -66,6 +66,24 @@ test.describe('Inicio A (/inicio)', () => {
     await expect(arrivals.first()).toBeInViewport();
   });
 
+  test('el pill "Ver todas las paradas" abre el selector de parada', async ({ page }) => {
+    test.slow();
+    await page.goto('/inicio');
+    const card = lineCard(page);
+    await card.getByRole('button', { name: 'Ver todas las paradas' }).click();
+    await expect(page.getByRole('dialog', { name: /Elegí tu parada/ })).toBeVisible();
+  });
+
+  test('las flechas del carrusel aparecen según el scroll disponible', async ({ page }) => {
+    test.slow();
+    await page.goto('/inicio');
+    const pick = page.getByRole('region', { name: 'Elegí tu línea' });
+    const right = pick.getByRole('button', { name: 'Desplazar líneas a la derecha' });
+    await expect(right).toBeVisible();
+    await right.click();
+    await expect(pick.getByRole('button', { name: 'Desplazar líneas a la izquierda' })).toBeVisible();
+  });
+
   test('cambiar de línea y de parada actualiza la card con datos reales', async ({ page }) => {
     test.slow(); // Muchas interacciones sobre la página con mapa WebGL (SwiftShader en CI).
     await page.goto('/inicio');
@@ -141,7 +159,7 @@ test.describe('Inicio B (/inicio/b)', () => {
     expect(recent!.y).toBeLessThan(pick!.y);
     await expect(page.getByRole('link', { name: 'Ir a inicio' })).toHaveAttribute('aria-current', 'page');
 
-    await page.getByRole('button', { name: 'Ver todas' }).click();
+    await page.getByRole('button', { name: 'Ver todas', exact: true }).click();
     await expect(page.getByText('Próximamente', { exact: true })).toBeVisible();
     const catalogSize = new Set([...operationalNumbers, ...metropol.lines.map((l) => l.number).filter(Boolean)]).size;
     await expect(page.getByRole('button', { name: /^Línea \d+/ })).toHaveCount(catalogSize);
