@@ -35,6 +35,7 @@ import { AssistantWizard } from '@/components/home/AssistantWizard';
 import { MetropolRose } from '@/components/brand/metropol-logo';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { LineChips } from '@/components/home/line-first/LineChips';
+import { LineSwipeStage } from '@/components/home/line-first/LineSwipeStage';
 import { LinePreviewMap } from '@/components/home/line-first/LinePreviewMap';
 import { LineArrivalsCard } from '@/components/home/line-first/LineArrivalsCard';
 import { StopPickerSheet } from '@/components/home/line-first/StopPickerSheet';
@@ -445,7 +446,7 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
 
   // ─── Línea primero (docs/HOME-LINEA-FIRST.md): línea → parada → arribos ───
   const lineFirst = useLineFirstSelection(catalog, positions);
-  const { context: lineContext, selectStop } = lineFirst;
+  const { context: lineContext, selectStop, selectLine, selection: lineSelection } = lineFirst;
   const [stopPickerOpen, setStopPickerOpen] = useState(false);
   // El picker se abre una sola vez en la sesión: ese primer gesto apaga el
   // bounce del chevron de "Tu parada" en el loop idle compartido.
@@ -487,6 +488,18 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
     setStopPickerOpen(true);
     setStopPickerOpenedOnce(true);
   }, []);
+  // Swipe horizontal sobre el bloque bajo el carrusel: navega a la línea
+  // anterior/siguiente del catálogo operativo (el color del chip se actualiza).
+  const selectAdjacentLine = useCallback(
+    (direction: 1 | -1) => {
+      const operational = catalog.filter((line) => line.operational);
+      if (operational.length === 0) return;
+      const index = operational.findIndex((line) => line.id === lineSelection?.lineId);
+      const nextIndex = index < 0 ? 0 : (index + direction + operational.length) % operational.length;
+      selectLine(operational[nextIndex]!);
+    },
+    [catalog, selectLine, lineSelection?.lineId],
+  );
   const handlePickStop = useCallback(
     (stopId: string) => {
       selectStop(stopId);
@@ -654,19 +667,24 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
               </div>
               {lineContext && (
                 <div className="home-rise" style={{ '--home-delay': '400ms' } as CSSProperties}>
-                  <LineArrivalsCard
-                    context={lineContext}
-                    arrivals={lineFirst.arrivals}
-                    frequencyMin={lineFirst.frequencyMin}
-                    perHour={lineFirst.perHour}
-                    onToggleDirection={lineFirst.toggleDirection}
-                    onOpenStopPicker={openStopPicker}
-                    arrivalHref={lineFirst.arrivalHref}
-                    idlePulse={idlePulse}
-                    chevronBounce={!stopPickerOpenedOnce}
-                    bare
-                    hideDirectionRow
-                  />
+                  <LineSwipeStage
+                    onSwipeLeft={() => selectAdjacentLine(1)}
+                    onSwipeRight={() => selectAdjacentLine(-1)}
+                  >
+                    <LineArrivalsCard
+                      context={lineContext}
+                      arrivals={lineFirst.arrivals}
+                      frequencyMin={lineFirst.frequencyMin}
+                      perHour={lineFirst.perHour}
+                      onToggleDirection={lineFirst.toggleDirection}
+                      onOpenStopPicker={openStopPicker}
+                      arrivalHref={lineFirst.arrivalHref}
+                      idlePulse={idlePulse}
+                      chevronBounce={!stopPickerOpenedOnce}
+                      bare
+                      hideDirectionRow
+                    />
+                  </LineSwipeStage>
                 </div>
               )}
             </section>
@@ -790,19 +808,24 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
               </div>
               {lineContext && (
                 <div className="home-rise mt-2.5" style={{ '--home-delay': '400ms' } as CSSProperties}>
-                  <LineArrivalsCard
-                    context={lineContext}
-                    arrivals={lineFirst.arrivals}
-                    frequencyMin={lineFirst.frequencyMin}
-                    perHour={lineFirst.perHour}
-                    onToggleDirection={lineFirst.toggleDirection}
-                    onOpenStopPicker={openStopPicker}
-                    arrivalHref={lineFirst.arrivalHref}
-                    idlePulse={idlePulse}
-                    chevronBounce={!stopPickerOpenedOnce}
-                    bare
-                    hideDirectionRow
-                  />
+                  <LineSwipeStage
+                    onSwipeLeft={() => selectAdjacentLine(1)}
+                    onSwipeRight={() => selectAdjacentLine(-1)}
+                  >
+                    <LineArrivalsCard
+                      context={lineContext}
+                      arrivals={lineFirst.arrivals}
+                      frequencyMin={lineFirst.frequencyMin}
+                      perHour={lineFirst.perHour}
+                      onToggleDirection={lineFirst.toggleDirection}
+                      onOpenStopPicker={openStopPicker}
+                      arrivalHref={lineFirst.arrivalHref}
+                      idlePulse={idlePulse}
+                      chevronBounce={!stopPickerOpenedOnce}
+                      bare
+                      hideDirectionRow
+                    />
+                  </LineSwipeStage>
                 </div>
               )}
               {lineContext && (
