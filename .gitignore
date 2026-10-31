@@ -66,3 +66,4 @@ dev.log
 dev.log.err
 
 .vercel
+video/{capture,out}/
