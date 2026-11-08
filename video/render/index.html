@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8" />
+<title>Demobondis — composición 1080x1920</title>
+<style>
+  :root {
+    --navy: #1D2B4F;
+    --brand-red: #E30613;
+    --brand-green: #228135;
+    --ink: #141414;
+    --paper: #0A1020;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: #070B14; }
+  body { font-family: "Segoe UI", "Inter", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+
+  #stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+
+  /* ---------- background ---------- */
+  #bg {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(58% 42% at 50% 26%, rgba(29,43,79,0.92) 0%, rgba(12,18,32,0.98) 62%, #06090F 100%),
+      #06090F;
+  }
+  #glow {
+    position: absolute; left: 50%; top: 118px; width: 900px; height: 900px;
+    transform: translateX(-50%);
+    background: radial-gradient(circle, rgba(227,6,19,0.10) 0%, rgba(34,129,53,0.05) 45%, rgba(0,0,0,0) 72%);
+    filter: blur(6px);
+  }
+  #grain {
+    position: absolute; inset: 0; opacity: 0.05; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/></filter><rect width='220' height='220' filter='url(%23n)' opacity='0.9'/></svg>");
+  }
+  #vignette {
+    position: absolute; inset: 0;
+    background: radial-gradient(120% 90% at 50% 50%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.55) 100%);
+  }
+
+  /* ---------- progress ---------- */
+  #progressTrack { position: absolute; top: 0; left: 0; width: 1080px; height: 4px; background: rgba(255,255,255,0.10); }
+  #progressFill { position: absolute; top: 0; left: 0; height: 4px; background: var(--brand-red); width: 0; }
+
+  /* ---------- phone ---------- */
+  #phone {
+    position: absolute; left: 224px; top: 64px; width: 632px; height: 1330px;
+    border-radius: 62px;
+    background: linear-gradient(160deg, #161C29 0%, #0B101A 100%);
+    border: 1px solid rgba(255,255,255,0.10);
+    box-shadow: 0 40px 90px rgba(0,0,0,0.62), 0 0 0 1px rgba(0,0,0,0.55), inset 0 0 0 2px rgba(255,255,255,0.04);
+    padding: 16px;
+  }
+  #screen {
+    position: relative; width: 600px; height: 1298px; border-radius: 46px;
+    overflow: hidden; background: #ffffff;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.10);
+  }
+  #screen video {
+    position: absolute; inset: 0; width: 600px; height: 1298px;
+    object-fit: cover; display: none;
+  }
+  #screen video.active { display: block; }
+  #screenShade {
+    position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(180deg, rgba(0,0,0,0.10) 0%, rgba(0,0,0,0) 12%, rgba(0,0,0,0) 88%, rgba(0,0,0,0.12) 100%);
+  }
+
+  /* ---------- text ---------- */
+  #panel {
+    position: absolute; left: 100px; top: 1444px; width: 880px; height: 430px;
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+  }
+  #kicker {
+    font-size: 27px; font-weight: 700; letter-spacing: 0.30em;
+    color: var(--brand-red); text-transform: uppercase;
+    opacity: 0; transform: translateY(10px);
+    margin-bottom: 26px; white-space: nowrap;
+  }
+  #lines { position: relative; width: 880px; height: 210px; }
+  .grp { position: absolute; left: 0; top: 0; width: 880px; visibility: hidden; }
+  .grp.active { visibility: visible; }
+  .line {
+    display: block; color: #FFFFFF; font-weight: 600;
+    font-size: 52px; line-height: 1.24; letter-spacing: -0.01em;
+    opacity: 0; transform: translateY(26px);
+    text-shadow: 0 2px 24px rgba(0,0,0,0.45);
+    white-space: nowrap;
+  }
+  .line.url { font-family: "Cascadia Mono", "Consolas", ui-monospace, monospace; font-size: 40px; letter-spacing: 0; color: #E8ECF4; font-weight: 500; }
+  #rule { width: 64px; height: 3px; background: rgba(255,255,255,0.22); margin: 30px auto 0; opacity: 0; }
+  #content { position: absolute; inset: 0; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="bg"></div>
+  <div id="glow"></div>
+  <div id="content">
+    <div id="phone">
+      <div id="screen">
+        <video id="v0" muted playsinline preload="auto"></video>
+        <video id="v1" muted playsinline preload="auto"></video>
+        <video id="v2" muted playsinline preload="auto"></video>
+        <video id="v3" muted playsinline preload="auto"></video>
+        <video id="v4" muted playsinline preload="auto"></video>
+        <video id="v5" muted playsinline preload="auto"></video>
+        <video id="v6" muted playsinline preload="auto"></video>
+        <video id="v7" muted playsinline preload="auto"></video>
+        <div id="screenShade"></div>
+      </div>
+    </div>
+    <div id="panel">
+      <div id="kicker"></div>
+      <div id="lines"></div>
+      <div id="rule"></div>
+    </div>
+  </div>
+  <div id="grain"></div>
+  <div id="vignette"></div>
+  <div id="progressTrack"></div>
+  <div id="progressFill"></div>
+</div>
+
+<script>
+const easeOut = (p) => 1 - Math.pow(1 - p, 3);
+const clamp01 = (x) => Math.max(0, Math.min(1, x));
+
+let SCENES = [];
+let TOTAL = 0;
+let STARTS = [];
+let videos = [];
+let current = -1;
+let chosenFont = {};   // scene index -> px
+const FADE = 0.22;     // seconds fade in/out at scene edges
+const MAXW = 880;
+
+window.boot = async (cfg) => {
+  SCENES = cfg.scenes;
+  STARTS = [];
+  let acc = 0;
+  for (const s of SCENES) { STARTS.push(acc); acc += s.duration; }
+  TOTAL = acc;
+  videos = SCENES.map((_, i) => document.getElementById('v' + i));
+  await Promise.all(videos.map((v, i) => new Promise((res) => {
+    v.src = '/capture/' + SCENES[i].clip;
+    if (v.readyState >= 1) return res();
+    v.addEventListener('loadedmetadata', () => res(), { once: true });
+    v.addEventListener('error', () => res(), { once: true });
+    setTimeout(res, 15000);
+  })));
+  // build text nodes once, then auto-fit
+  document.getElementById('lines').innerHTML = SCENES.map((s, i) =>
+    `<div class="grp" id="G${i}">` + s.lines.map((t, j) => {
+      const isUrl = /^[a-z0-9.-]+\.(app|com|ar|dev)$/i.test(t.trim());
+      return `<span class="line${isUrl ? ' url' : ''}" id="L${i}_${j}">${t}</span>`;
+    }).join('') + '</div>'
+  ).join('');
+  document.getElementById('G0').classList.add('active');
+  for (let i = 0; i < SCENES.length; i++) {
+    let size = 52;
+    for (; size >= 38; size -= 1) {
+      let ok = true;
+      SCENES[i].lines.forEach((_, j) => {
+        const el = document.getElementById(`L${i}_${j}`);
+        el.style.fontSize = (el.classList.contains('url') ? Math.round(size * 0.78) : size) + 'px';
+        if (el.scrollWidth > MAXW) ok = false;
+      });
+      if (ok) break;
+    }
+    chosenFont[i] = size;
+  }
+  return { total: TOTAL, scenes: SCENES.map((s, i) => ({ n: s.n, start: STARTS[i], duration: s.duration, font: chosenFont[i] })) };
+};
+
+const seek = (v, t) => new Promise((res) => {
+  const target = Math.max(0, Math.min(t, (v.duration || 1e9) - 0.04));
+  if (Math.abs(v.currentTime - target) < 0.004 && v.readyState >= 2) return res();
+  let done = false;
+  const finish = () => { if (done) return; done = true; res(); };
+  v.addEventListener('seeked', finish, { once: true });
+  try { v.currentTime = target; } catch (e) { finish(); }
+  setTimeout(finish, 1200);
+});
+
+const locate = (t) => {
+  for (let i = SCENES.length - 1; i >= 0; i--) {
+    if (t >= STARTS[i] - 1e-6) return { i, local: Math.min(t - STARTS[i], SCENES[i].duration) };
+  }
+  return { i: 0, local: 0 };
+};
+
+window.setTime = async (t) => {
+  const { i, local } = locate(t);
+  const s = SCENES[i];
+  if (current !== i) {
+    videos.forEach((v, k) => v.classList.toggle('active', k === i));
+    SCENES.forEach((_, k) => {
+      const g = document.getElementById('G' + k);
+      if (g) g.classList.toggle('active', k === i);
+    });
+    document.getElementById('kicker').textContent = s.kicker;
+    current = i;
+  }
+  await seek(videos[i], s.trimStart + local);
+
+  document.getElementById('progressFill').style.width = Math.round((t / TOTAL) * 1080) + 'px';
+
+  // content fade at scene edges
+  const fadeIn = clamp01(local / FADE);
+  const fadeOut = clamp01((s.duration - local) / FADE);
+  const edge = i === SCENES.length - 1 ? fadeIn : Math.min(fadeIn, fadeOut);
+  document.getElementById('content').style.opacity = 0.16 + 0.84 * easeOut(edge);
+
+  // kicker
+  const kp = easeOut(clamp01((local - 0.12) / 0.34));
+  const kick = document.getElementById('kicker');
+  kick.style.opacity = kp;
+  kick.style.transform = `translateY(${(1 - kp) * 10}px)`;
+
+  // lines
+  s.lines.forEach((_, j) => {
+    const el = document.getElementById(`L${i}_${j}`);
+    const start = 0.30 + j * 0.16;
+    const p = easeOut(clamp01((local - start) / 0.40));
+    el.style.opacity = p;
+    el.style.transform = `translateY(${(1 - p) * 26}px)`;
+  });
+
+  // rule
+  const rp = easeOut(clamp01((local - 0.30 - s.lines.length * 0.16) / 0.40));
+  const rule = document.getElementById('rule');
+  rule.style.opacity = rp * 0.9;
+  return { i, local };
+};
+
+// Layout self-check: every text node must sit inside the safe zone and never touch the phone.
+window.measure = () => {
+  const phone = document.getElementById('phone').getBoundingClientRect();
+  const out = { ok: true, problems: [], scenes: [] };
+  for (let i = 0; i < SCENES.length; i++) {
+    const kick = document.getElementById('kicker');
+    kick.textContent = SCENES[i].kicker;
+    const info = { n: SCENES[i].n, font: chosenFont[i], lines: [], kicker: null };
+    const kr = kick.getBoundingClientRect();
+    info.kicker = { x: Math.round(kr.left), w: Math.round(kr.width) };
+    if (kr.left < 40 || kr.right > 1040) { out.ok = false; out.problems.push(`scene ${SCENES[i].n}: kicker fuera de márgenes`); }
+    SCENES[i].lines.forEach((_, j) => {
+      const el = document.getElementById(`L${i}_${j}`);
+      const r = el.getBoundingClientRect();
+      const rec = { j, left: Math.round(r.left), right: Math.round(r.right), top: Math.round(r.top), bottom: Math.round(r.bottom), w: Math.round(r.width), h: Math.round(r.height) };
+      info.lines.push(rec);
+      if (rec.left < 40 || rec.right > 1040) { out.ok = false; out.problems.push(`scene ${SCENES[i].n} line ${j}: desborde horizontal (${rec.left}..${rec.right})`); }
+      if (rec.bottom > 1896) { out.ok = false; out.problems.push(`scene ${SCENES[i].n} line ${j}: desborde inferior (${rec.bottom})`); }
+      if (rec.top < phone.bottom + 6) { out.ok = false; out.problems.push(`scene ${SCENES[i].n} line ${j}: solapa el teléfono (top ${rec.top} <= phone ${Math.round(phone.bottom)})`); }
+    });
+    out.scenes.push(info);
+  }
+  return out;
+};
+
+window.meta = () => ({ total: TOTAL, fps: cfgFps, frames: Math.round(TOTAL * cfgFps), phoneBottom: Math.round(document.getElementById('phone').getBoundingClientRect().bottom) });
+let cfgFps = 30;
+window.setFps = (f) => { cfgFps = f; };
+</script>
+</body>
+</html>

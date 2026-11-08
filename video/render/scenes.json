@@ -1,0 +1,71 @@
+{
+  "width": 1080,
+  "height": 1920,
+  "fps": 30,
+  "scenes": [
+    {
+      "n": 1,
+      "kicker": "DEMOBONDIS",
+      "lines": ["Una persona abre la app.", "Todo empieza en el viaje real."],
+      "clip": "scene-01-ready.mp4",
+      "duration": 10,
+      "trimStart": 2.0
+    },
+    {
+      "n": 2,
+      "kicker": "QUÉ ES",
+      "lines": ["Es un producto funcionando.", "Inicio, viajes y red en vivo."],
+      "clip": "scene-02-ready.mp4",
+      "duration": 18,
+      "trimStart": 2.0
+    },
+    {
+      "n": 3,
+      "kicker": "PRIMERA LLEGADA",
+      "lines": ["Cuatro caminos desde el inicio.", "Buscar, planificar o ver la red.", "El historial queda a la vista."],
+      "clip": "scene-03-ready.mp4",
+      "duration": 30,
+      "trimStart": 2.0
+    },
+    {
+      "n": 4,
+      "kicker": "AL VOLVER",
+      "lines": ["No inventa preferencias.", "Mantiene los accesos directos.", "El historial siempre está visible."],
+      "clip": "scene-04-ready.mp4",
+      "duration": 25,
+      "trimStart": 2.0
+    },
+    {
+      "n": 5,
+      "kicker": "LLEGAR AL MAPA",
+      "lines": ["Mapa libre: un toque.", "Modo Viaje: doble toque.", "Recorrido elegido: tres."],
+      "clip": "scene-05-ready.mp4",
+      "duration": 35,
+      "trimStart": 2.0
+    },
+    {
+      "n": 6,
+      "kicker": "EL MAPA",
+      "lines": ["Líneas, ramales y paradas.", "La ruta elegida queda marcada.", "El encuadre sigue ese recorrido."],
+      "clip": "scene-06-ready.mp4",
+      "duration": 38,
+      "trimStart": 2.0
+    },
+    {
+      "n": 7,
+      "kicker": "MODO VIAJE",
+      "lines": ["Origen, destino y opciones reales.", "Compara tiempo, caminata y combinaciones.", "Después muestra cada paso."],
+      "clip": "scene-07-ready.mp4",
+      "duration": 35,
+      "trimStart": 2.0
+    },
+    {
+      "n": 8,
+      "kicker": "YA ESTÁ FUNCIONANDO",
+      "lines": ["Está construido y desplegado.", "demobondisok-ten.vercel.app", "Listo para probar en producción."],
+      "clip": "scene-08-ready.mp4",
+      "duration": 22,
+      "trimStart": 2.0
+    }
+  ]
+}

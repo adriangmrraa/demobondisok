@@ -1,0 +1,136 @@
+{
+  "width": 1080,
+  "height": 1920,
+  "fps": 30,
+  "scenes": [
+    { "n": 1, "type": "product", "kicker": "DEMOBONDIS", "lines": ["Una persona abre la app.", "Todo empieza en el viaje real."], "clip": "s01-ready.mp4", "duration": 10, "trimStart": 0 },
+    { "n": 2, "type": "product", "kicker": "QUÉ ES", "lines": ["Es un producto funcionando.", "Inicio, viajes y red en vivo."], "clip": "s02-ready.mp4", "duration": 14, "trimStart": 0 },
+    { "n": 3, "type": "product", "kicker": "PRIMERA LLEGADA", "lines": ["Buscar, planificar o ver la red.", "El historial siempre a la vista."], "clip": "s03-ready.mp4", "duration": 16, "trimStart": 0 },
+    { "n": 4, "type": "product", "kicker": "AL VOLVER", "lines": ["No inventa preferencias.", "Los accesos y el historial siguen ahí."], "clip": "s04-ready.mp4", "duration": 12, "trimStart": 0 },
+    { "n": 5, "type": "product", "kicker": "LLEGAR AL MAPA", "lines": ["Mapa libre: un toque.", "Modo Viaje: doble toque.", "Recorrido elegido: tres."], "clip": "s05-ready.mp4", "duration": 40, "trimStart": 0 },
+    { "n": 6, "type": "product", "kicker": "EL MAPA", "lines": ["Líneas, ramales y paradas.", "La ruta elegida queda marcada.", "El encuadre sigue ese recorrido."], "clip": "s06-ready.mp4", "duration": 45, "trimStart": 0 },
+    { "n": 7, "type": "product", "kicker": "MODO VIAJE", "lines": ["Origen, destino y opciones reales.", "Compara tiempo, caminata y combinaciones.", "Después muestra cada paso."], "clip": "s07-ready.mp4", "duration": 45, "trimStart": 0 },
+    { "n": 8, "type": "product", "kicker": "YA ESTÁ FUNCIONANDO", "lines": ["Está construido y desplegado.", "demobondisok-ten.vercel.app", "Listo para probar hoy."], "clip": "s08-ready.mp4", "duration": 31, "trimStart": 0 },
+
+    { "n": 9, "type": "card", "kicker": "EL CONTRATO", "duration": 12,
+      "head": "Lo que viste ya existe. El contrato lo lleva a producción.",
+      "rows": [
+        { "l": "Desarrollo incluido", "r": "6 meses" },
+        { "l": "Inversión total", "r": "USD 38.016" },
+        { "l": "Cuotas mensuales iguales", "r": "6 × USD 6.336" },
+        { "l": "Integración con la API de Metropol", "r": "Incluida" }
+      ],
+      "foot": "El presupuesto, el cronograma y la forma de pago están en el contrato." },
+
+    { "n": 10, "type": "card", "kicker": "EL EQUIPO", "duration": 10,
+      "head": "Tres personas con rol definido.",
+      "rows": [
+        { "l": "Hector Adrian Gamarra Argañaraz", "r": "Full-Stack Senior" },
+        { "l": "Fabio Adrián Arias", "r": "Senior y Técnico Líder" },
+        { "l": "Alejandro Omar Abu Arab", "r": "Product Owner" }
+      ],
+      "foot": "Cada entrega la valida el Product Owner antes de avanzar al mes siguiente." },
+
+    { "n": 11, "type": "card", "kicker": "QUÉ INCLUYE", "duration": 12,
+      "head": "Nueve módulos, cada uno con horas y precio propio.",
+      "rows": [
+        { "m": "M-01", "l": "Maqueta y pre-MVP ya presentados", "r": "80 h" },
+        { "m": "M-02", "l": "Catálogo de líneas, ramales y paradas", "r": "64 h" },
+        { "m": "M-03", "l": "Mapa y transporte en vivo", "r": "88 h" }
+      ],
+      "foot": "Tarifa de módulo completo: USD 60 por hora." },
+
+    { "n": 12, "type": "card", "kicker": "QUÉ INCLUYE", "duration": 12,
+      "head": "Nueve módulos, cada uno con horas y precio propio.",
+      "rows": [
+        { "m": "M-04", "l": "Planificación y Modo Viaje", "r": "88 h" },
+        { "m": "M-05", "l": "Alertas, asistente y diagramas", "r": "56 h" },
+        { "m": "M-06", "l": "Integración y capa de datos", "r": "104 h" }
+      ],
+      "foot": "La integración es el módulo más pesado: conecta la app con los datos reales." },
+
+    { "n": 13, "type": "card", "kicker": "QUÉ INCLUYE", "duration": 12,
+      "head": "Nueve módulos, cada uno con horas y precio propio.",
+      "rows": [
+        { "m": "M-07", "l": "Calidad, PWA y accesibilidad", "r": "72 h" },
+        { "m": "M-08", "l": "DevOps, documentación y handoff", "r": "48 h" },
+        { "m": "M-09", "l": "Producto y aceptación", "r": "33,6 h" },
+        { "kind": "total", "l": "633,6 horas de módulo completo", "r": "USD 38.016" }
+      ] },
+
+    { "n": 14, "type": "card", "kicker": "CÓMO SE BAJA EL PRECIO", "duration": 14,
+      "head": "No se negocia la hora: se sacan módulos.",
+      "rows": [
+        { "kind": "neg", "m": "M-05", "l": "Alertas, asistente y diagramas", "r": "− USD 3.360" },
+        { "kind": "neg", "m": "M-04", "l": "Planificación y Modo Viaje", "r": "− USD 5.280" },
+        { "kind": "neg", "m": "M-03", "l": "Mapa y transporte en vivo", "r": "− USD 5.280" },
+        { "kind": "neg", "m": "M-07", "l": "Calidad, PWA y accesibilidad", "r": "− USD 4.320" }
+      ],
+      "foot": "Se define en la negociación qué módulos entran. Todo lo que se agregue después va por adenda, con presupuesto aprobado antes de empezar." },
+
+    { "n": 15, "type": "card", "kicker": "QUÉ NO ESTÁ INCLUIDO", "duration": 14,
+      "head": "Para que no haya sorpresas después de firmar.",
+      "rows": [
+        { "l": "Pagos y reservas" },
+        { "l": "Cuentas de usuario y favoritos persistentes" },
+        { "l": "Panel administrativo" },
+        { "l": "Histórico geográfico y notificaciones transaccionales" },
+        { "l": "Operación 24x7 y guardias permanentes" },
+        { "l": "Hosting, licencias, mapas y APIs pagas" }
+      ],
+      "foot": "Si alguno de estos hace falta, se presupuesta aparte antes de arrancar." },
+
+    { "n": 16, "type": "card", "kicker": "LA DEPENDENCIA REAL", "duration": 13,
+      "head": "La API la entrega Metropol. Es lo único que no depende de nosotros.",
+      "rows": [
+        { "l": "URL base y ambiente de prueba" },
+        { "l": "Credenciales y documentación técnica" },
+        { "l": "Payloads, límites de uso y cuotas" },
+        { "l": "Datos de líneas, ramales y paradas" }
+      ],
+      "foot": "Sin esos insumos se entrega el adaptador y un mock operativo: la activación productiva queda condicionada a que la empresa los provea." },
+
+    { "n": 17, "type": "card", "kicker": "SEIS MESES, MES POR MES", "duration": 15,
+      "head": "Qué se entrega en cada mes.",
+      "rows": [
+        { "kind": "step", "n": "1", "l": "Relevamiento, arquitectura y riesgos" },
+        { "kind": "step", "n": "2", "l": "Fundaciones técnicas y adaptadores" },
+        { "kind": "step", "n": "3", "l": "Datos, caché y resiliencia" },
+        { "kind": "step", "n": "4", "l": "Producto: mapa, líneas, viaje y alertas" },
+        { "kind": "step", "n": "5", "l": "Calidad, accesibilidad y PWA" },
+        { "kind": "step", "n": "6", "l": "Aceptación, documentación y handoff" }
+      ],
+      "foot": "Extensión opcional de hasta 2 meses, sólo para deuda técnica y estabilización: no incluye funcionalidades nuevas." },
+
+    { "n": 18, "type": "card", "kicker": "PRECIO Y FORMA DE PAGO", "duration": 17,
+      "big": "<span class=\"cur\">USD</span>38.016",
+      "sub": "6 cuotas mensuales de USD 6.336",
+      "rows": [
+        { "l": "La primera cuota se paga antes de arrancar e incluye la maqueta y el pre-MVP ya entregados" },
+        { "l": "Las cuotas siguientes, del 1 al 10 de cada mes" },
+        { "l": "En pesos, al dólar oficial vendedor del Banco de la Nación" },
+        { "l": "Suscripciones de desarrollo (Cursor + Claude Code o Codex) a cargo del contratante" }
+      ],
+      "foot": "Las cuotas devengadas y los trabajos ejecutados no se reintegran." },
+
+    { "n": 19, "type": "card", "kicker": "DESPUÉS DE LA ENTREGA", "duration": 13,
+      "head": "Qué pasa cuando el producto ya está entregado.",
+      "rows": [
+        { "l": "Corrección de defectos reproducibles", "r": "30 días" },
+        { "l": "Mantenimiento por tarea", "r": "USD 60 / hora" },
+        { "l": "Bolsa mensual de 20 horas", "r": "USD 1.200" },
+        { "l": "Bolsa mensual de 40 horas", "r": "USD 2.400" }
+      ],
+      "foot": "Primera respuesta: crítica 4 h hábiles · alta 1 día · media 3 días · baja 5 días." },
+
+    { "n": 20, "type": "card", "kicker": "PRÓXIMO PASO", "duration": 13,
+      "head": "Cuatro pasos y arrancamos.",
+      "rows": [
+        { "kind": "step", "n": "1", "l": "Aprueban el presupuesto" },
+        { "kind": "step", "n": "2", "l": "Firman el contrato" },
+        { "kind": "step", "n": "3", "l": "Se abona la primera cuota" },
+        { "kind": "step", "n": "4", "l": "Arranca el mes 1: relevamiento y arquitectura" }
+      ],
+      "foot": "demobondisok-ten.vercel.app", "footMono": true }
+  ]
+}
