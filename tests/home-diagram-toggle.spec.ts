@@ -1,139 +1,179 @@
-import { test, expect } from '@playwright/test';
+import { expect, test, type Page } from "@playwright/test";
 
-/**
- * QA E2E del toggle "Ver diagrama lineal" en /inicio.
- * Complementa home-linea-first.spec.ts cubriendo el toggle, el filtrado
- * por línea activa, el highlight visual y el atajo Esc.
- *
- * Nota: el home auto-selecciona la primera línea operativa (65), así que
- * el toggle está habilitado desde el primer render.
- */
-
-const svgSel = 'svg[role="img"][aria-label*="Diagrama lineal"]';
 const chip65 = /^Línea 65\./;
+const chip163 = /^Línea 163\./;
+const chip194 = /^Línea 194\./;
 
-test.describe('Home diagram toggle', () => {
+async function openDiagram(page: Page) {
+  await page.getByRole("button", { name: "Ver diagrama lineal." }).click();
+  await expect(page.getByTestId("line-schematic")).toBeVisible();
+}
+
+test.describe("Home diagram toggle", () => {
   test.use({ viewport: { width: 390, height: 844 } });
-  // /inicio monta un mapa WebGL (SwiftShader en este entorno): cada goto tarda
-  // 15-40s. Presupuesto ×3 para que el timeout no mida latencia de GPU.
   test.slow();
 
-  test('toggle button visible on /inicio even before selecting a line', async ({ page }) => {
-    await page.goto('/inicio');
-    const btn = page.getByRole('button', { name: 'Ver diagrama lineal.' });
-    await expect(btn).toBeVisible();
+  test("the toggle is available for the default selected line", async ({
+    page,
+  }) => {
+    await page.goto("/inicio");
+    await expect(
+      page.getByRole("button", { name: "Ver diagrama lineal." }),
+    ).toBeEnabled();
   });
 
-  test('toggle button enabled by default (a line is auto-selected)', async ({ page }) => {
-    await page.goto('/inicio');
-    const btn = page.getByRole('button', { name: 'Ver diagrama lineal.' });
-    await expect(btn).toBeEnabled();
+  test("keeps one 176px slot and does not move the stop card when toggled", async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/inicio");
+
+    const slot = page.getByTestId("map-diagram-slot");
+    const stopCard = page.getByText("Tu parada", { exact: true });
+    const mapHeight = await slot.evaluate(
+      (element) => element.getBoundingClientRect().height,
+    );
+    const mapCardTop = await stopCard.evaluate(
+      (element) => element.getBoundingClientRect().top,
+    );
+
+    await openDiagram(page);
+
+    const diagramHeight = await slot.evaluate(
+      (element) => element.getBoundingClientRect().height,
+    );
+    const diagramCardTop = await stopCard.evaluate(
+      (element) => element.getBoundingClientRect().top,
+    );
+    expect(mapHeight).toBe(176);
+    expect(diagramHeight).toBe(176);
+    expect(Math.abs(diagramCardTop - mapCardTop)).toBeLessThan(1);
   });
 
-  test('toggle button enabled once a line is selected', async ({ page }) => {
-    await page.goto('/inicio');
-    await page.getByRole('button', { name: chip65 }).click();
-    const btn = page.getByRole('button', { name: 'Ver diagrama lineal.' });
-    await expect(btn).toBeEnabled();
+  test("renders the active stop and opens the existing stop picker from a diagram stop", async ({
+    page,
+  }) => {
+    await page.goto("/inicio");
+    await page.getByRole("button", { name: chip65 }).click();
+    await openDiagram(page);
+
+    const schematic = page.getByTestId("line-schematic");
+    await expect(schematic.locator("li[data-stop-id]")).toHaveCount(9);
+    await expect(
+      schematic.locator('button[aria-current="location"]'),
+    ).toHaveAttribute("aria-current", "location");
+
+    await schematic.locator("li[data-stop-id] button").nth(2).click();
+    await expect(
+      page.getByRole("dialog", { name: /Elegí tu parada/ }),
+    ).toBeVisible();
   });
 
-  test('opening the diagram swaps the map for an SVG schematic', async ({ page }) => {
-    await page.goto('/inicio');
-    await page.getByRole('button', { name: chip65 }).click();
-    await page.getByRole('button', { name: 'Ver diagrama lineal.' }).click();
-    await expect(page.locator(svgSel)).toBeVisible();
+  test("updates and recenters the schematic after selecting a stop in the picker", async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/inicio");
+    await openDiagram(page);
+
+    const schematic = page.getByTestId("line-schematic");
+    await schematic.locator("li[data-stop-id] button").first().click();
+    const dialog = page.getByRole("dialog", { name: /Elegí tu parada/ });
+    await dialog
+      .getByRole("textbox", { name: "Nombre de la parada" })
+      .fill("Barrancas");
+    await dialog.getByRole("listitem").first().getByRole("button").click();
+
+    const activeStop = schematic.locator('button[aria-current="location"]');
+    await expect(activeStop).toBeVisible();
+    const centerDelta = await schematic.evaluate((root) => {
+      const scroller = root.querySelector<HTMLElement>(
+        '[data-testid="schematic-scroller"]',
+      )!;
+      const active = root.querySelector<HTMLElement>(
+        'button[aria-current="location"]',
+      )!;
+      const activeRect = active.getBoundingClientRect();
+      const scrollerRect = scroller.getBoundingClientRect();
+      return Math.abs(
+        activeRect.left +
+          activeRect.width / 2 -
+          (scrollerRect.left + scrollerRect.width / 2),
+      );
+    });
+    expect(centerDelta).toBeLessThanOrEqual(16);
   });
 
-  test('diagram SVG renders horizontally with multiple stops', async ({ page }) => {
-    await page.goto('/inicio');
-    await page.getByRole('button', { name: chip65 }).click();
-    await page.getByRole('button', { name: 'Ver diagrama lineal.' }).click();
-    const svg = page.locator(svgSel);
-    await expect(svg).toBeVisible();
-    // Más de 3 círculos = varias paradas dibujadas
-    const circles = svg.locator('circle');
-    await expect(circles).not.toHaveCount(0);
+  test("uses a full-width continuous track for short and long routes", async ({
+    page,
+  }) => {
+    await page.goto("/inicio");
+    await page.getByRole("button", { name: chip163 }).click();
+    await openDiagram(page);
+    await expect(
+      page.getByTestId("line-schematic").locator("li[data-stop-id]"),
+    ).toHaveCount(4);
+
+    await page.getByRole("button", { name: "Volver al mapa en vivo" }).click();
+    await page.getByRole("button", { name: chip194 }).click();
+    await openDiagram(page);
+
+    const schematic = page.getByTestId("line-schematic");
+    await expect(schematic.locator("li[data-stop-id]")).toHaveCount(38);
+    const dimensions = await schematic.evaluate((root) => {
+      const scroller = root.querySelector<HTMLElement>(
+        '[data-testid="schematic-scroller"]',
+      )!;
+      const track = root.querySelector<HTMLElement>(
+        '[data-testid="schematic-track"]',
+      )!;
+      scroller.scrollLeft = scroller.scrollWidth;
+      return {
+        trackWidth: track.offsetWidth,
+        scrollWidth: scroller.scrollWidth,
+      };
+    });
+    expect(
+      Math.abs(dimensions.trackWidth - dimensions.scrollWidth),
+    ).toBeLessThanOrEqual(1);
   });
 
-  test('diagram container is taller than the map (h-[240px])', async ({ page }) => {
-    await page.goto('/inicio');
-    await page.getByRole('button', { name: chip65 }).click();
-    await page.getByRole('button', { name: 'Ver diagrama lineal.' }).click();
-    const svg = page.locator(svgSel);
-    const box = await svg.boundingBox();
-    expect(box).not.toBeNull();
-    // El diagrama debe ocupar al menos 200px de alto (vs 176px del mapa viejo).
-    expect(box!.height).toBeGreaterThanOrEqual(200);
+  test("is keyboard-operable with a visible focus indicator", async ({
+    page,
+  }) => {
+    await page.goto("/inicio");
+    await openDiagram(page);
+
+    const lastStop = page
+      .getByTestId("line-schematic")
+      .locator("li[data-stop-id] button")
+      .last();
+    await page.keyboard.press("Shift+Tab");
+    await expect(lastStop).toBeFocused();
+    const focusStyle = await lastStop.evaluate(
+      (element) => getComputedStyle(element).boxShadow,
+    );
+    expect(focusStyle).not.toBe("none");
+    await page.keyboard.press("Enter");
+    await expect(
+      page.getByRole("dialog", { name: /Elegí tu parada/ }),
+    ).toBeVisible();
   });
 
-  test('labels do not overlap when line has many stops', async ({ page }) => {
-    await page.goto('/inicio');
-    await page.getByRole('button', { name: chip65 }).click();
-    await page.getByRole('button', { name: 'Ver diagrama lineal.' }).click();
-    const svg = page.locator(svgSel);
-    // Obtener todos los <text> visibles y verificar que ninguno se superpone
-    // en X con otro label (mismo y ±fontHeight).
-    const labels = await svg.locator('text').all();
-    const boxes = await Promise.all(labels.map((l) => l.boundingBox()));
-    const visible = boxes.filter((b): b is NonNullable<typeof b> => b !== null);
-    for (let i = 0; i < visible.length; i += 1) {
-      for (let j = i + 1; j < visible.length; j += 1) {
-        const a = visible[i]!;
-        const b = visible[j]!;
-        // Si están en la misma fila vertical (±6px) y se solapan en X → fail
-        if (Math.abs(a.y - b.y) < 12 && Math.abs(a.x - b.x) < Math.max(a.width, b.width) / 2) {
-          // Permitir hasta cierto punto: diferencia de X debe ser >= ancho del más chico
-          const minGap = Math.min(a.width, b.width) / 2;
-          if (Math.abs(a.x - b.x) < minGap) {
-            throw new Error(`Labels superpuestos en (${a.x},${a.y}) y (${b.x},${b.y})`);
-          }
-        }
-      }
-    }
+  test("Esc returns from the diagram to the map", async ({ page }) => {
+    await page.goto("/inicio");
+    await openDiagram(page);
+    await page.keyboard.press("Escape");
+    await expect(
+      page.getByRole("button", { name: "Ver diagrama lineal." }),
+    ).toBeVisible();
   });
 
-  test('selected stop is highlighted in the diagram', async ({ page }) => {
-    await page.goto('/inicio');
-    await page.getByRole('button', { name: chip65 }).click();
-    // change the stop
-    await page.getByRole('button', { name: /^Cambiar parada/ }).click();
-    const picker = page.getByRole('dialog', { name: /Elegí tu parada/ });
-    await picker.getByRole('textbox', { name: 'Nombre de la parada' }).fill('Barrancas');
-    // submit / select a result (scoped al diálogo: los <li> de arribos quedan detrás del overlay)
-    await picker.getByRole('listitem').first().click();
-    await page.getByRole('button', { name: 'Ver diagrama lineal.' }).click();
-    const svg = page.locator(svgSel);
-    await expect(svg).toBeVisible();
-    // Hay al menos un dot con halo (highlight)
-    const haloedDots = svg.locator('circle[opacity="0.35"]');
-    await expect(haloedDots).not.toHaveCount(0);
-  });
-
-  test('double-tap chip opens the full diagram of that line', async ({ page }) => {
-    await page.goto('/inicio');
-    // doble tap en línea 65 → toast "Ruta confirmada" + navegación a /diagrama/line-65
-    const chip = page.getByRole('button', { name: chip65 });
-    await chip.dblclick();
+  test("double-tapping a line chip still opens the full line diagram", async ({
+    page,
+  }) => {
+    await page.goto("/inicio");
+    await page.getByRole("button", { name: chip65 }).dblclick();
     await expect(page).toHaveURL(/\/diagrama\/line-65/);
-  });
-
-  test('selected line is visually highlighted in diagram (colored track)', async ({ page }) => {
-    await page.goto('/inicio');
-    await page.getByRole('button', { name: chip65 }).click();
-    await page.getByRole('button', { name: 'Ver diagrama lineal.' }).click();
-    const svg = page.locator(svgSel);
-    // El track principal del diagrama usa el color de la línea seleccionada.
-    const track = svg.locator('line[stroke-width="2.5"]');
-    await expect(track).toHaveCount(1);
-    await expect(track).toHaveAttribute('stroke', /./);
-  });
-
-  test('Esc closes the diagram and returns to the map', async ({ page }) => {
-    await page.goto('/inicio');
-    // Sin click extra: la 65 ya viene auto-seleccionada.
-    await page.getByRole('button', { name: 'Ver diagrama lineal.' }).click();
-    await expect(page.getByRole('button', { name: 'Volver al mapa en vivo' })).toBeVisible();
-    await page.keyboard.press('Escape');
-    await expect(page.getByRole('button', { name: 'Ver diagrama lineal.' })).toBeVisible();
   });
 });
