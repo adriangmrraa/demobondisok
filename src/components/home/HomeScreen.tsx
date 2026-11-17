@@ -41,7 +41,7 @@ import { LineArrivalsCard } from '@/components/home/line-first/LineArrivalsCard'
 import { StopPickerSheet } from '@/components/home/line-first/StopPickerSheet';
 import { RecentTrips } from '@/components/home/line-first/RecentTrips';
 import { ViewMapCta } from '@/components/home/line-first/ViewMapCta';
-import { LineSchematic } from '@/components/diagrama/LineSchematic';
+import { LineDiagramPanel } from '@/components/home/line-first/LineDiagramPanel';
 import { useLineFirstSelection } from '@/hooks/use-line-first-selection';
 import { useIdlePulse } from '@/hooks/use-idle-pulse';
 import { stopAreaBounds, type CatalogLine } from '@/lib/home/line-first';
@@ -569,45 +569,12 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                   discoverability), aunque deshabilitado hasta que haya
                   lineContext. La altura del slot se mantiene para que el
                   layout no salte cuando aparece el mapa. */}
-              <div className="relative" style={{ '--home-delay': '260ms' } as CSSProperties}>
+              <div className="relative h-[176px]" data-testid="map-diagram-slot" style={{ '--home-delay': '260ms' } as CSSProperties}>
                 {showLinearDiagram ? (
                   lineContext ? (
-                    (() => {
-                      const originName = lineContext.recorrido.origen;
-                      const destinationName = lineContext.recorrido.destino;
-                      const originLabel = destinationName
-                        ? `${originName} hacia ${destinationName}`
-                        : originName;
-                      const etaText = (() => {
-                        const next = lineFirst.arrivals[0];
-                        if (!next) return undefined;
-                        if (next.displayStatus === 'en-parada' || next.minutos === 0) return 'En la parada';
-                        if (next.displayStatus === 'arribando') return 'Llegando';
-                        return `Llega en ${next.minutos} min`;
-                      })();
-                      return (
-                        <div className="space-y-0">
-                          {/* Diagrama con scroll horizontal cuando hay muchas paradas.
-                              Sin cabecera extra: la cabecera (origen/destino) vive DENTRO del SVG. */}
-                          <div className="home-rise h-[176px] overflow-x-auto overflow-y-hidden rounded-3xl border border-hairline bg-[#121418] p-3">
-                            <LineSchematic
-                              origin={originLabel}
-                              eta={etaText}
-                              color={lineContext.line.color}
-                              stops={lineContext.stops.map((stop, i) => ({
-                                id: stop.id,
-                                nombre: stop.nombre,
-                                tipo: i === 0 || i === lineContext.stops.length - 1 ? 'CABECERA' : undefined,
-                              }))}
-                              highlightStopId={lineContext.stop.id}
-                              className="min-w-full"
-                            />
-                          </div>
-                        </div>
-                      );
-                    })()
+                    <LineDiagramPanel context={lineContext} arrival={lineFirst.arrivals[0]} onOpenStopPicker={openStopPicker} />
                   ) : (
-                    <div className="home-rise flex h-[176px] items-center justify-center rounded-3xl border border-dashed border-hairline bg-canvas-soft px-4 text-center">
+                    <div className="home-rise flex h-full items-center justify-center rounded-3xl border border-dashed border-hairline bg-canvas-soft px-4 text-center">
                       <p className="text-xs font-medium text-text-muted">
                         Seleccioná una línea para ver su diagrama lineal.
                       </p>
@@ -622,14 +589,11 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                     bounds={previewBounds}
                     href={lineFirst.journeyHref}
                     ariaLabel={`Ver la línea ${lineContext.line.numero} en el mapa en vivo, parada ${lineContext.stop.nombre}`}
-                    className="h-[176px]"
+                    className="h-full"
                   />
                 ) : (
-                  <div className="h-[176px] rounded-3xl border border-hairline home-surface" aria-hidden="true" />
+                  <div className="h-full rounded-3xl border border-hairline home-surface" aria-hidden="true" />
                 )}
-                {/* Toggle incorporado dentro del contenedor del mapa (estilo
-                    controles nativos de mapas: glass + absolute, no "botón suelto").
-                    B4: disabled cuando no hay línea seleccionada. */}
                 <button
                   type="button"
                   onClick={() => setShowLinearDiagram((value) => !value)}
@@ -733,25 +697,12 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                 </p>
               )}
               {/* B4: wrapper siempre renderizado; botón siempre visible (disabled sin línea). */}
-              <div className="relative mt-2.5" style={{ '--home-delay': '360ms' } as CSSProperties}>
+              <div className="relative mt-2.5 h-[176px]" data-testid="map-diagram-slot" style={{ '--home-delay': '360ms' } as CSSProperties}>
                 {showLinearDiagram ? (
                   lineContext ? (
-                    <div className="home-rise h-[176px] overflow-x-auto overflow-y-hidden rounded-3xl border border-hairline bg-[#121418] p-3">
-                      <LineSchematic
-                        origin={`${lineContext.recorrido.origen} hacia ${lineContext.recorrido.destino}`}
-                        eta={lineFirst.arrivals[0] ? (lineFirst.arrivals[0].displayStatus === 'en-parada' || lineFirst.arrivals[0].minutos === 0 ? 'En la parada' : lineFirst.arrivals[0].displayStatus === 'arribando' ? 'Llegando' : `Llega en ${lineFirst.arrivals[0].minutos} min`) : undefined}
-                        color={lineContext.line.color}
-                        stops={lineContext.stops.map((stop, i) => ({
-                          id: stop.id,
-                          nombre: stop.nombre,
-                          tipo: i === 0 || i === lineContext.stops.length - 1 ? 'CABECERA' : undefined,
-                        }))}
-                        highlightStopId={lineContext.stop.id}
-                        className="min-w-full"
-                      />
-                    </div>
+                    <LineDiagramPanel context={lineContext} arrival={lineFirst.arrivals[0]} onOpenStopPicker={openStopPicker} />
                   ) : (
-                    <div className="home-rise flex h-[176px] items-center justify-center rounded-3xl border border-dashed border-hairline bg-canvas-soft px-4 text-center">
+                    <div className="home-rise flex h-full items-center justify-center rounded-3xl border border-dashed border-hairline bg-canvas-soft px-4 text-center">
                       <p className="text-xs font-medium text-text-muted">
                         Seleccioná una línea para ver su diagrama lineal.
                       </p>
@@ -766,10 +717,10 @@ export function HomeScreen({ variant, catalog }: HomeScreenProps) {
                     bounds={previewBounds}
                     href={lineFirst.journeyHref}
                     ariaLabel={`Ver la línea ${lineContext.line.numero} en el mapa en vivo, parada ${lineContext.stop.nombre}`}
-                    className="h-[176px]"
+                    className="h-full"
                   />
                 ) : (
-                  <div className="h-[176px] rounded-3xl border border-hairline home-surface" aria-hidden="true" />
+                  <div className="h-full rounded-3xl border border-hairline home-surface" aria-hidden="true" />
                 )}
                 <button
                   type="button"
